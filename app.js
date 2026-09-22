@@ -176,22 +176,46 @@ function go(routeName){
   renderRoute();
 }
 
+function passwordInput(label,name,extra=''){
+  return '<div class="field"><label>'+esc(label)+'</label><div class="password-wrap"><input class="input password-input" type="password" name="'+name+'" '+extra+'><button class="password-toggle" type="button" aria-label="Show password" title="Show password"><span class="eye-open">◉</span><span class="eye-closed">—</span></button></div></div>';
+}
+function bindPasswordToggle(root=document){
+  root.querySelectorAll('.password-toggle').forEach(btn=>{
+    btn.onclick=()=>{
+      const input=btn.closest('.password-wrap')?.querySelector('input');
+      if(!input)return;
+      const show=input.type==='password';
+      input.type=show?'text':'password';
+      btn.classList.toggle('is-visible',show);
+      btn.setAttribute('aria-label',show?'Hide password':'Show password');
+      btn.setAttribute('title',show?'Hide password':'Show password');
+    };
+  });
+}
 function renderLogin(error=''){
   app.className='';
   app.innerHTML =
-    '<div class="auth-wrap">'+
-      '<section class="auth-hero"><div class="auth-logo"><div class="brand-mark">V</div>VISION LEARNING CENTRE</div>'+
-        '<div class="auth-hero-copy"><h1>Your centre.<br>One clear system.</h1><p>Manage students, groups, attendance, payments, staff and academic progress in one secure place.</p><div class="auth-badges"><span class="auth-badge">Students</span><span class="auth-badge">Attendance</span><span class="auth-badge">Payments</span><span class="auth-badge">Reports</span></div></div>'+
-        '<div style="font-size:12px;color:#9fc4d8">Vision CRM • Internal management system</div></section>'+
-      '<section class="auth-panel"><div class="auth-card"><h2>Welcome back</h2><p class="sub">Sign in with your Vision CRM account.</p>'+
+    '<div class="auth-wrap auth-login">'+
+      '<section class="auth-hero">'+
+        '<div class="auth-logo"><img src="./vision-logo.jpg" alt="Vision Learning Centre logo"><div><strong>VISION</strong><span>LEARNING CENTRE</span></div></div>'+
+        '<div class="auth-hero-copy"><div class="eyebrow">VISION CRM</div><h1>Everything your centre needs,<br>in one clear system.</h1><p>Students, groups, attendance, payments, staff and academic progress — securely managed in one place.</p><div class="auth-badges"><span class="auth-badge">Students</span><span class="auth-badge">Attendance</span><span class="auth-badge">Payments</span><span class="auth-badge">Reports</span></div></div>'+
+        '<div class="auth-footer-note">Vision Learning Centre • Internal management system</div>'+
+      '</section>'+
+      '<section class="auth-panel"><div class="auth-card">'+
+        '<div class="login-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision CRM</strong><span>Secure staff access</span></div></div>'+
+        '<div class="login-heading"><h2>Welcome back</h2><p class="sub">Enter your account details to continue.</p></div>'+
         (error?'<div class="login-error">'+esc(error)+'</div>':'')+
-        '<form id="login-form" class="form-grid">'+field('Email','email','','email','required autocomplete="email"')+field('Password','password','','password','required autocomplete="current-password"')+
-        '<button class="btn btn-primary btn-block" type="submit">Sign in</button></form>'+
-        '<div class="auth-help"><span>Accounts are created by the owner.</span><button class="link-btn" id="forgot">Forgot password?</button></div>'+
+        '<form id="login-form" class="form-grid">'+
+          field('Email address','email','','email','required autocomplete="email" placeholder="you@example.com"')+
+          passwordInput('Password','password','required autocomplete="current-password" placeholder="Enter your password"')+
+          '<button class="btn btn-primary btn-block login-submit" type="submit"><span>Sign in</span><span aria-hidden="true">→</span></button>'+
+        '</form>'+
+        '<div class="auth-help"><span>Vision Learning Centre staff only</span><button class="link-btn" id="forgot">Forgot password?</button></div>'+
       '</div></section></div>';
+  bindPasswordToggle(app);
   document.getElementById('login-form').onsubmit=async e=>{
     e.preventDefault();
-    const b=e.currentTarget.querySelector('button'); b.disabled=true;b.textContent='Signing in…';
+    const b=e.currentTarget.querySelector('[type="submit"]'); b.disabled=true;b.innerHTML='<span>Signing in…</span>';
     const {error}=await sb.auth.signInWithPassword({email:val(e.currentTarget,'email'),password:val(e.currentTarget,'password')});
     if(error){renderLogin(error.message);}
   };
@@ -206,7 +230,8 @@ function renderLogin(error=''){
 }
 function renderPasswordUpdate(){
   app.className='';
-  app.innerHTML='<div class="auth-wrap"><section class="auth-hero"><div class="auth-logo"><div class="brand-mark">V</div>VISION LEARNING CENTRE</div><div class="auth-hero-copy"><h1>Set a new password.</h1><p>Choose a strong password for your Vision CRM account.</p></div><div></div></section><section class="auth-panel"><div class="auth-card"><h2>New password</h2><p class="sub">Use at least 8 characters.</p><form id="pw-form" class="form-grid">'+field('New password','password','','password','required minlength="8"')+'<button class="btn btn-primary" type="submit">Update password</button></form></div></section></div>';
+  app.innerHTML='<div class="auth-wrap"><section class="auth-hero"><div class="auth-logo"><img src="./vision-logo.jpg" alt="Vision Learning Centre logo"><div><strong>VISION</strong><span>LEARNING CENTRE</span></div></div><div class="auth-hero-copy"><div class="eyebrow">ACCOUNT SECURITY</div><h1>Set a new password.</h1><p>Choose a strong password for your Vision CRM account.</p></div><div></div></section><section class="auth-panel"><div class="auth-card"><div class="login-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision CRM</strong><span>Secure account access</span></div></div><h2>New password</h2><p class="sub">Use at least 8 characters.</p><form id="pw-form" class="form-grid">'+passwordInput('New password','password','required minlength="8" autocomplete="new-password"')+'<button class="btn btn-primary btn-block" type="submit">Update password</button></form></div></section></div>';
+  bindPasswordToggle(app);
   document.getElementById('pw-form').onsubmit=async e=>{
     e.preventDefault(); const {error}=await sb.auth.updateUser({password:val(e.currentTarget,'password')});
     if(error) return fail(error); toast('Password updated.'); state.route='dashboard'; await renderRoute();
