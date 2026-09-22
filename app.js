@@ -1,15 +1,26 @@
 (() => {
 'use strict';
 
+const app = document.getElementById('app');
+const toastEl = document.getElementById('toast');
+const modalRoot = document.getElementById('modal-root');
+
+function renderBootError(message){
+  app.className='';
+  app.innerHTML='<div class="auth-wrap"><section class="auth-panel" style="grid-column:1/-1"><div class="auth-card"><h2>Vision CRM could not start</h2><p class="sub">'+String(message||'Please check your connection and reload the page.')+'</p><button class="btn btn-primary btn-block" id="boot-reload">Reload CRM</button></div></section></div>';
+  document.getElementById('boot-reload')?.addEventListener('click',()=>location.reload());
+}
+
+if(!window.supabase?.createClient){
+  renderBootError('The secure CRM library did not load. Check your internet connection and reload the page.');
+  return;
+}
+
 const SUPABASE_URL = 'https://ctdzmoaftajdkvreyqox.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_DW6EY5_aJ6TShRxhq3x28g_TGJ-kEBJ';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
 });
-
-const app = document.getElementById('app');
-const toastEl = document.getElementById('toast');
-const modalRoot = document.getElementById('modal-root');
 
 const state = {
   session: null,
@@ -63,8 +74,15 @@ const val = (form, name) => form.elements[name]?.value?.trim?.() ?? form.element
 const checked = (form,name) => !!form.elements[name]?.checked;
 const role = () => state.profile?.role || 'teacher';
 const can = (...roles) => roles.includes(role());
+const withTimeout = (promise, ms=20000, message='The request took too long. Please try again.') => {
+  let timer;
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise((_,reject)=>{ timer=setTimeout(()=>reject(new Error(message)),ms); })
+  ]).finally(()=>clearTimeout(timer));
+};
 const query = async (promise) => {
-  const {data,error} = await promise;
+  const {data,error} = await withTimeout(promise);
   if (error) throw error;
   return data;
 };
@@ -475,17 +493,67 @@ async function renderRoute(force=false){
   }catch(e){console.error(e);renderShell('<section class="panel"><div class="panel-body"><div class="login-error"><strong>Could not load this page.</strong><br>'+esc(e.message||e)+'</div><button class="btn btn-primary" id="retry">Try again</button></div></section>');document.getElementById('retry').onclick=()=>renderRoute(true);}
 }
 
-sb.auth.onAuthStateChange(async(event,session)=>{
+let authGeneration=0;
+
+async function applySession(session,{render=true}={}){
   state.session=session;
-  if(event==='PASSWORD_RECOVERY'){renderPasswordUpdate();return;}
-  if(!session){state.profile=null;state.staff=null;renderLogin();return;}
-  try{await loadIdentity();await renderRoute();}catch(e){fail(e);renderLogin(e.message);}
+  if(!session){
+    state.profile=null;
+    state.staff=null;
+    if(render) renderLogin();
+    return;
+  }
+  await loadIdentity();
+  if(render) await renderRoute();
+}
+
+async function handleAuthEvent(event,session,generation){
+  if(generation!==authGeneration) return;
+  try{
+    if(event==='PASSWORD_RECOVERY'){
+      state.session=session;
+      renderPasswordUpdate();
+      return;
+    }
+    if(event==='SIGNED_OUT'){
+      await applySession(null);
+      return;
+    }
+    if(event==='TOKEN_REFRESHED'){
+      state.session=session;
+      return;
+    }
+    if(event==='SIGNED_IN' || event==='USER_UPDATED'){
+      await applySession(session);
+    }
+  }catch(e){
+    console.error(e);
+    fail(e);
+    if(event!=='TOKEN_REFRESHED') renderLogin(e.message);
+  }
+}
+
+sb.auth.onAuthStateChange((event,session)=>{
+  if(event==='INITIAL_SESSION') return;
+  const generation=++authGeneration;
+  setTimeout(()=>{ void handleAuthEvent(event,session,generation); },0);
 });
 
 (async function init(){
-  const {data:{session}}=await sb.auth.getSession();
-  state.session=session;
-  if(session){try{await loadIdentity();await renderRoute();}catch(e){console.error(e);renderLogin(e.message);}}
-  else renderLogin();
+  try{
+    const result=await withTimeout(
+      sb.auth.getSession(),
+      15000,
+      'Vision CRM could not restore your login session. Please reload the page.'
+    );
+    if(result.error) throw result.error;
+    await applySession(result.data.session);
+  }catch(e){
+    console.error(e);
+    state.session=null;
+    state.profile=null;
+    state.staff=null;
+    renderLogin(e.message||'Could not start Vision CRM.');
+  }
 })();
 })();
