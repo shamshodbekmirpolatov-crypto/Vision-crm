@@ -70,6 +70,29 @@ const monthStart = d => {
 const today = () => new Date().toISOString().slice(0,10);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 const initials = name => (name||'V').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();
+const humanize = v => String(v ?? '').replaceAll('_',' ').replace(/\b\w/g,m=>m.toUpperCase());
+function uiIcon(name){
+  const paths={
+    dashboard:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+    leads:'<circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c.8-4 3.1-6 6.5-6 2 0 3.6.7 4.7 2"/><path d="M18 11v6M15 14h6"/>',
+    students:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+    groups:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 10v10M15 10v10"/>',
+    attendance:'<circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16.5 8.5"/>',
+    academic:'<path d="M4 19V5M4 19h16"/><path d="m7 15 4-4 3 2 5-6"/>',
+    payments:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M7 15h3"/>',
+    expenses:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z"/><path d="M9 8h6M9 12h6"/>',
+    staff:'<circle cx="9" cy="8" r="3.5"/><path d="M3 20c.7-4 2.8-6 6-6s5.3 2 6 6"/><path d="M18 8h3M19.5 6.5v3"/>',
+    reports:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+    users:'<path d="M12 3 4.5 6v5c0 4.8 3.1 8.1 7.5 10 4.4-1.9 7.5-5.2 7.5-10V6L12 3Z"/><circle cx="12" cy="10" r="2.5"/><path d="M8.5 16c.8-2 2-3 3.5-3s2.7 1 3.5 3"/>',
+    settings:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M2 12h3M19 12h3M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/>',
+    refresh:'<path d="M20 6v5h-5"/><path d="M20 11a8 8 0 1 0 1 5"/>',
+    logout:'<path d="M10 17l5-5-5-5M15 12H3"/><path d="M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5"/>',
+    plus:'<path d="M12 5v14M5 12h14"/>',
+    alert:'<path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 9v4M12 17h.01"/>'
+  };
+  const body=paths[name]||paths.dashboard;
+  return '<svg class="ui-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+body+'</svg>';
+}
 const val = (form, name) => form.elements[name]?.value?.trim?.() ?? form.elements[name]?.value ?? '';
 const checked = (form,name) => !!form.elements[name]?.checked;
 const role = () => state.profile?.role || 'teacher';
@@ -101,6 +124,7 @@ function openModal(title, body, onSubmit, submitLabel='Save'){
     '<div class="modal-body">'+body+'</div>'+
     '<div class="modal-foot"><button class="btn btn-secondary" type="button" data-close>Cancel</button><button class="btn btn-primary" type="submit">'+esc(submitLabel)+'</button></div>'+
     '</form></div></div>';
+  bindPasswordToggle(modalRoot);
   modalRoot.querySelectorAll('[data-close]').forEach(b=>b.onclick=closeModal);
   modalRoot.querySelector('.modal-backdrop').onclick=e=>{ if(e.target.classList.contains('modal-backdrop')) closeModal(); };
   modalRoot.querySelector('#modal-form').onsubmit=async e=>{
@@ -145,21 +169,21 @@ function renderShell(content){
   const nav=allowedRoutes().map(n=>{
     const heading=n.group!==lastGroup ? '<div class="nav-group">'+esc(n.group)+'</div>' : '';
     lastGroup=n.group;
-    return heading+'<button class="nav-btn '+(state.route===n.id?'active':'')+'" data-route="'+n.id+'"><span class="nav-icon">'+n.icon+'</span>'+esc(n.label)+'</button>';
+    return heading+'<button class="nav-btn '+(state.route===n.id?'active':'')+'" data-route="'+n.id+'"><span class="nav-icon">'+uiIcon(n.id)+'</span><span>'+esc(n.label)+'</span></button>';
   }).join('');
   app.className='';
   app.innerHTML =
     '<div class="shell">'+
       '<aside class="sidebar '+(state.sidebarOpen?'open':'')+'">'+
-        '<div class="sidebar-brand"><div class="brand-mark">V</div><div><strong>Vision CRM</strong><span>Learning Centre</span></div></div>'+
+        '<div class="sidebar-brand"><img class="sidebar-logo" src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision CRM</strong><span>Learning Centre</span></div></div>'+
         '<nav class="nav">'+nav+'</nav>'+
         '<div class="sidebar-foot"><div class="user-mini"><div class="avatar">'+esc(initials(state.profile?.full_name))+'</div><div><strong>'+esc(state.profile?.full_name||'User')+'</strong><span>'+esc(role())+'</span></div></div>'+
-        '<button id="signout" class="nav-btn" style="width:100%;margin-top:4px"><span class="nav-icon">↪</span>Sign out</button></div>'+
+        '<button id="signout" class="nav-btn nav-signout" style="width:100%;margin-top:4px"><span class="nav-icon">'+uiIcon('logout')+'</span><span>Sign out</span></button></div>'+
       '</aside>'+
       (state.sidebarOpen?'<div class="mobile-overlay" id="overlay"></div>':'')+
       '<main class="main">'+
         '<header class="topbar"><div class="topbar-left"><button class="icon-btn menu-btn" id="menu">☰</button><div class="page-title"><h1>'+esc(meta[0])+'</h1><p>'+esc(meta[1])+'</p></div></div>'+
-        '<div class="top-actions"><span class="badge info desktop-only">'+esc(role())+'</span><button class="btn btn-secondary desktop-only" id="refresh">Refresh</button></div></header>'+
+        '<div class="top-actions"><span class="role-chip desktop-only">'+esc(humanize(role()))+'</span><button class="btn btn-secondary desktop-only" id="refresh">'+uiIcon('refresh')+'<span>Refresh</span></button></div></header>'+
         '<div class="content">'+content+'</div>'+
       '</main>'+
     '</div>';
@@ -254,11 +278,19 @@ async function dashboardPage(){
   const unpaid=students.filter(x=>!x.is_free_place&&!paidStudentIds.has(x.id));
   const fill=groups.reduce((a,g)=>a+students.filter(s=>s.group_id===g.id).length,0);
   const capacity=groups.reduce((a,g)=>a+Number(g.capacity||0),0);
-  return '<div class="cards">'+
-    statCard('Active students',students.length,'Across '+groups.length+' active groups','◉')+
-    statCard(can('owner','admin','cashier')?'Collected this month':'My active groups',can('owner','admin','cashier')?fmtMoney(revenue):groups.length,can('owner','admin','cashier')?Math.round(expected?revenue/expected*100:0)+'% of expected fees':'Assigned teaching view','₸')+
-    statCard(can('owner','admin','teacher')?'Attendance rate':'Group capacity',can('owner','admin','teacher')?attendanceRate+'%':(capacity?Math.round(fill/capacity*100):0)+'%',can('owner','admin','teacher')?attendance.length+' attendance records':fill+' / '+capacity+' places','✓')+
-    statCard(can('owner','admin','cashier')?'Unpaid students':'Active learners',can('owner','admin','cashier')?unpaid.length:students.length,can('owner','admin','cashier')?'Current month':'Visible to your account','!')+
+  const greeting=new Date().getHours()<12?'Good morning':new Date().getHours()<18?'Good afternoon':'Good evening';
+  const quickActions=[
+    ['students','Students','students'],
+    ...(can('owner','admin','cashier')?[['payments','Payments','payments']]:[]),
+    ...(can('owner','admin','teacher')?[['attendance','Attendance','attendance']]:[]),
+    ...(can('owner','admin')?[['expenses','Expenses','expenses']]:[])
+  ];
+  return '<section class="dashboard-welcome"><div><span class="internal-eyebrow">VISION LEARNING CENTRE</span><h2>'+greeting+', '+esc((state.profile?.full_name||'').split(' ')[0]||'there')+'.</h2><p>Here is what needs your attention today.</p></div><div class="quick-actions">'+quickActions.map(a=>'<button class="quick-action" data-route="'+a[0]+'"><span>'+uiIcon(a[2])+'</span>'+a[1]+'</button>').join('')+'</div></section>'+
+  '<div class="cards">'+
+    statCard('Active students',students.length,'Across '+groups.length+' active groups','students')+
+    statCard(can('owner','admin','cashier')?'Collected this month':'My active groups',can('owner','admin','cashier')?fmtMoney(revenue):groups.length,can('owner','admin','cashier')?Math.round(expected?revenue/expected*100:0)+'% of expected fees':'Assigned teaching view','payments')+
+    statCard(can('owner','admin','teacher')?'Attendance rate':'Group capacity',can('owner','admin','teacher')?attendanceRate+'%':(capacity?Math.round(fill/capacity*100):0)+'%',can('owner','admin','teacher')?attendance.length+' attendance records':fill+' / '+capacity+' places','attendance')+
+    statCard(can('owner','admin','cashier')?'Unpaid students':'Active learners',can('owner','admin','cashier')?unpaid.length:students.length,can('owner','admin','cashier')?'Current month':'Visible to your account','alert')+
   '</div>'+
   '<div class="grid-2"><section class="panel"><div class="panel-head"><div><h2>Groups overview</h2><p>Current occupancy and monthly fee</p></div></div><div class="panel-body">'+
     (groups.length?'<div class="kpi-list">'+groups.map(g=>{const c=students.filter(s=>s.group_id===g.id).length;const pct=Math.min(100,Math.round(c/Number(g.capacity||1)*100));return '<div class="kpi-line"><div class="kpi-line-head"><strong>'+esc(g.name)+'</strong><span>'+c+' / '+g.capacity+'</span></div><div class="progress"><span style="width:'+pct+'%"></span></div><div class="muted" style="font-size:11px">'+fmtMoney(g.default_monthly_fee)+' default fee</div></div>';}).join('')+'</div>':empty('No active groups.'))+
@@ -266,7 +298,7 @@ async function dashboardPage(){
     (can('owner','admin','cashier') ? (unpaid.length?'<div class="list">'+unpaid.slice(0,8).map(s=>'<div class="list-item"><div class="list-main"><strong>'+esc(s.full_name)+'</strong><span>'+fmtMoney(Math.max(0,Number(s.monthly_fee)-Number(s.discount_amount)))+' due</span></div><span class="badge warn">Unpaid</span></div>').join('')+'</div>':empty('Everyone visible has a payment this month.')) : '<div class="section-note">Use Attendance and Academic Records from the menu to manage your teaching work.</div>')+
   '</div></section></div>';
 }
-function statCard(label,value,note,icon){return '<div class="stat"><div class="stat-top"><span class="stat-label">'+esc(label)+'</span><span class="stat-icon">'+icon+'</span></div><div class="stat-value">'+esc(value)+'</div><div class="stat-note">'+esc(note)+'</div></div>';}
+function statCard(label,value,note,icon){return '<div class="stat"><div class="stat-top"><span class="stat-label">'+esc(label)+'</span><span class="stat-icon">'+uiIcon(icon)+'</span></div><div class="stat-value">'+esc(value)+'</div><div class="stat-note">'+esc(note)+'</div></div>';}
 
 async function studentsPage(){
   const [students,groups]=await Promise.all([
@@ -274,8 +306,8 @@ async function studentsPage(){
     query(sb.from('groups').select('id,name,default_monthly_fee').eq('active',true).order('name'))
   ]);
   state.cache.groups=groups;
-  const add=can('owner','admin','cashier')?'<button class="btn btn-primary" data-action="student-new">+ Add student</button>':'';
-  const rows=students.map(s=>'<tr><td><strong>'+esc(s.full_name)+'</strong><div class="muted">'+esc(s.grade_or_age||'')+'</div></td><td>'+esc(s.groups?.name||'Unassigned')+'</td><td>'+esc(s.phone||'—')+'</td><td class="num">'+fmtMoney(s.is_free_place?0:Math.max(0,Number(s.monthly_fee)-Number(s.discount_amount)))+'</td><td><span class="badge '+(s.status==='active'?'success':s.status==='paused'?'warn':'')+'">'+esc(s.status)+'</span></td><td><div class="action-row">'+(can('owner','admin','cashier')?actionButton('Edit','student-edit',s.id):'')+'</div></td></tr>').join('');
+  const add=can('owner','admin','cashier')?'<button class="btn btn-primary" data-action="student-new">'+uiIcon('plus')+'Add student</button>':'';
+  const rows=students.map(s=>'<tr><td><strong>'+esc(s.full_name)+'</strong><div class="muted">'+esc(s.grade_or_age||'')+'</div></td><td>'+esc(s.groups?.name||'Unassigned')+'</td><td>'+esc(s.phone||'—')+'</td><td class="num">'+fmtMoney(s.is_free_place?0:Math.max(0,Number(s.monthly_fee)-Number(s.discount_amount)))+'</td><td><span class="badge '+(s.status==='active'?'success':s.status==='paused'?'warn':'')+'">'+esc(humanize(s.status))+'</span></td><td><div class="action-row">'+(can('owner','admin','cashier')?actionButton('Edit','student-edit',s.id):'')+'</div></td></tr>').join('');
   setTimeout(()=>bindStudentActions(students,groups),0);
   return tablePage('Student records',add,[
     ['Student',''],['Group',''],['Phone',''],['Monthly due','num'],['Status',''],['','']
@@ -318,7 +350,7 @@ async function groupsPage(){
   ]);
   const rows=groups.map(g=>{const n=students.filter(s=>s.group_id===g.id).length;return '<tr><td><strong>'+esc(g.name)+'</strong><div class="muted">'+esc(g.level||'')+'</div></td><td>'+esc(g.schedule||'—')+'</td><td>'+esc(g.staff?.full_name||'—')+'</td><td>'+n+' / '+g.capacity+'</td><td class="num">'+fmtMoney(g.default_monthly_fee)+'</td><td><span class="badge '+(g.active?'success':'')+'">'+(g.active?'Active':'Inactive')+'</span></td><td>'+(can('owner','admin')?actionButton('Edit','group-edit',g.id):'')+'</td></tr>';}).join('');
   setTimeout(()=>bindGroupActions(groups,staff),0);
-  return tablePage('Class groups',can('owner','admin')?'<button class="btn btn-primary" data-action="group-new">+ Add group</button>':'',[['Group',''],['Schedule',''],['Teacher',''],['Students',''],['Default fee','num'],['Status',''],['','']],rows,'No groups found.');
+  return tablePage('Class groups',can('owner','admin')?'<button class="btn btn-primary" data-action="group-new">'+uiIcon('plus')+'Add group</button>':'',[['Group',''],['Schedule',''],['Teacher',''],['Students',''],['Default fee','num'],['Status',''],['','']],rows,'No groups found.');
 }
 function groupForm(g={},staff=[]){
   return '<div class="form-cols">'+field('Group name','name',g.name||'','','required')+field('Level','level',g.level||'')+field('Schedule','schedule',g.schedule||'')+field('Room','room',g.room||'')+
@@ -337,9 +369,9 @@ function bindGroupActions(groups,staff){
 
 async function leadsPage(){
   const leads=await query(sb.from('leads').select('*').order('created_at',{ascending:false}));
-  const rows=leads.map(l=>'<tr><td><strong>'+esc(l.full_name)+'</strong><div class="muted">'+esc(l.grade_or_age||'')+'</div></td><td>'+esc(l.phone||l.parent_phone||'—')+'</td><td>'+esc(l.interested_course||'—')+'</td><td>'+esc(l.source||'—')+'</td><td><span class="badge info">'+esc(l.status.replaceAll('_',' '))+'</span></td><td>'+fmtDate(l.next_follow_up)+'</td><td>'+actionButton('Edit','lead-edit',l.id)+'</td></tr>').join('');
+  const rows=leads.map(l=>'<tr><td><strong>'+esc(l.full_name)+'</strong><div class="muted">'+esc(l.grade_or_age||'')+'</div></td><td>'+esc(l.phone||l.parent_phone||'—')+'</td><td>'+esc(l.interested_course||'—')+'</td><td>'+esc(l.source||'—')+'</td><td><span class="badge info">'+esc(humanize(l.status))+'</span></td><td>'+fmtDate(l.next_follow_up)+'</td><td>'+actionButton('Edit','lead-edit',l.id)+'</td></tr>').join('');
   setTimeout(()=>bindLeadActions(leads),0);
-  return tablePage('Prospective students','<button class="btn btn-primary" data-action="lead-new">+ Add lead</button>',[['Name',''],['Phone',''],['Course',''],['Source',''],['Status',''],['Follow-up',''],['','']],rows,'No leads yet.');
+  return tablePage('Prospective students','<button class="btn btn-primary" data-action="lead-new">'+uiIcon('plus')+'Add lead</button>',[['Name',''],['Phone',''],['Course',''],['Source',''],['Status',''],['Follow-up',''],['','']],rows,'No leads yet.');
 }
 function leadForm(l={}){
   return '<div class="form-cols">'+field('Full name','full_name',l.full_name||'','','required')+field('Grade / age','grade_or_age',l.grade_or_age||'')+field('Phone','phone',l.phone||'','tel')+field('Parent phone','parent_phone',l.parent_phone||'','tel')+field('Interested course','interested_course',l.interested_course||'')+field('Source','source',l.source||'')+
@@ -355,13 +387,15 @@ async function paymentsPage(){
     query(sb.from('payments').select('*, students(full_name)').order('paid_at',{ascending:false}).limit(500)),
     query(sb.from('students').select('id,full_name,monthly_fee,discount_amount,is_free_place,status').eq('status','active').order('full_name'))
   ]);
-  const rows=payments.map(p=>'<tr><td>'+fmtDate(p.paid_at)+'</td><td><strong>'+esc(p.students?.full_name||'Student')+'</strong></td><td>'+new Date(p.fee_month+'T00:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'})+'</td><td class="num">'+fmtMoney(p.amount)+'</td><td>'+esc(p.method.replace('_',' / '))+'</td><td>'+esc(p.reference||'—')+'</td></tr>').join('');
+  const rows=payments.map(p=>'<tr><td>'+fmtDate(p.paid_at)+'</td><td><strong>'+esc(p.students?.full_name||'Student')+'</strong></td><td>'+new Date(p.fee_month+'T00:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'})+'</td><td class="num">'+fmtMoney(p.amount)+'</td><td>'+esc(humanize(p.method))+'</td><td>'+esc(p.reference||'—')+'</td></tr>').join('');
   setTimeout(()=>bindPaymentActions(students),0);
-  return tablePage('Fee payments','<button class="btn btn-primary" data-action="payment-new">+ Record payment</button>',[['Paid on',''],['Student',''],['Fee month',''],['Amount','num'],['Method',''],['Reference','']],rows,'No payments recorded.');
+  const action=students.length?'<button class="btn btn-primary" data-action="payment-new">'+uiIcon('plus')+'Record payment</button>':'<button class="btn btn-primary" disabled>No active students</button>';
+  const note=students.length?'':'<div class="section-note">Add an active student before recording a payment.</div>';
+  return note+tablePage('Fee payments',action,[['Paid on',''],['Student',''],['Fee month',''],['Amount','num'],['Method',''],['Reference','']],rows,'No payments recorded.');
 }
 function bindPaymentActions(students){
   document.querySelector('[data-action="payment-new"]')?.addEventListener('click',()=>{
-    const body='<div class="form-cols">'+selectField('Student','student_id',students.map(s=>[s.id,s.full_name]),students[0]?.id||'')+field('Fee month','fee_month',monthStart(),'month','required')+field('Amount','amount','','number','required min="1"')+field('Paid date','paid_at',today(),'date','required')+selectField('Method','method',[['cash','Cash'],['card_transfer','Card / transfer'],['other','Other']],'cash')+field('Reference','reference','')+textArea('Notes','notes','')+'</div>';
+    const body='<div class="form-cols">'+selectField('Student','student_id',students.map(s=>[s.id,s.full_name]),students[0]?.id||'')+field('Fee month','fee_month',monthStart().slice(0,7),'month','required')+field('Amount','amount','','number','required min="1"')+field('Paid date','paid_at',today(),'date','required')+selectField('Method','method',[['cash','Cash'],['card_transfer','Card / transfer'],['other','Other']],'cash')+field('Reference','reference','')+textArea('Notes','notes','')+'</div>';
     openModal('Record payment',body,async f=>{
       const s=students.find(x=>x.id===val(f,'student_id')); let amount=Number(val(f,'amount'));
       if(!amount&&s) amount=s.is_free_place?0:Math.max(0,Number(s.monthly_fee)-Number(s.discount_amount));
@@ -379,9 +413,12 @@ async function attendancePage(){
     query(sb.from('students').select('id,full_name,group_id,status').eq('status','active').order('full_name')),
     query(sb.from('groups').select('id,name').eq('active',true).order('name'))
   ]);
-  const selectedGroup=groups[0]?.id||'';
+  if(!groups.length){
+    return '<section class="panel"><div class="panel-body">'+empty('Create or activate a group before taking attendance.')+(can('owner','admin')?'<div class="empty-action"><button class="btn btn-primary" data-route="groups">Open Groups</button></div>':'')+'</div></section>';
+  }
+  const selectedGroup=groups[0].id;
   setTimeout(()=>setupAttendance(students,groups,selectedGroup),0);
-  return '<section class="panel"><div class="panel-head"><div><h2>Mark attendance</h2><p>Select a group and lesson date, then save.</p></div></div><div class="panel-body"><div class="toolbar"><div class="toolbar-left"><select class="select" id="att-group">'+groups.map(g=>'<option value="'+g.id+'">'+esc(g.name)+'</option>').join('')+'</select><input class="input" id="att-date" type="date" value="'+today()+'"></div><div class="toolbar-right"><button class="btn btn-primary" id="att-save">Save attendance</button></div></div><div id="att-list">'+empty('Choose a group.')+'</div></div></section>';
+  return '<section class="panel"><div class="panel-head"><div><h2>Take attendance</h2><p>Choose the class and date, then mark each learner.</p></div><span class="badge info">'+students.length+' active students</span></div><div class="panel-body"><div class="toolbar attendance-toolbar"><div class="toolbar-left"><select class="select" id="att-group">'+groups.map(g=>'<option value="'+g.id+'">'+esc(g.name)+'</option>').join('')+'</select><input class="input" id="att-date" type="date" value="'+today()+'"></div><div class="toolbar-right"><button class="btn btn-primary" id="att-save">Save attendance</button></div></div><div id="att-list">'+empty('Loading students…')+'</div></div></section>';
 }
 function setupAttendance(students,groups,groupId){
   const groupEl=document.getElementById('att-group'),dateEl=document.getElementById('att-date'),list=document.getElementById('att-list'),save=document.getElementById('att-save');
@@ -412,14 +449,14 @@ async function academicPage(){
   ]);
   const rows=records.map(r=>'<tr><td>'+fmtDate(r.record_date)+'</td><td><strong>'+esc(r.students?.full_name||'Student')+'</strong></td><td>'+esc(r.record_type)+'</td><td>'+esc(r.topic||'—')+'</td><td>'+(r.score==null?'—':esc(r.score)+' / '+esc(r.max_score??'—'))+'</td><td>'+esc(r.teacher_note||'—')+'</td></tr>').join('');
   setTimeout(()=>document.querySelector('[data-action=academic-new]')?.addEventListener('click',()=>openModal('Add academic record','<div class="form-cols">'+selectField('Student','student_id',students.map(s=>[s.id,s.full_name]))+field('Date','record_date',today(),'date','required')+field('Record type','record_type','Progress check','','required')+field('Topic','topic','')+field('Score','score','','number','min="0" step="0.01"')+field('Max score','max_score','100','number','min="0.01" step="0.01"')+textArea('Teacher note','teacher_note','')+'</div>',async f=>query(sb.from('academic_records').insert({student_id:val(f,'student_id'),record_date:val(f,'record_date'),record_type:val(f,'record_type'),topic:val(f,'topic')||null,score:val(f,'score')===''?null:Number(val(f,'score')),max_score:val(f,'max_score')===''?null:Number(val(f,'max_score')),teacher_note:val(f,'teacher_note')||null,created_by:state.session.user.id})))),0);
-  return tablePage('Academic progress','<button class="btn btn-primary" data-action="academic-new">+ Add record</button>',[['Date',''],['Student',''],['Type',''],['Topic',''],['Score',''],['Teacher note','']],rows,'No academic records yet.');
+  return tablePage('Academic progress','<button class="btn btn-primary" data-action="academic-new">'+uiIcon('plus')+'Add record</button>',[['Date',''],['Student',''],['Type',''],['Topic',''],['Score',''],['Teacher note','']],rows,'No academic records yet.');
 }
 
 async function expensesPage(){
   const expenses=await query(sb.from('expenses').select('*').order('expense_date',{ascending:false}).limit(500));
-  const rows=expenses.map(e=>'<tr><td>'+fmtDate(e.expense_date)+'</td><td>'+esc(e.category)+'</td><td>'+esc(e.description||'—')+'</td><td class="num">'+fmtMoney(e.amount)+'</td><td>'+esc(e.method.replace('_',' / '))+'</td></tr>').join('');
-  setTimeout(()=>document.querySelector('[data-action=expense-new]')?.addEventListener('click',()=>openModal('Add expense','<div class="form-cols">'+field('Date','expense_date',today(),'date','required')+field('Category','category','','','required')+field('Amount','amount','','number','required min="1"')+selectField('Method','method',[['cash','Cash'],['card_transfer','Card / transfer'],['other','Other']],'cash')+textArea('Description','description','')+'</div>',async f=>query(sb.from('expenses').insert({expense_date:val(f,'expense_date'),category:val(f,'category'),amount:Number(val(f,'amount')),method:val(f,'method'),description:val(f,'description')||null,created_by:state.session.user.id})))),0);
-  return tablePage('Centre expenses','<button class="btn btn-primary" data-action="expense-new">+ Add expense</button>',[['Date',''],['Category',''],['Description',''],['Amount','num'],['Method','']],rows,'No expenses recorded.');
+  const rows=expenses.map(e=>'<tr><td>'+fmtDate(e.expense_date)+'</td><td>'+esc(e.category)+'</td><td>'+esc(e.description||'—')+'</td><td class="num">'+fmtMoney(e.amount)+'</td><td>'+esc(humanize(e.method))+'</td></tr>').join('');
+  setTimeout(()=>document.querySelector('[data-action=expense-new]')?.addEventListener('click',()=>openModal('Add expense','<div class="form-cols">'+field('Date','expense_date',today(),'date','required')+selectField('Category','category',['Rent','Utilities','Learning Materials','Marketing','CRM / Software','Maintenance','Equipment','Office Supplies','Taxes / YATT','Transport','Other'],'Utilities')+field('Amount','amount','','number','required min="1"')+selectField('Method','method',[['cash','Cash'],['card_transfer','Card / transfer'],['other','Other']],'cash')+textArea('Description','description','')+'</div>',async f=>query(sb.from('expenses').insert({expense_date:val(f,'expense_date'),category:val(f,'category'),amount:Number(val(f,'amount')),method:val(f,'method'),description:val(f,'description')||null,created_by:state.session.user.id})))),0);
+  return tablePage('Centre expenses','<button class="btn btn-primary" data-action="expense-new">'+uiIcon('plus')+'Add expense</button>',[['Date',''],['Category',''],['Description',''],['Amount','num'],['Method','']],rows,'No expenses recorded.');
 }
 
 async function staffPage(){
@@ -429,10 +466,10 @@ async function staffPage(){
   ]);
   const rows=staff.map(s=>'<tr><td><strong>'+esc(s.full_name)+'</strong></td><td>'+esc(s.role_title||'—')+'</td><td>'+esc(s.phone||'—')+'</td><td class="num">'+fmtMoney(s.monthly_salary)+'</td><td><span class="badge '+(s.active?'success':'')+'">'+(s.active?'Active':'Inactive')+'</span></td><td>'+actionButton('Edit','staff-edit',s.id)+'</td></tr>').join('');
   setTimeout(()=>bindStaffActions(staff),0);
-  const staffTable=tablePage('Staff records','<button class="btn btn-primary" data-action="staff-new">+ Add staff</button>',[['Name',''],['Role',''],['Phone',''],['Monthly salary','num'],['Status',''],['','']],rows,'No staff records.');
+  const staffTable=tablePage('Staff records','<button class="btn btn-primary" data-action="staff-new">'+uiIcon('plus')+'Add staff</button>',[['Name',''],['Role',''],['Phone',''],['Monthly salary','num'],['Status',''],['','']],rows,'No staff records.');
   const pRows=payroll.map(p=>'<tr><td>'+fmtDate(p.paid_at)+'</td><td>'+esc(p.staff?.full_name||'Staff')+'</td><td>'+new Date(p.salary_month+'T00:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'})+'</td><td class="num">'+fmtMoney(p.amount)+'</td><td>'+esc(p.notes||'—')+'</td></tr>').join('');
   setTimeout(()=>document.querySelector('[data-action=payroll-new]')?.addEventListener('click',()=>openModal('Record payroll','<div class="form-cols">'+selectField('Staff member','staff_id',staff.filter(s=>s.active).map(s=>[s.id,s.full_name]))+field('Salary month','salary_month',monthStart().slice(0,7),'month','required')+field('Amount','amount','','number','required min="1"')+field('Paid date','paid_at',today(),'date','required')+textArea('Notes','notes','')+'</div>',async f=>{const m=val(f,'salary_month');return query(sb.from('payroll').insert({staff_id:val(f,'staff_id'),salary_month:m+'-01',amount:Number(val(f,'amount')),paid_at:val(f,'paid_at'),notes:val(f,'notes')||null,created_by:state.session.user.id}));})),0);
-  return staffTable+'<div style="height:16px"></div>'+tablePage('Payroll history','<button class="btn btn-primary" data-action="payroll-new">+ Record salary</button>',[['Paid on',''],['Staff',''],['Salary month',''],['Amount','num'],['Notes','']],pRows,'No payroll entries.');
+  return staffTable+'<div style="height:16px"></div>'+tablePage('Payroll history',staff.some(s=>s.active)?'<button class="btn btn-primary" data-action="payroll-new">'+uiIcon('plus')+'Record salary</button>':'<button class="btn btn-primary" disabled>No active staff</button>',[['Paid on',''],['Staff',''],['Salary month',''],['Amount','num'],['Notes','']],pRows,'No payroll entries.');
 }
 function staffForm(s={}){
   return '<div class="form-cols">'+field('Full name','full_name',s.full_name||'','','required')+field('Role title','role_title',s.role_title||'')+field('Phone','phone',s.phone||'','tel')+field('Monthly salary','monthly_salary',s.monthly_salary??0,'number','min="0"')+field('Start date','start_date',s.start_date||'','date')+'<div class="field"><label>Status</label><label class="inline-check"><input type="checkbox" name="active" '+(s.active!==false?'checked':'')+'> Active staff member</label></div></div>';
@@ -465,17 +502,33 @@ async function reportsPage(){
 function reportCard(label,value){return '<div class="report-card"><h3>'+esc(label)+'</h3><div class="report-value">'+esc(value)+'</div></div>';}
 
 async function usersPage(){
-  const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'list'}});
+  const [userResult,staff]=await Promise.all([
+    sb.functions.invoke('manage-users',{body:{action:'list'}}),
+    query(sb.from('staff').select('id,user_id,full_name,role_title,phone,active').order('full_name'))
+  ]);
+  const {data,error}=userResult;
   if(error) throw error;
   const users=data?.users||[];
-  const rows=users.map(u=>'<tr><td><strong>'+esc(u.full_name||'—')+'</strong><div class="muted">'+esc(u.email||'')+'</div></td><td><span class="badge info">'+esc(u.role)+'</span></td><td><span class="badge '+(u.active?'success':'danger')+'">'+(u.active?'Active':'Inactive')+'</span></td><td>'+fmtDate((u.last_sign_in_at||'').slice(0,10))+'</td><td>'+(u.id!==state.session.user.id?'<div class="action-row">'+actionButton('Role','user-role',u.id)+actionButton('Deactivate','user-deactivate',u.id,'danger')+'</div>':'<span class="muted">Current user</span>')+'</td></tr>').join('');
-  setTimeout(()=>bindUserActions(users),0);
-  return '<div class="section-note">Teacher and cashier accounts can be created here. Owner/admin rights are protected from accidental changes.</div>'+tablePage('Login accounts','<button class="btn btn-primary" data-action="user-new">+ Create account</button>',[['User',''],['Role',''],['Status',''],['Last sign-in',''],['','']],rows,'No accounts found.');
+  const rows=users.map(u=>'<tr><td><strong>'+esc(u.full_name||'—')+'</strong><div class="muted">'+esc(u.email||'')+'</div></td><td><span class="badge info">'+esc(humanize(u.role))+'</span></td><td><span class="badge '+(u.active?'success':'danger')+'">'+(u.active?'Active':'Inactive')+'</span></td><td>'+fmtDate((u.last_sign_in_at||'').slice(0,10))+'</td><td>'+(u.id!==state.session.user.id?'<div class="action-row">'+actionButton('Change role','user-role',u.id)+(u.active?actionButton('Deactivate','user-deactivate',u.id,'danger'):'<span class="muted">Deactivated</span>')+'</div>':'<span class="muted">Current user</span>')+'</td></tr>').join('');
+  setTimeout(()=>bindUserActions(users,staff),0);
+  return '<div class="section-note"><strong>Staff access</strong><br>Create teacher or cashier login accounts and link them to an existing staff record when possible.</div>'+tablePage('Login accounts','<button class="btn btn-primary" data-action="user-new">'+uiIcon('plus')+'Create account</button>',[['User',''],['Role',''],['Status',''],['Last sign-in',''],['','']],rows,'No accounts found.');
 }
-function bindUserActions(users){
-  document.querySelector('[data-action=user-new]')?.addEventListener('click',()=>openModal('Create login account','<div class="form-cols">'+field('Full name','full_name','','','required')+field('Email','email','','email','required')+field('Temporary password','password','','password','required minlength="8"')+field('Phone','phone','','tel')+selectField('Role','role',[['teacher','Teacher'],['cashier','Cashier']],'teacher')+'</div>',async f=>{
-    const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'create',full_name:val(f,'full_name'),email:val(f,'email'),password:val(f,'password'),phone:val(f,'phone'),role:val(f,'role')}}); if(error) throw error;if(data?.error)throw new Error(data.error);
-  },'Create account'));
+function bindUserActions(users,staff){
+  document.querySelector('[data-action=user-new]')?.addEventListener('click',()=>{
+    const available=staff.filter(s=>s.active&&!s.user_id);
+    const staffOptions=[['','Create a new staff record'],...available.map(s=>[s.id,s.full_name+' — '+(s.role_title||'Staff')])];
+    openModal('Create login account','<div class="form-cols">'+selectField('Link staff record','staff_id',staffOptions,'')+field('Full name','full_name','','','required')+field('Email','email','','email','required')+passwordInput('Temporary password','password','required minlength="8" autocomplete="new-password"')+field('Phone','phone','','tel')+selectField('Role','role',[['teacher','Teacher'],['cashier','Cashier']],'teacher')+'</div>',async f=>{
+      const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'create',full_name:val(f,'full_name'),email:val(f,'email'),password:val(f,'password'),phone:val(f,'phone'),role:val(f,'role'),staff_id:val(f,'staff_id')||null}}); if(error) throw error;if(data?.error)throw new Error(data.error);
+    },'Create account');
+    const staffEl=modalRoot.querySelector('[name=staff_id]');
+    staffEl.onchange=()=>{
+      const s=available.find(x=>x.id===staffEl.value);
+      if(!s)return;
+      modalRoot.querySelector('[name=full_name]').value=s.full_name||'';
+      modalRoot.querySelector('[name=phone]').value=s.phone||'';
+      modalRoot.querySelector('[name=role]').value=(s.role_title||'').toLowerCase().includes('cash')?'cashier':'teacher';
+    };
+  });
   document.querySelectorAll('[data-action=user-role]').forEach(b=>b.onclick=()=>{const u=users.find(x=>x.id===b.dataset.id);openModal('Change role',selectField('Role','role',[['teacher','Teacher'],['cashier','Cashier']],u.role),async f=>{const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'set_role',user_id:u.id,role:val(f,'role')}});if(error)throw error;if(data?.error)throw new Error(data.error);},'Update role');});
   document.querySelectorAll('[data-action=user-deactivate]').forEach(b=>b.onclick=async()=>{if(!confirm('Deactivate this user account?'))return;try{const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'deactivate',user_id:b.dataset.id}});if(error)throw error;if(data?.error)throw new Error(data.error);await renderRoute();toast('Account deactivated.');}catch(e){fail(e);}});
 }
