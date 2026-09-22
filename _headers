@@ -9,4 +9,4 @@
   Cache-Control: public, max-age=3600
 
 /app.js
-  Cache-Control: public, max-age=3600
+  Cache-Control: no-cache, max-age=0, must-revalidate
