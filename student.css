@@ -217,7 +217,11 @@ button{cursor:pointer}
   min-width:78px;
 }
 .progress-chart{
-  min-width:max(660px,fit-content);
+  min-width:660px;
+}
+.bar-track{
+  width:max-content;
+  min-width:100%;
 }
 .results-panel{
   margin-bottom:14px;
