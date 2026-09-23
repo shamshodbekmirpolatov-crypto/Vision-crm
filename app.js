@@ -31,7 +31,7 @@ const state = {
   cache: {},
   filters: {
     paymentMonth: localYM(),
-    paymentStatus: 'all',
+    paymentStatus: 'attention',
     reportMonth: localYM(),
     expenseMonth: localYM(),
     payrollMonth: localYM()
@@ -660,15 +660,27 @@ async function paymentsPage(){
   const collected=feeRows.reduce((a,x)=>a+Math.min(x.paid,x.expected),0);
   const outstanding=feeRows.reduce((a,x)=>a+x.balance,0);
   const overpaidTotal=feeRows.reduce((a,x)=>a+x.overpaid,0);
-  const statusFilter=state.filters.paymentStatus||'all';
-  const visible=feeRows.filter(x=>statusFilter==='all'||x.payment_status===statusFilter);
+  const statusFilter=state.filters.paymentStatus||'attention';
+  const visible=feeRows.filter(x=>{
+    if(statusFilter==='attention')return x.payment_status==='unpaid'||x.payment_status==='partial';
+    return x.payment_status===statusFilter;
+  });
+  const attentionCount=counts.unpaid+counts.partial;
   const rows=visible.map(s=>'<tr>'+
     '<td><strong>'+esc(s.full_name)+'</strong><div class="muted">'+esc(groupMap.get(s.group_id)||'Unassigned')+'</div></td>'+
     '<td class="num">'+fmtMoney(s.expected)+'</td>'+
     '<td class="num">'+fmtMoney(s.paid)+'</td>'+
     '<td class="num"><strong>'+fmtMoney(s.balance)+'</strong>'+(s.overpaid>0?'<div class="muted row-sub balance-due">+'+fmtMoney(s.overpaid)+' over</div>':'')+'</td>'+
     '<td><span class="badge payment-'+s.payment_status+'">'+humanize(s.payment_status)+'</span></td>'+
-    '<td>'+(s.payment_status==='free'?'<span class="muted">No payment needed</span>':'<button class="btn btn-sm btn-secondary" data-action="payment-prefill" data-id="'+s.id+'">'+(s.payment_status==='paid'?'Add another':'Add payment')+'</button>')+'</td>'+
+    '<td>'+
+      ((s.payment_status==='unpaid'||s.payment_status==='partial')
+        ?'<button class="btn btn-sm btn-primary" data-action="payment-prefill" data-id="'+s.id+'">'+uiIcon('payments')+'Pay</button>'
+        :s.payment_status==='paid'
+          ?'<span class="completed-label">✓ Completed</span>'
+          :s.payment_status==='free'
+            ?'<span class="muted">No payment needed</span>'
+            :'<span class="correction-label">Review history ↓</span>')+
+    '</td>'+
   '</tr>').join('');
   const historyRows=history.map(p=>'<tr><td>'+fmtDate(p.paid_at)+'</td><td><strong>'+esc(p.students?.full_name||'Student')+'</strong></td><td>'+new Date(p.fee_month+'T00:00:00').toLocaleDateString('en-GB',{month:'short',year:'numeric'})+'</td><td class="num">'+fmtMoney(p.amount)+'</td><td>'+esc(humanize(p.method))+'</td><td><div class="action-row"><span>'+esc(p.reference||'—')+'</span>'+(can('owner','admin','cashier')?'<button class="btn btn-sm btn-danger" data-action="payment-void" data-id="'+p.id+'">Correct</button>':'')+'</div></td></tr>').join('');
   setTimeout(()=>bindPaymentActions(students,feeRows),0);
@@ -681,16 +693,15 @@ async function paymentsPage(){
   (overpaidTotal>0?'<div class="section-note correction-note"><strong>Correction needed:</strong> '+fmtMoney(overpaidTotal)+' exceeds expected fees for this month. Use <strong>Correct</strong> in payment history for duplicate or mistaken entries.</div>':'')+
   '<section class="panel"><div class="panel-head"><div><h2>Monthly fee status</h2><p>See exactly who has paid, partially paid, or still owes for the selected course month.</p></div><button class="btn btn-primary" data-action="payment-new">'+uiIcon('plus')+'Record payment</button></div>'+
     '<div class="panel-body">'+
-      '<div class="payment-controls"><div class="month-control"><label>Course month</label><input class="input" id="payment-month-filter" type="month" value="'+esc(selectedMonth)+'"></div>'+
-      '<div class="status-chips">'+
-        '<button class="status-chip '+(statusFilter==='all'?'active':'')+'" data-payment-status="all">All <strong>'+feeRows.length+'</strong></button>'+
-        '<button class="status-chip paid '+(statusFilter==='paid'?'active':'')+'" data-payment-status="paid">Paid <strong>'+counts.paid+'</strong></button>'+
-        '<button class="status-chip partial '+(statusFilter==='partial'?'active':'')+'" data-payment-status="partial">Partial <strong>'+counts.partial+'</strong></button>'+
-        '<button class="status-chip unpaid '+(statusFilter==='unpaid'?'active':'')+'" data-payment-status="unpaid">Unpaid <strong>'+counts.unpaid+'</strong></button>'+
-        '<button class="status-chip overpaid '+(statusFilter==='overpaid'?'active':'')+'" data-payment-status="overpaid">Overpaid <strong>'+counts.overpaid+'</strong></button>'+
-        '<button class="status-chip free '+(statusFilter==='free'?'active':'')+'" data-payment-status="free">Free <strong>'+counts.free+'</strong></button>'+
-      '</div></div>'+
-      (rows?'<div class="table-wrap"><table><thead><tr><th>Student</th><th class="num">Fee</th><th class="num">Paid</th><th class="num">Balance</th><th>Status</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>':empty('No students match this payment status.'))+
+      '<div class="payment-workspace-head"><div class="month-control"><label>Course month</label><input class="input" id="payment-month-filter" type="month" value="'+esc(selectedMonth)+'"></div><div class="payment-workspace-note">Students move automatically between spaces when their balance changes.</div></div>'+
+      '<div class="payment-spaces">'+
+        '<button class="payment-space attention '+(statusFilter==='attention'?'active':'')+'" data-payment-status="attention"><span class="payment-space-icon">'+uiIcon('alert')+'</span><span class="payment-space-copy"><strong>Needs payment</strong><small>Unpaid or partially paid</small></span><b>'+attentionCount+'</b></button>'+
+        '<button class="payment-space paid '+(statusFilter==='paid'?'active':'')+'" data-payment-status="paid"><span class="payment-space-icon">'+uiIcon('attendance')+'</span><span class="payment-space-copy"><strong>Paid</strong><small>Balance fully cleared</small></span><b>'+counts.paid+'</b></button>'+
+        '<button class="payment-space free '+(statusFilter==='free'?'active':'')+'" data-payment-status="free"><span class="payment-space-icon">'+uiIcon('students')+'</span><span class="payment-space-copy"><strong>Free places</strong><small>No monthly payment due</small></span><b>'+counts.free+'</b></button>'+
+        '<button class="payment-space correction '+(statusFilter==='overpaid'?'active':'')+'" data-payment-status="overpaid"><span class="payment-space-icon">'+uiIcon('refresh')+'</span><span class="payment-space-copy"><strong>Corrections</strong><small>Overpayments to review</small></span><b>'+counts.overpaid+'</b></button>'+
+      '</div>'+
+      '<div class="payment-space-title"><div><h3>'+(statusFilter==='attention'?'Needs payment':statusFilter==='paid'?'Paid students':statusFilter==='free'?'Free places':'Corrections')+'</h3><p>'+(statusFilter==='attention'?'These students still have a balance for this course month.':statusFilter==='paid'?'These students have completed their payment for this course month.':statusFilter==='free'?'These students are not expected to pay for this course month.':'These students have payments above their expected fee and need review.')+'</p></div>'+(statusFilter==='attention'?'<span class="queue-count">'+attentionCount+' remaining</span>':'')+'</div>'+
+      (rows?'<div class="table-wrap"><table><thead><tr><th>Student</th><th class="num">Fee</th><th class="num">Paid</th><th class="num">Balance</th><th>Status</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>':empty(statusFilter==='attention'?'Everyone has completed payment for this month.':statusFilter==='paid'?'No students have fully paid yet.':statusFilter==='free'?'No free-place students.':'No payment corrections needed.'))+
     '</div></section>'+
     '<div class="section-spacer"></div>'+
     tablePage('Recent payment history','',[['Paid on',''],['Student',''],['Course month',''],['Amount','num'],['Method',''],['Reference','']],historyRows,'No payments recorded yet.');
@@ -699,7 +710,8 @@ function bindPaymentActions(students,feeRows){
   const openPayment=(studentId='')=>{
     if(!students.length){toast('Add an active student first.','error');return;}
     const selectedMonth=state.filters.paymentMonth||localYM();
-    const initialId=studentId||students[0].id;
+    const owing=feeRows.filter(x=>x.payment_status==='unpaid'||x.payment_status==='partial');
+    const initialId=studentId||owing[0]?.id||students[0].id;
     const body='<div class="form-cols">'+
       selectField('Student','student_id',students.map(s=>[s.id,s.full_name]),initialId)+
       field('Course month','fee_month',selectedMonth,'month','required')+
