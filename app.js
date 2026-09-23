@@ -286,7 +286,7 @@ async function dashboardPage(){
   const [students,groups,payments,attendance] = await Promise.all([
     query(sb.from('students').select('id,full_name,status,group_id,monthly_fee,discount_amount,is_free_place').eq('status','active')),
     query(sb.from('groups').select('id,name,capacity,active,default_monthly_fee').eq('active',true)),
-    can('owner','admin','cashier') ? query(sb.from('payments').select('id,amount,paid_at,fee_month,student_id').eq('fee_month',first)) : Promise.resolve([]),
+    can('owner','admin','cashier') ? query(sb.from('payments').select('id,amount,paid_at,fee_month,student_id,voided_at').eq('fee_month',first).is('voided_at',null)) : Promise.resolve([]),
     can('owner','admin','teacher') ? query(sb.from('attendance').select('id,status,lesson_date,student_id').gte('lesson_date',first).lte('lesson_date',last)) : Promise.resolve([])
   ]);
   const revenue=payments.reduce((s,x)=>s+Number(x.amount),0);
@@ -328,7 +328,7 @@ async function studentsPage(){
   const [students,groups,payments]=await Promise.all([
     query(sb.from('students').select('*, groups(name,teacher_id,staff(full_name))').order('full_name')),
     query(sb.from('groups').select('id,name,default_monthly_fee').eq('active',true).order('name')),
-    can('owner','admin','cashier')?query(sb.from('payments').select('student_id,amount,fee_month').eq('fee_month',feeMonth)):Promise.resolve([])
+    can('owner','admin','cashier')?query(sb.from('payments').select('student_id,amount,fee_month,voided_at').eq('fee_month',feeMonth).is('voided_at',null)):Promise.resolve([])
   ]);
   state.cache.groups=groups;
   const paidMap=new Map();
@@ -445,14 +445,14 @@ function openStudentPayment(student){
   if(student.is_free_place){toast('This student is marked as a free place.','error');return;}
   openModal('Record payment · '+student.full_name,'<div class="form-cols">'+
     field('Course month','fee_month',currentMonth,'month','required')+
-    field('Amount','amount',due,'number','required min="1" step="1"')+
+    field('Amount','amount','','number','required min="1" step="1"')+
     field('Paid date','paid_at',today(),'date','required')+
     selectField('Method','method',[['cash','Cash'],['card_transfer','Card / transfer'],['other','Other']],'cash')+
     field('Reference','reference','')+
     textArea('Notes','notes','')+'</div>',async form=>{
       const m=val(form,'fee_month');
       const monthKey=m+'-01';
-      const existing=await query(sb.from('payments').select('amount').eq('student_id',student.id).eq('fee_month',monthKey));
+      const existing=await query(sb.from('payments').select('amount,voided_at').eq('student_id',student.id).eq('fee_month',monthKey).is('voided_at',null));
       const paid=existing.reduce((a,p)=>a+Number(p.amount||0),0);
       const remaining=Math.max(0,due-paid);
       const amount=Number(val(form,'amount'));
@@ -460,6 +460,20 @@ function openStudentPayment(student){
       if(m===currentMonth&&amount>remaining)throw new Error('This is more than the remaining balance ('+fmtMoney(remaining)+').');
       await query(sb.from('payments').insert({student_id:student.id,fee_month:monthKey,amount,paid_at:val(form,'paid_at'),method:val(form,'method'),reference:val(form,'reference')||null,notes:val(form,'notes')||null,created_by:state.session.user.id}));
     },'Save payment');
+  const monthEl=modalRoot.querySelector('[name=fee_month]');
+  const amountEl=modalRoot.querySelector('[name=amount]');
+  const recalc=async()=>{
+    const m=monthEl.value;
+    const monthKey=m+'-01';
+    const existing=await query(sb.from('payments').select('amount,voided_at').eq('student_id',student.id).eq('fee_month',monthKey).is('voided_at',null));
+    const paid=existing.reduce((a,p)=>a+Number(p.amount||0),0);
+    const remaining=Math.max(0,due-paid);
+    amountEl.value=remaining>0?remaining:'';
+    amountEl.disabled=remaining<=0;
+    if(remaining<=0) toast('This course month is already fully paid.','error');
+  };
+  monthEl.onchange=()=>void recalc();
+  void recalc();
 }
 async function openStudentProfile(studentId,tab='overview',groups=[]){
   try{
@@ -470,7 +484,7 @@ async function openStudentProfile(studentId,tab='overview',groups=[]){
     const ninetyDate=ninety.toISOString().slice(0,10);
     const [student,payments,attendance,academic]=await Promise.all([
       query(sb.from('students').select('*, groups(name,level,schedule,room,staff(full_name))').eq('id',studentId).single()),
-      query(sb.from('payments').select('*').eq('student_id',studentId).order('fee_month',{ascending:false}).order('paid_at',{ascending:false}).limit(60)),
+      query(sb.from('payments').select('*').eq('student_id',studentId).is('voided_at',null).order('fee_month',{ascending:false}).order('paid_at',{ascending:false}).limit(60)),
       query(sb.from('attendance').select('*').eq('student_id',studentId).gte('lesson_date',ninetyDate).order('lesson_date',{ascending:false}).limit(100)),
       query(sb.from('academic_records').select('*').eq('student_id',studentId).order('record_date',{ascending:false}).limit(50))
     ]);
@@ -600,10 +614,10 @@ async function paymentsPage(){
   const selectedMonth=state.filters.paymentMonth||new Date().toISOString().slice(0,7);
   const feeMonth=selectedMonth+'-01';
   const [payments,students,groups,history]=await Promise.all([
-    query(sb.from('payments').select('id,student_id,fee_month,amount,paid_at,method,reference,notes').eq('fee_month',feeMonth).order('paid_at',{ascending:false})),
+    query(sb.from('payments').select('id,student_id,fee_month,amount,paid_at,method,reference,notes,voided_at').eq('fee_month',feeMonth).is('voided_at',null).order('paid_at',{ascending:false})),
     query(sb.from('students').select('id,full_name,group_id,monthly_fee,discount_amount,is_free_place,status').eq('status','active').order('full_name')),
     query(sb.from('groups').select('id,name').order('name')),
-    query(sb.from('payments').select('id,student_id,fee_month,amount,paid_at,method,reference,students(full_name)').order('paid_at',{ascending:false}).limit(20))
+    query(sb.from('payments').select('id,student_id,fee_month,amount,paid_at,method,reference,voided_at,students(full_name)').is('voided_at',null).order('paid_at',{ascending:false}).limit(20))
   ]);
   const groupMap=new Map(groups.map(g=>[g.id,g.name]));
   const paidMap=new Map();
@@ -629,7 +643,7 @@ async function paymentsPage(){
     '<td><span class="badge payment-'+s.payment_status+'">'+humanize(s.payment_status)+'</span></td>'+
     '<td>'+(s.payment_status==='free'?'<span class="muted">No payment needed</span>':'<button class="btn btn-sm btn-secondary" data-action="payment-prefill" data-id="'+s.id+'">'+(s.payment_status==='paid'?'Add another':'Add payment')+'</button>')+'</td>'+
   '</tr>').join('');
-  const historyRows=history.map(p=>'<tr><td>'+fmtDate(p.paid_at)+'</td><td><strong>'+esc(p.students?.full_name||'Student')+'</strong></td><td>'+new Date(p.fee_month+'T00:00:00').toLocaleDateString('en-GB',{month:'short',year:'numeric'})+'</td><td class="num">'+fmtMoney(p.amount)+'</td><td>'+esc(humanize(p.method))+'</td><td>'+esc(p.reference||'—')+'</td></tr>').join('');
+  const historyRows=history.map(p=>'<tr><td>'+fmtDate(p.paid_at)+'</td><td><strong>'+esc(p.students?.full_name||'Student')+'</strong></td><td>'+new Date(p.fee_month+'T00:00:00').toLocaleDateString('en-GB',{month:'short',year:'numeric'})+'</td><td class="num">'+fmtMoney(p.amount)+'</td><td>'+esc(humanize(p.method))+'</td><td><div class="action-row"><span>'+esc(p.reference||'—')+'</span>'+(can('owner','admin','cashier')?'<button class="btn btn-sm btn-danger" data-action="payment-void" data-id="'+p.id+'">Correct</button>':'')+'</div></td></tr>').join('');
   setTimeout(()=>bindPaymentActions(students,feeRows),0);
   return '<div class="finance-summary">'+
     '<div class="finance-kpi"><span>Expected</span><strong>'+fmtMoney(expectedTotal)+'</strong></div>'+
@@ -691,7 +705,12 @@ function bindPaymentActions(students,feeRows){
         return;
       }
       amountEl.value=row.balance>0?row.balance:'';
-      hint.innerHTML=row.is_free_place?'<span class="badge payment-free">Free place</span> No payment is required.':'Fee: <strong>'+fmtMoney(row.expected)+'</strong> · Paid: <strong>'+fmtMoney(row.paid)+'</strong> · Remaining: <strong>'+fmtMoney(row.balance)+'</strong>';
+      amountEl.disabled=row.balance<=0||row.is_free_place;
+      hint.innerHTML=row.is_free_place
+        ?'<span class="badge payment-free">Free place</span> No payment is required.'
+        :row.balance<=0
+          ?'<span class="badge payment-paid">Fully paid</span> This month is already fully paid. Use payment history to correct a mistaken payment.'
+          :'Fee: <strong>'+fmtMoney(row.expected)+'</strong> · Paid: <strong>'+fmtMoney(row.paid)+'</strong> · Remaining: <strong>'+fmtMoney(row.balance)+'</strong>';
     };
     studentEl.onchange=refreshHint;monthEl.onchange=refreshHint;refreshHint();
   };
@@ -699,6 +718,14 @@ function bindPaymentActions(students,feeRows){
   document.querySelectorAll('[data-action="payment-prefill"]').forEach(b=>b.onclick=()=>openPayment(b.dataset.id));
   document.getElementById('payment-month-filter')?.addEventListener('change',e=>{state.filters.paymentMonth=e.target.value;renderRoute();});
   document.querySelectorAll('[data-payment-status]').forEach(b=>b.onclick=()=>{state.filters.paymentStatus=b.dataset.paymentStatus;renderRoute();});
+  document.querySelectorAll('[data-action="payment-void"]').forEach(b=>b.onclick=()=>{
+    const paymentId=b.dataset.id;
+    openModal('Correct payment','<div class="section-note">This will keep the payment in the audit trail but remove it from balances and reports.</div>'+textArea('Reason','void_reason','Duplicate or incorrect payment'),async form=>{
+      const reason=val(form,'void_reason');
+      if(!reason)throw new Error('Enter a reason for the correction.');
+      await query(sb.from('payments').update({voided_at:new Date().toISOString(),voided_by:state.session.user.id,void_reason:reason}).eq('id',paymentId));
+    },'Confirm correction');
+  });
 }
 async function attendancePage(){
   const [students,groups]=await Promise.all([
@@ -778,7 +805,7 @@ async function reportsPage(){
   const [students,groups,payments,expenses,payroll] = await Promise.all([
     query(sb.from('students').select('id,status,monthly_fee,discount_amount,is_free_place,group_id')),
     query(sb.from('groups').select('id,name,capacity,active')),
-    query(sb.from('payments').select('amount,paid_at,fee_month,student_id').eq('fee_month',monthFirst)),
+    query(sb.from('payments').select('amount,paid_at,fee_month,student_id,voided_at').eq('fee_month',monthFirst).is('voided_at',null)),
     query(sb.from('expenses').select('amount,expense_date,category').gte('expense_date',monthFirst).lte('expense_date',monthLast)),
     query(sb.from('payroll').select('amount,paid_at,salary_month,staff_id').eq('salary_month',monthFirst))
   ]);
