@@ -48,8 +48,21 @@ async function login(e){
     return renderLogin(msg);
   }
   if(data?.error)return renderLogin(data.error);
+  if(data?.selection_required&&Array.isArray(data.students)){
+    return renderStudentPicker(data.students);
+  }
   portalData=data;
   renderPortal();
+}
+
+function renderStudentPicker(portals){
+  app.innerHTML='<div class="portal"><header class="portal-header"><div class="portal-header-inner"><div class="portal-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision Student Progress</strong><span>VISION LEARNING CENTRE</span></div></div><button class="signout" id="picker-signout">Back</button></div></header><main class="portal-main"><section class="student-welcome"><div><small>PARENT ACCESS</small><h1>Choose a student</h1><p>This phone number is linked to more than one active student.</p></div></section><div class="student-picker-grid">'+portals.map((p,i)=>'<button class="student-picker-card" data-index="'+i+'"><div class="picker-avatar">'+esc((p.student.full_name||'?').split(' ').map(x=>x[0]).join('').slice(0,2))+'</div><div><strong>'+esc(p.student.full_name)+'</strong><span>'+esc(p.student.group||'No group')+'</span><small>'+esc(p.student.grade_or_age||'Student')+'</small></div><b>Open →</b></button>').join('')+'</div></main></div>';
+  app.querySelectorAll('.student-picker-card').forEach(btn=>btn.onclick=()=>{
+    const selected=portals[Number(btn.dataset.index)];
+    portalData={ok:true,...selected};
+    renderPortal();
+  });
+  document.getElementById('picker-signout').onclick=()=>renderLogin();
 }
 
 function statValue(value,fallback='—'){return value===null||value===undefined?fallback:value;}
