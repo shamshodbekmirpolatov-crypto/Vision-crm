@@ -258,3 +258,77 @@ tbody tr:hover{background:#f8fbfd}
   .quick-action{padding:8px 9px}
   .panel-head{align-items:flex-start;flex-direction:column}
 }
+
+
+/* Premium top navigation */
+.top-shell{display:block;min-height:100vh}
+.app-header{position:sticky;top:0;z-index:30;background:rgba(250,252,253,.94);backdrop-filter:blur(16px);border-bottom:1px solid #e3e9ee;box-shadow:0 4px 18px rgba(12,37,56,.035)}
+.app-header-main{height:72px;display:flex;align-items:center;justify-content:space-between;gap:20px;max-width:1560px;margin:0 auto;padding:0 28px}
+.app-brand{display:flex;align-items:center;gap:12px}
+.app-brand img{width:43px;height:43px;object-fit:cover;border-radius:11px;border:1px solid #e0e6eb;background:#fff;box-shadow:0 5px 14px rgba(10,45,68,.07)}
+.app-brand strong{display:block;font-size:15px;letter-spacing:-.01em}
+.app-brand span{display:block;font-size:10px;color:#768797;margin-top:2px;text-transform:uppercase;letter-spacing:.08em}
+.app-user{display:flex;align-items:center;gap:9px}
+.user-chip{display:flex;align-items:center;gap:8px;padding:5px 9px 5px 5px;border:1px solid #e0e6eb;background:#fff;border-radius:999px}
+.user-chip .avatar{width:32px;height:32px;font-size:11px}
+.user-chip-copy strong{display:block;font-size:11px}
+.user-chip-copy span{display:block;font-size:9px;color:var(--muted);margin-top:1px}
+.signout-icon{background:#fff;border:1px solid #e0e6eb}
+.category-nav{max-width:1560px;margin:0 auto;display:flex;align-items:center;gap:4px;padding:0 28px;overflow-x:auto;scrollbar-width:none}
+.category-nav::-webkit-scrollbar,.subnav::-webkit-scrollbar{display:none}
+.category-tab{height:46px;display:flex;align-items:center;gap:7px;padding:0 14px;border:0;border-bottom:2px solid transparent;background:transparent;color:#617487;font-size:12px;font-weight:720;white-space:nowrap;transition:.15s}
+.category-tab:hover{color:#0b3655;background:#f4f8fa}
+.category-tab.active{color:#0b3655;border-bottom-color:#0b3655}
+.category-tab .ui-svg{width:16px;height:16px}
+.subnav{max-width:1560px;margin:0 auto;display:flex;gap:6px;padding:8px 28px 10px;overflow-x:auto;scrollbar-width:none}
+.subnav-tab{border:1px solid transparent;background:transparent;color:#6b7c8d;border-radius:9px;padding:7px 10px;font-size:11px;font-weight:700;white-space:nowrap}
+.subnav-tab:hover{background:#f0f5f8;color:#264d66}
+.subnav-tab.active{background:#eaf3f8;border-color:#d7e7ef;color:#0d5278}
+.top-main{padding:0 28px 40px;max-width:none}
+.pagebar{max-width:1480px;margin:0 auto 18px;padding-top:22px}
+.pagebar .page-title h1{font-size:27px}
+.pagebar .page-title p{font-size:12px}
+
+/* Finance status board */
+.finance-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.finance-kpi{background:#fff;border:1px solid #e4eaef;border-radius:15px;padding:15px 16px;box-shadow:var(--shadow-soft)}
+.finance-kpi span{display:block;font-size:10px;color:#758596;text-transform:uppercase;letter-spacing:.06em;font-weight:800}
+.finance-kpi strong{display:block;font-size:21px;margin-top:7px;letter-spacing:-.025em}
+.finance-kpi.success strong{color:#14735c}
+.finance-kpi.danger strong{color:#ad3c3c}
+.payment-controls{display:flex;align-items:end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.month-control{display:grid;gap:5px}
+.month-control label{font-size:10px;color:#718293;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.month-control .input{width:175px}
+.status-chips{display:flex;gap:6px;flex-wrap:wrap}
+.status-chip{border:1px solid #e0e6eb;background:#fff;color:#526779;border-radius:999px;padding:7px 10px;font-size:11px;font-weight:720}
+.status-chip strong{margin-left:4px}
+.status-chip:hover{background:#f7fafb}
+.status-chip.active{border-color:#9db7c8;background:#edf5f9;color:#103f5e}
+.status-chip.paid.active{background:#e8f6f0;border-color:#bfe2d4;color:#14735c}
+.status-chip.partial.active{background:#fff5e4;border-color:#edd7aa;color:#936100}
+.status-chip.unpaid.active{background:#fff0f0;border-color:#efc8c8;color:#a43737}
+.status-chip.free.active{background:#f1eefb;border-color:#d9d0f2;color:#66509e}
+.payment-paid{background:#e7f6f1!important;color:#14735c!important}
+.payment-partial{background:#fff3dd!important;color:#8b5b00!important}
+.payment-unpaid{background:#fcecec!important;color:#a83434!important}
+.payment-free{background:#f1edfb!important;color:#66509e!important}
+.payment-hint{padding:11px 12px;border-radius:10px;background:#f7fafc;border:1px solid #e4ebf0;color:#536879;font-size:12px}
+.section-spacer{height:16px}
+
+@media(max-width:900px){
+  .finance-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .app-header-main,.category-nav,.subnav{padding-left:14px;padding-right:14px}
+  .top-main{padding-left:14px;padding-right:14px}
+  .user-chip-copy,.app-user .role-chip{display:none}
+}
+@media(max-width:560px){
+  .app-header-main{height:64px}
+  .app-brand span{display:none}
+  .finance-summary{grid-template-columns:1fr 1fr}
+  .finance-kpi strong{font-size:17px}
+  .payment-controls{align-items:stretch;flex-direction:column}
+  .month-control .input{width:100%}
+  .status-chips{width:100%}
+  .status-chip{flex:1;text-align:center}
+}
