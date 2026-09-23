@@ -345,3 +345,82 @@ tbody tr:hover{background:#f8fbfd}
   .report-toolbar{align-items:stretch;flex-direction:column}
   .report-toolbar .month-control .input{width:100%}
 }
+
+
+/* Student operations workspace */
+.student-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:15px}
+.mini-metric{background:#fff;border:1px solid #e4eaef;border-radius:14px;padding:14px 15px;box-shadow:var(--shadow-soft)}
+.mini-metric span{display:block;font-size:10px;color:#758596;text-transform:uppercase;letter-spacing:.06em;font-weight:800}
+.mini-metric strong{display:block;margin-top:6px;font-size:22px;letter-spacing:-.03em}
+.mini-metric.attention strong{color:#a53b3b}
+.student-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.student-search{display:flex;align-items:center;gap:8px;min-width:min(420px,100%);background:#fff;border:1px solid #dfe6ec;border-radius:11px;padding:0 11px}
+.student-search input{border:0;outline:none;width:100%;height:42px;background:transparent;color:var(--text)}
+.student-search .ui-svg{color:#7990a0;width:16px}
+.student-status-chips{margin-left:auto}
+.student-table tbody tr.student-row{cursor:pointer}
+.student-table tbody tr.student-row:hover{background:#f6fafc}
+.student-identity{display:flex;align-items:center;gap:10px}
+.student-avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#eef4f8;color:#0d476a;font-size:11px;font-weight:800;border:1px solid #dce7ed;flex:0 0 auto}
+.student-avatar.large{width:54px;height:54px;font-size:16px}
+.student-identity strong{display:block;font-size:13px}
+.student-identity span{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.course-pill{display:inline-flex;align-items:center;border-radius:999px;padding:5px 8px;background:#edf4f8;color:#355a72;font-size:10px;font-weight:750}
+.row-sub{font-size:10px;margin-top:3px}
+.balance-due{color:#b13f3f}
+.balance-clear{color:#14735c}
+.student-actions{text-align:right}
+.kebab-btn{border:0;background:transparent;color:#718291;font-weight:800;letter-spacing:2px;padding:7px 9px;border-radius:8px}
+.kebab-btn:hover{background:#eef3f6;color:#244b63}
+.action-sheet{display:grid;gap:8px}
+.action-sheet-btn{width:100%;display:flex;align-items:center;gap:12px;text-align:left;border:1px solid #e3e9ee;background:#fff;border-radius:12px;padding:12px}
+.action-sheet-btn:hover{background:#f7fafc;border-color:#d7e2e9}
+.action-sheet-btn>span{width:34px;height:34px;border-radius:10px;background:#edf5f9;display:grid;place-items:center;color:#0d5278}
+.action-sheet-btn strong{display:block;font-size:13px}
+.action-sheet-btn small{display:block;color:var(--muted);font-size:10px;margin-top:2px}
+
+/* Student profile drawer */
+.drawer-backdrop{position:fixed;inset:0;background:rgba(5,23,36,.48);backdrop-filter:blur(3px);z-index:120;display:flex;justify-content:flex-end}
+.student-drawer{height:100%;width:min(760px,96vw);background:#f8fafc;box-shadow:-22px 0 60px rgba(3,24,38,.22);display:flex;flex-direction:column;animation:drawerIn .18s ease-out}
+@keyframes drawerIn{from{transform:translateX(30px);opacity:.5}to{transform:translateX(0);opacity:1}}
+.drawer-loading{margin:auto;color:var(--muted)}
+.drawer-head{padding:20px 22px 15px;background:#fff;border-bottom:1px solid #e5ebf0}
+.drawer-close{position:absolute;right:18px;top:16px}
+.profile-hero{display:flex;align-items:center;gap:13px;padding-right:44px}
+.profile-hero h3{margin:0;font-size:21px;letter-spacing:-.025em}
+.profile-hero p{margin:4px 0 0;font-size:11px;color:var(--muted)}
+.profile-badges{display:flex;gap:6px;margin-top:8px}
+.drawer-actions{display:flex;gap:8px;margin-top:16px}
+.drawer-tabs{display:flex;gap:4px;padding:9px 16px;background:#fff;border-bottom:1px solid #e4eaf0;overflow-x:auto}
+.drawer-tab{border:0;background:transparent;color:#6b7d8d;border-radius:8px;padding:8px 10px;font-size:11px;font-weight:720;white-space:nowrap}
+.drawer-tab:hover{background:#f2f6f8}
+.drawer-tab.active{background:#eaf3f8;color:#0d5278}
+.drawer-body{padding:18px 20px 28px;overflow:auto}
+.profile-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.profile-card{background:#fff;border:1px solid #e4eaf0;border-radius:13px;padding:13px;box-shadow:var(--shadow-soft)}
+.profile-card span{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#788999;font-weight:800}
+.profile-card strong{display:block;font-size:17px;margin-top:6px;letter-spacing:-.02em}
+.profile-card small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+.profile-section{margin-top:14px;background:#fff;border:1px solid #e4eaf0;border-radius:14px;padding:15px}
+.profile-section h4{margin:0 0 8px;font-size:12px}
+.detail-list{display:grid}
+.detail-row{display:flex;justify-content:space-between;gap:20px;padding:9px 0;border-bottom:1px solid #edf1f4;font-size:11px}
+.detail-row:last-child{border-bottom:0}
+.detail-row span{color:var(--muted)}
+.detail-row strong{font-weight:720;text-align:right}
+.drawer-summary-line{display:flex;justify-content:space-between;align-items:center;background:#fff;border:1px solid #e4eaf0;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:11px}
+.drawer-summary-line strong{font-size:18px}
+.drawer-table table{min-width:580px}
+.profile-notes{background:#fff;border:1px solid #e4eaf0;border-radius:13px;padding:16px;min-height:120px;font-size:12px;line-height:1.65}
+@media(max-width:900px){
+  .student-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .profile-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:560px){
+  .student-summary{grid-template-columns:1fr 1fr}
+  .student-toolbar{align-items:stretch;flex-direction:column}
+  .student-status-chips{margin-left:0}
+  .student-drawer{width:100vw}
+  .profile-grid{grid-template-columns:1fr 1fr}
+  .drawer-actions{flex-wrap:wrap}
+}
