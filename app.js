@@ -94,6 +94,7 @@ const today = () => localYMD();
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 const initials = name => (name||'V').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();
 const humanize = v => String(v ?? '').replaceAll('_',' ').replace(/\b\w/g,m=>m.toUpperCase());
+const paymentMethodLabel = v => ({cash:'Cash',card_transfer:'Card / Transfer',other:'Other'})[v] || humanize(v);
 function uiIcon(name){
   const paths={
     dashboard:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
@@ -535,7 +536,7 @@ async function openStudentProfile(studentId,tab='overview',groups=[]){
       '</div></div>'+
       '<div class="profile-section"><h4>Class information</h4><div class="detail-list">'+detailRow('Schedule',student.groups?.schedule||'—')+detailRow('Room',student.groups?.room||'—')+detailRow('Level',student.groups?.level||'—')+'</div></div>';
     }else if(tab==='payments'){
-      const rows=payments.map(p=>'<tr><td>'+new Date(p.fee_month+'T00:00:00').toLocaleDateString('en-GB',{month:'short',year:'numeric'})+'</td><td>'+fmtDate(p.paid_at)+'</td><td class="num">'+fmtMoney(p.amount)+'</td><td>'+humanize(p.method)+'</td></tr>').join('');
+      const rows=payments.map(p=>'<tr><td>'+new Date(p.fee_month+'T00:00:00').toLocaleDateString('en-GB',{month:'short',year:'numeric'})+'</td><td>'+fmtDate(p.paid_at)+'</td><td class="num">'+fmtMoney(p.amount)+'</td><td>'+paymentMethodLabel(p.method)+'</td></tr>').join('');
       body=rows?'<div class="table-wrap drawer-table"><table><thead><tr><th>Course month</th><th>Paid on</th><th class="num">Amount</th><th>Method</th></tr></thead><tbody>'+rows+'</tbody></table></div>':empty('No payments recorded for this student.');
     }else if(tab==='attendance'){
       const rows=attendance.map(a=>'<tr><td>'+fmtDate(a.lesson_date)+'</td><td><span class="badge '+(a.status==='present'?'success':a.status==='late'?'warn':'danger')+'">'+humanize(a.status)+'</span></td><td>'+esc(a.notes||'—')+'</td></tr>').join('');
@@ -646,14 +647,23 @@ async function paymentsPage(){
   ]);
   const groupMap=new Map(groups.map(g=>[g.id,g.name]));
   const paidMap=new Map();
-  payments.forEach(p=>paidMap.set(p.student_id,(paidMap.get(p.student_id)||0)+Number(p.amount||0)));
+  const paymentDetailsMap=new Map();
+  payments.forEach(p=>{
+    paidMap.set(p.student_id,(paidMap.get(p.student_id)||0)+Number(p.amount||0));
+    const list=paymentDetailsMap.get(p.student_id)||[];
+    list.push(p);
+    paymentDetailsMap.set(p.student_id,list);
+  });
   const feeRows=students.map(s=>{
     const expected=s.is_free_place?0:Math.max(0,Number(s.monthly_fee||0)-Number(s.discount_amount||0));
     const paid=paidMap.get(s.id)||0;
     const balance=Math.max(0,expected-paid);
     const overpaid=Math.max(0,paid-expected);
     const status=s.is_free_place?'free':paid<=0?'unpaid':balance>0?'partial':overpaid>0?'overpaid':'paid';
-    return {...s,expected,paid,balance,overpaid,payment_status:status};
+    const transactions=(paymentDetailsMap.get(s.id)||[]).sort((a,b)=>String(b.paid_at).localeCompare(String(a.paid_at)));
+    const latestPayment=transactions[0]||null;
+    const methods=[...new Set(transactions.map(p=>paymentMethodLabel(p.method)))];
+    return {...s,expected,paid,balance,overpaid,payment_status:status,transactions,latestPayment,paymentMethods:methods};
   });
   const counts={paid:feeRows.filter(x=>x.payment_status==='paid').length,partial:feeRows.filter(x=>x.payment_status==='partial').length,unpaid:feeRows.filter(x=>x.payment_status==='unpaid').length,free:feeRows.filter(x=>x.payment_status==='free').length,overpaid:feeRows.filter(x=>x.payment_status==='overpaid').length};
   const expectedTotal=feeRows.reduce((a,x)=>a+x.expected,0);
@@ -671,6 +681,8 @@ async function paymentsPage(){
     '<td class="num">'+fmtMoney(s.expected)+'</td>'+
     '<td class="num">'+fmtMoney(s.paid)+'</td>'+
     '<td class="num"><strong>'+fmtMoney(s.balance)+'</strong>'+(s.overpaid>0?'<div class="muted row-sub balance-due">+'+fmtMoney(s.overpaid)+' over</div>':'')+'</td>'+
+    '<td>'+(s.latestPayment?'<strong class="payment-detail-main">'+fmtDate(s.latestPayment.paid_at)+'</strong><div class="muted row-sub">'+(s.transactions.length>1?s.transactions.length+' payments':'1 payment')+'</div>':'<span class="muted">—</span>')+'</td>'+
+    '<td>'+(s.paymentMethods.length?'<span class="method-label">'+esc(s.paymentMethods.join(' + '))+'</span>':'<span class="muted">—</span>')+'</td>'+
     '<td><span class="badge payment-'+s.payment_status+'">'+humanize(s.payment_status)+'</span></td>'+
     '<td>'+
       ((s.payment_status==='unpaid'||s.payment_status==='partial')
@@ -682,7 +694,7 @@ async function paymentsPage(){
             :'<span class="correction-label">Review history ↓</span>')+
     '</td>'+
   '</tr>').join('');
-  const historyRows=history.map(p=>'<tr><td>'+fmtDate(p.paid_at)+'</td><td><strong>'+esc(p.students?.full_name||'Student')+'</strong></td><td>'+new Date(p.fee_month+'T00:00:00').toLocaleDateString('en-GB',{month:'short',year:'numeric'})+'</td><td class="num">'+fmtMoney(p.amount)+'</td><td>'+esc(humanize(p.method))+'</td><td><div class="action-row"><span>'+esc(p.reference||'—')+'</span>'+(can('owner','admin','cashier')?'<button class="btn btn-sm btn-danger" data-action="payment-void" data-id="'+p.id+'">Correct</button>':'')+'</div></td></tr>').join('');
+  const historyRows=history.map(p=>'<tr><td>'+fmtDate(p.paid_at)+'</td><td><strong>'+esc(p.students?.full_name||'Student')+'</strong></td><td>'+new Date(p.fee_month+'T00:00:00').toLocaleDateString('en-GB',{month:'short',year:'numeric'})+'</td><td class="num">'+fmtMoney(p.amount)+'</td><td>'+esc(paymentMethodLabel(p.method))+'</td><td><div class="action-row"><span>'+esc(p.reference||'—')+'</span>'+(can('owner','admin','cashier')?'<button class="btn btn-sm btn-danger" data-action="payment-void" data-id="'+p.id+'">Correct</button>':'')+'</div></td></tr>').join('');
   setTimeout(()=>bindPaymentActions(students,feeRows),0);
   return '<div class="finance-summary">'+
     '<div class="finance-kpi"><span>Expected</span><strong>'+fmtMoney(expectedTotal)+'</strong></div>'+
@@ -701,7 +713,7 @@ async function paymentsPage(){
         '<button class="payment-space correction '+(statusFilter==='overpaid'?'active':'')+'" data-payment-status="overpaid"><span class="payment-space-icon">'+uiIcon('refresh')+'</span><span class="payment-space-copy"><strong>Corrections</strong><small>Overpayments to review</small></span><b>'+counts.overpaid+'</b></button>'+
       '</div>'+
       '<div class="payment-space-title"><div><h3>'+(statusFilter==='attention'?'Needs payment':statusFilter==='paid'?'Paid students':statusFilter==='free'?'Free places':'Corrections')+'</h3><p>'+(statusFilter==='attention'?'These students still have a balance for this course month.':statusFilter==='paid'?'These students have completed their payment for this course month.':statusFilter==='free'?'These students are not expected to pay for this course month.':'These students have payments above their expected fee and need review.')+'</p></div>'+(statusFilter==='attention'?'<span class="queue-count">'+attentionCount+' remaining</span>':'')+'</div>'+
-      (rows?'<div class="table-wrap"><table><thead><tr><th>Student</th><th class="num">Fee</th><th class="num">Paid</th><th class="num">Balance</th><th>Status</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>':empty(statusFilter==='attention'?'Everyone has completed payment for this month.':statusFilter==='paid'?'No students have fully paid yet.':statusFilter==='free'?'No free-place students.':'No payment corrections needed.'))+
+      (rows?'<div class="table-wrap"><table><thead><tr><th>Student</th><th class="num">Fee</th><th class="num">Paid</th><th class="num">Balance</th><th>Paid on</th><th>Method</th><th>Status</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>':empty(statusFilter==='attention'?'Everyone has completed payment for this month.':statusFilter==='paid'?'No students have fully paid yet.':statusFilter==='free'?'No free-place students.':'No payment corrections needed.'))+
     '</div></section>'+
     '<div class="section-spacer"></div>'+
     tablePage('Recent payment history','',[['Paid on',''],['Student',''],['Course month',''],['Amount','num'],['Method',''],['Reference','']],historyRows,'No payments recorded yet.');
