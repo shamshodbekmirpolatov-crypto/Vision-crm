@@ -454,3 +454,6 @@ tbody tr:hover{background:#f8fbfd}
 .correction-label{display:inline-flex;color:#96521b;background:#fff1e7;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:800}
 @media(max-width:950px){.payment-spaces{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.payment-spaces{grid-template-columns:1fr}.payment-workspace-head{align-items:stretch;flex-direction:column}}
+
+.payment-detail-main{display:block;font-size:11px;color:#28485e}
+.method-label{display:inline-flex;align-items:center;padding:5px 8px;border-radius:999px;background:#eef4f8;color:#355a72;font-size:10px;font-weight:750;white-space:nowrap}
