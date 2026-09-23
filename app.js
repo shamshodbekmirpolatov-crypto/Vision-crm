@@ -876,7 +876,7 @@ async function staffPage(){
   return staffTable+'<div style="height:16px"></div>'+tablePage('Payroll history',staff.some(s=>s.active)?'<button class="btn btn-primary" data-action="payroll-new">'+uiIcon('plus')+'Record salary</button>':'<button class="btn btn-primary" disabled>No active staff</button>',[['Paid on',''],['Staff',''],['Salary month',''],['Amount','num'],['Notes','']],pRows,'No payroll entries.');
 }
 function staffForm(s={}){
-  const staffRoleOptions=can('owner')
+  const staffRoleOptions=(can('owner')||s.role_title==='Owner')
     ? [['Owner','Owner'],['Administrator','Administrator'],['Teacher','Teacher'],['Cashier','Cashier']]
     : [['Administrator','Administrator'],['Teacher','Teacher'],['Cashier','Cashier']];
   const accountSection=s.user_id
