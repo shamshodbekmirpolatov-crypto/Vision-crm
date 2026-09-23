@@ -30,11 +30,11 @@ const state = {
   sidebarOpen: false,
   cache: {},
   filters: {
-    paymentMonth: new Date().toISOString().slice(0,7),
+    paymentMonth: localYM(),
     paymentStatus: 'all',
-    reportMonth: new Date().toISOString().slice(0,7),
-    expenseMonth: new Date().toISOString().slice(0,7),
-    payrollMonth: new Date().toISOString().slice(0,7)
+    reportMonth: localYM(),
+    expenseMonth: localYM(),
+    payrollMonth: localYM()
   },
 };
 
@@ -70,11 +70,27 @@ const PAGE_META = {
 
 const fmtMoney = n => new Intl.NumberFormat('en-US',{maximumFractionDigits:0}).format(Number(n||0)) + ' so‘m';
 const fmtDate = d => d ? new Intl.DateTimeFormat('en-GB',{day:'2-digit',month:'short',year:'numeric'}).format(new Date(d+'T00:00:00')) : '—';
-const monthStart = d => {
-  const x = d ? new Date(d) : new Date();
-  return new Date(x.getFullYear(),x.getMonth(),1).toISOString().slice(0,10);
-};
-const today = () => new Date().toISOString().slice(0,10);
+function pad2(n){return String(n).padStart(2,'0');}
+function localYMD(d=new Date()){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
+function localYM(d=new Date()){return d.getFullYear()+'-'+pad2(d.getMonth()+1);}
+function localCalendarDate(value){
+  if(value instanceof Date)return value;
+  if(!value)return new Date();
+  const s=String(value);
+  if(/^\d{4}-\d{2}$/.test(s))return new Date(Number(s.slice(0,4)),Number(s.slice(5,7))-1,1,12);
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s))return new Date(Number(s.slice(0,4)),Number(s.slice(5,7))-1,Number(s.slice(8,10)),12);
+  return new Date(value);
+}
+function monthStart(value){
+  if(typeof value==='string'&&/^\d{4}-\d{2}$/.test(value))return value+'-01';
+  const d=localCalendarDate(value);
+  return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-01';
+}
+function monthEnd(value){
+  const d=localCalendarDate(value);
+  return localYMD(new Date(d.getFullYear(),d.getMonth()+1,0,12));
+}
+const today = () => localYMD();
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 const initials = name => (name||'V').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();
 const humanize = v => String(v ?? '').replaceAll('_',' ').replace(/\b\w/g,m=>m.toUpperCase());
@@ -282,18 +298,27 @@ function renderPasswordUpdate(){
 
 async function dashboardPage(){
   const first=monthStart();
-  const last=new Date(new Date(first).getFullYear(),new Date(first).getMonth()+1,0).toISOString().slice(0,10);
+  const last=monthEnd(first);
   const [students,groups,payments,attendance] = await Promise.all([
     query(sb.from('students').select('id,full_name,status,group_id,monthly_fee,discount_amount,is_free_place').eq('status','active')),
     query(sb.from('groups').select('id,name,capacity,active,default_monthly_fee').eq('active',true)),
     can('owner','admin','cashier') ? query(sb.from('payments').select('id,amount,paid_at,fee_month,student_id,voided_at').eq('fee_month',first).is('voided_at',null)) : Promise.resolve([]),
     can('owner','admin','teacher') ? query(sb.from('attendance').select('id,status,lesson_date,student_id').gte('lesson_date',first).lte('lesson_date',last)) : Promise.resolve([])
   ]);
-  const revenue=payments.reduce((s,x)=>s+Number(x.amount),0);
   const expected=students.reduce((s,x)=>s+(x.is_free_place?0:Math.max(0,Number(x.monthly_fee)-Number(x.discount_amount))),0);
   const attendanceRate=attendance.length?Math.round(attendance.filter(x=>x.status==='present'||x.status==='late').length/attendance.length*100):0;
   const paidByStudent=new Map();
   payments.forEach(p=>paidByStudent.set(p.student_id,(paidByStudent.get(p.student_id)||0)+Number(p.amount||0)));
+  const revenue=students.reduce((total,s)=>{
+    if(s.is_free_place)return total;
+    const due=Math.max(0,Number(s.monthly_fee)-Number(s.discount_amount));
+    return total+Math.min(due,paidByStudent.get(s.id)||0);
+  },0);
+  const overpaymentTotal=students.reduce((total,s)=>{
+    if(s.is_free_place)return total;
+    const due=Math.max(0,Number(s.monthly_fee)-Number(s.discount_amount));
+    return total+Math.max(0,(paidByStudent.get(s.id)||0)-due);
+  },0);
   const unpaid=students.filter(s=>{
     if(s.is_free_place)return false;
     const due=Math.max(0,Number(s.monthly_fee)-Number(s.discount_amount));
@@ -318,7 +343,7 @@ async function dashboardPage(){
   '<div class="grid-2"><section class="panel"><div class="panel-head"><div><h2>Groups overview</h2><p>Current occupancy and monthly fee</p></div></div><div class="panel-body">'+
     (groups.length?'<div class="kpi-list">'+groups.map(g=>{const c=students.filter(s=>s.group_id===g.id).length;const pct=Math.min(100,Math.round(c/Number(g.capacity||1)*100));return '<div class="kpi-line"><div class="kpi-line-head"><strong>'+esc(g.name)+'</strong><span>'+c+' / '+g.capacity+'</span></div><div class="progress"><span style="width:'+pct+'%"></span></div><div class="muted" style="font-size:11px">'+fmtMoney(g.default_monthly_fee)+' default fee</div></div>';}).join('')+'</div>':empty('No active groups.'))+
   '</div></section><section class="panel"><div class="panel-head"><div><h2>'+ (can('owner','admin','cashier')?'Payment attention':'Today') +'</h2><p>'+ (can('owner','admin','cashier')?'Students without a payment this month':'Teaching snapshot') +'</p></div></div><div class="panel-body">'+
-    (can('owner','admin','cashier') ? (unpaid.length?'<div class="list">'+unpaid.slice(0,8).map(s=>{const due=Math.max(0,Number(s.monthly_fee)-Number(s.discount_amount));const paid=paidByStudent.get(s.id)||0;const balance=Math.max(0,due-paid);const status=paid>0?'Partial':'Unpaid';return '<div class="list-item"><div class="list-main"><strong>'+esc(s.full_name)+'</strong><span>'+fmtMoney(balance)+' remaining</span></div><span class="badge '+(paid>0?'warn':'danger')+'">'+status+'</span></div>';}).join('')+'</div>':empty('All current fees are fully paid or free.')) : '<div class="section-note">Use Attendance and Academic Records from the menu to manage your teaching work.</div>')+
+    (can('owner','admin','cashier') ? ((overpaymentTotal>0?'<div class="section-note correction-note"><strong>Payment correction needed</strong><br>'+fmtMoney(overpaymentTotal)+' is above students\' expected fees this month. Review Finance → Payments history.</div>':'')+(unpaid.length?'<div class="list">'+unpaid.slice(0,8).map(s=>{const due=Math.max(0,Number(s.monthly_fee)-Number(s.discount_amount));const paid=paidByStudent.get(s.id)||0;const balance=Math.max(0,due-paid);const status=paid>0?'Partial':'Unpaid';return '<div class="list-item"><div class="list-main"><strong>'+esc(s.full_name)+'</strong><span>'+fmtMoney(balance)+' remaining</span></div><span class="badge '+(paid>0?'warn':'danger')+'">'+status+'</span></div>';}).join('')+'</div>':overpaymentTotal>0?'':empty('All current fees are fully paid or free.'))) : '<div class="section-note">Use Attendance and Academic Records from the menu to manage your teaching work.</div>')+
   '</div></section></div>';
 }
 function statCard(label,value,note,icon){return '<div class="stat"><div class="stat-top"><span class="stat-label">'+esc(label)+'</span><span class="stat-icon">'+uiIcon(icon)+'</span></div><div class="stat-value">'+esc(value)+'</div><div class="stat-note">'+esc(note)+'</div></div>';}
@@ -440,7 +465,7 @@ function openStudentEdit(student,groups){
   });
 }
 function openStudentPayment(student){
-  const currentMonth=new Date().toISOString().slice(0,7);
+  const currentMonth=localYM();
   const due=student.is_free_place?0:Math.max(0,Number(student.monthly_fee||0)-Number(student.discount_amount||0));
   if(student.is_free_place){toast('This student is marked as a free place.','error');return;}
   openModal('Record payment · '+student.full_name,'<div class="form-cols">'+
@@ -481,7 +506,7 @@ async function openStudentProfile(studentId,tab='overview',groups=[]){
     modalRoot.querySelector('.drawer-backdrop').onclick=e=>{if(e.target.classList.contains('drawer-backdrop'))closeModal();};
     const monthFirst=monthStart();
     const ninety=new Date();ninety.setDate(ninety.getDate()-90);
-    const ninetyDate=ninety.toISOString().slice(0,10);
+    const ninetyDate=localYMD(ninety);
     const [student,payments,attendance,academic]=await Promise.all([
       query(sb.from('students').select('*, groups(name,level,schedule,room,staff(full_name))').eq('id',studentId).single()),
       query(sb.from('payments').select('*').eq('student_id',studentId).is('voided_at',null).order('fee_month',{ascending:false}).order('paid_at',{ascending:false}).limit(60)),
@@ -611,7 +636,7 @@ function bindLeadActions(leads,groups){
   });
 }
 async function paymentsPage(){
-  const selectedMonth=state.filters.paymentMonth||new Date().toISOString().slice(0,7);
+  const selectedMonth=state.filters.paymentMonth||localYM();
   const feeMonth=selectedMonth+'-01';
   const [payments,students,groups,history]=await Promise.all([
     query(sb.from('payments').select('id,student_id,fee_month,amount,paid_at,method,reference,notes,voided_at').eq('fee_month',feeMonth).is('voided_at',null).order('paid_at',{ascending:false})),
@@ -626,20 +651,22 @@ async function paymentsPage(){
     const expected=s.is_free_place?0:Math.max(0,Number(s.monthly_fee||0)-Number(s.discount_amount||0));
     const paid=paidMap.get(s.id)||0;
     const balance=Math.max(0,expected-paid);
-    const status=s.is_free_place?'free':paid<=0?'unpaid':balance>0?'partial':'paid';
-    return {...s,expected,paid,balance,payment_status:status};
+    const overpaid=Math.max(0,paid-expected);
+    const status=s.is_free_place?'free':paid<=0?'unpaid':balance>0?'partial':overpaid>0?'overpaid':'paid';
+    return {...s,expected,paid,balance,overpaid,payment_status:status};
   });
-  const counts={paid:feeRows.filter(x=>x.payment_status==='paid').length,partial:feeRows.filter(x=>x.payment_status==='partial').length,unpaid:feeRows.filter(x=>x.payment_status==='unpaid').length,free:feeRows.filter(x=>x.payment_status==='free').length};
+  const counts={paid:feeRows.filter(x=>x.payment_status==='paid').length,partial:feeRows.filter(x=>x.payment_status==='partial').length,unpaid:feeRows.filter(x=>x.payment_status==='unpaid').length,free:feeRows.filter(x=>x.payment_status==='free').length,overpaid:feeRows.filter(x=>x.payment_status==='overpaid').length};
   const expectedTotal=feeRows.reduce((a,x)=>a+x.expected,0);
   const collected=feeRows.reduce((a,x)=>a+Math.min(x.paid,x.expected),0);
   const outstanding=feeRows.reduce((a,x)=>a+x.balance,0);
+  const overpaidTotal=feeRows.reduce((a,x)=>a+x.overpaid,0);
   const statusFilter=state.filters.paymentStatus||'all';
   const visible=feeRows.filter(x=>statusFilter==='all'||x.payment_status===statusFilter);
   const rows=visible.map(s=>'<tr>'+
     '<td><strong>'+esc(s.full_name)+'</strong><div class="muted">'+esc(groupMap.get(s.group_id)||'Unassigned')+'</div></td>'+
     '<td class="num">'+fmtMoney(s.expected)+'</td>'+
     '<td class="num">'+fmtMoney(s.paid)+'</td>'+
-    '<td class="num"><strong>'+fmtMoney(s.balance)+'</strong></td>'+
+    '<td class="num"><strong>'+fmtMoney(s.balance)+'</strong>'+(s.overpaid>0?'<div class="muted row-sub balance-due">+'+fmtMoney(s.overpaid)+' over</div>':'')+'</td>'+
     '<td><span class="badge payment-'+s.payment_status+'">'+humanize(s.payment_status)+'</span></td>'+
     '<td>'+(s.payment_status==='free'?'<span class="muted">No payment needed</span>':'<button class="btn btn-sm btn-secondary" data-action="payment-prefill" data-id="'+s.id+'">'+(s.payment_status==='paid'?'Add another':'Add payment')+'</button>')+'</td>'+
   '</tr>').join('');
@@ -651,6 +678,7 @@ async function paymentsPage(){
     '<div class="finance-kpi danger"><span>Outstanding</span><strong>'+fmtMoney(outstanding)+'</strong></div>'+
     '<div class="finance-kpi"><span>Collection rate</span><strong>'+(expectedTotal?Math.round(collected/expectedTotal*100):0)+'%</strong></div>'+
   '</div>'+
+  (overpaidTotal>0?'<div class="section-note correction-note"><strong>Correction needed:</strong> '+fmtMoney(overpaidTotal)+' exceeds expected fees for this month. Use <strong>Correct</strong> in payment history for duplicate or mistaken entries.</div>':'')+
   '<section class="panel"><div class="panel-head"><div><h2>Monthly fee status</h2><p>See exactly who has paid, partially paid, or still owes for the selected course month.</p></div><button class="btn btn-primary" data-action="payment-new">'+uiIcon('plus')+'Record payment</button></div>'+
     '<div class="panel-body">'+
       '<div class="payment-controls"><div class="month-control"><label>Course month</label><input class="input" id="payment-month-filter" type="month" value="'+esc(selectedMonth)+'"></div>'+
@@ -659,6 +687,7 @@ async function paymentsPage(){
         '<button class="status-chip paid '+(statusFilter==='paid'?'active':'')+'" data-payment-status="paid">Paid <strong>'+counts.paid+'</strong></button>'+
         '<button class="status-chip partial '+(statusFilter==='partial'?'active':'')+'" data-payment-status="partial">Partial <strong>'+counts.partial+'</strong></button>'+
         '<button class="status-chip unpaid '+(statusFilter==='unpaid'?'active':'')+'" data-payment-status="unpaid">Unpaid <strong>'+counts.unpaid+'</strong></button>'+
+        '<button class="status-chip overpaid '+(statusFilter==='overpaid'?'active':'')+'" data-payment-status="overpaid">Overpaid <strong>'+counts.overpaid+'</strong></button>'+
         '<button class="status-chip free '+(statusFilter==='free'?'active':'')+'" data-payment-status="free">Free <strong>'+counts.free+'</strong></button>'+
       '</div></div>'+
       (rows?'<div class="table-wrap"><table><thead><tr><th>Student</th><th class="num">Fee</th><th class="num">Paid</th><th class="num">Balance</th><th>Status</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>':empty('No students match this payment status.'))+
@@ -669,7 +698,7 @@ async function paymentsPage(){
 function bindPaymentActions(students,feeRows){
   const openPayment=(studentId='')=>{
     if(!students.length){toast('Add an active student first.','error');return;}
-    const selectedMonth=state.filters.paymentMonth||new Date().toISOString().slice(0,7);
+    const selectedMonth=state.filters.paymentMonth||localYM();
     const initialId=studentId||students[0].id;
     const body='<div class="form-cols">'+
       selectField('Student','student_id',students.map(s=>[s.id,s.full_name]),initialId)+
@@ -799,9 +828,9 @@ function bindStaffActions(staff){
 }
 
 async function reportsPage(){
-  const selectedMonth=state.filters.reportMonth||new Date().toISOString().slice(0,7);
+  const selectedMonth=state.filters.reportMonth||localYM();
   const monthFirst=selectedMonth+'-01';
-  const monthLast=new Date(Number(selectedMonth.slice(0,4)),Number(selectedMonth.slice(5,7)),0).toISOString().slice(0,10);
+  const monthLast=monthEnd(selectedMonth);
   const [students,groups,payments,expenses,payroll] = await Promise.all([
     query(sb.from('students').select('id,status,monthly_fee,discount_amount,is_free_place,group_id')),
     query(sb.from('groups').select('id,name,capacity,active')),
@@ -811,12 +840,20 @@ async function reportsPage(){
   ]);
   const active=students.filter(s=>s.status==='active');
   const expected=active.reduce((s,x)=>s+(x.is_free_place?0:Math.max(0,Number(x.monthly_fee)-Number(x.discount_amount))),0);
-  const collected=payments.reduce((s,x)=>s+Number(x.amount),0);
+  const reportPaidMap=new Map();
+  payments.forEach(p=>reportPaidMap.set(p.student_id,(reportPaidMap.get(p.student_id)||0)+Number(p.amount||0)));
+  const collected=active.reduce((total,s)=>{
+    if(s.is_free_place)return total;
+    const due=Math.max(0,Number(s.monthly_fee)-Number(s.discount_amount));
+    return total+Math.min(due,reportPaidMap.get(s.id)||0);
+  },0);
+  const cashReceived=payments.reduce((s,x)=>s+Number(x.amount),0);
+  const overpayments=Math.max(0,cashReceived-collected);
   const operating=expenses.reduce((s,x)=>s+Number(x.amount),0);
   const salary=payroll.reduce((s,x)=>s+Number(x.amount),0);
   const outstanding=Math.max(0,expected-collected);
   const collectionRate=expected?Math.min(100,Math.round(collected/expected*100)):0;
-  const net=collected-operating-salary;
+  const net=cashReceived-operating-salary;
   const categoryTotals=new Map();
   expenses.forEach(e=>categoryTotals.set(e.category,(categoryTotals.get(e.category)||0)+Number(e.amount)));
   const expenseRows=[...categoryTotals.entries()].sort((a,b)=>b[1]-a[1]).map(([category,amount])=>'<tr><td>'+esc(category)+'</td><td class="num">'+fmtMoney(amount)+'</td></tr>').join('');
@@ -826,11 +863,13 @@ async function reportsPage(){
   '<div class="report-grid">'+
     reportCard('Expected fees',fmtMoney(expected))+
     reportCard('Fees collected',fmtMoney(collected))+
+    reportCard('Cash received',fmtMoney(cashReceived))+
     reportCard('Outstanding',fmtMoney(outstanding))+
     reportCard('Collection rate',collectionRate+'%')+
     reportCard('Operating expenses',fmtMoney(operating))+
     reportCard('Payroll',fmtMoney(salary))+
     reportCard('Net cash',fmtMoney(net))+
+    (overpayments>0?reportCard('Overpayment to review',fmtMoney(overpayments)):'')+
   '</div><div class="section-spacer"></div>'+
   '<div class="grid-2"><section class="panel"><div class="panel-head"><div><h2>Group occupancy</h2><p>Current active students against group capacity</p></div></div><div class="panel-body">'+(groupRows?'<div class="table-wrap"><table><thead><tr><th>Group</th><th>Students</th><th>Capacity</th><th>Occupancy</th></tr></thead><tbody>'+groupRows+'</tbody></table></div>':empty('No active groups.'))+'</div></section>'+
   '<section class="panel"><div class="panel-head"><div><h2>Expense breakdown</h2><p>Operating expenses by category for this month</p></div></div><div class="panel-body">'+(expenseRows?'<div class="table-wrap"><table><thead><tr><th>Category</th><th class="num">Amount</th></tr></thead><tbody>'+expenseRows+'</tbody></table></div>':empty('No operating expenses this month.'))+'</div></section></div>';
