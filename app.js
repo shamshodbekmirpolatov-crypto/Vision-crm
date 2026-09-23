@@ -391,20 +391,55 @@ function bindGroupActions(groups,staff){
 }
 
 async function leadsPage(){
-  const leads=await query(sb.from('leads').select('*').order('created_at',{ascending:false}));
-  const rows=leads.map(l=>'<tr><td><strong>'+esc(l.full_name)+'</strong><div class="muted">'+esc(l.grade_or_age||'')+'</div></td><td>'+esc(l.phone||l.parent_phone||'—')+'</td><td>'+esc(l.interested_course||'—')+'</td><td>'+esc(l.source||'—')+'</td><td><span class="badge info">'+esc(humanize(l.status))+'</span></td><td>'+fmtDate(l.next_follow_up)+'</td><td>'+actionButton('Edit','lead-edit',l.id)+'</td></tr>').join('');
-  setTimeout(()=>bindLeadActions(leads),0);
-  return tablePage('Prospective students','<button class="btn btn-primary" data-action="lead-new">'+uiIcon('plus')+'Add lead</button>',[['Name',''],['Phone',''],['Course',''],['Source',''],['Status',''],['Follow-up',''],['','']],rows,'No leads yet.');
+  const [leads,groups]=await Promise.all([
+    query(sb.from('leads').select('*').order('created_at',{ascending:false})),
+    query(sb.from('groups').select('id,name,default_monthly_fee').eq('active',true).order('name'))
+  ]);
+  const rows=leads.map(l=>'<tr><td><strong>'+esc(l.full_name)+'</strong><div class="muted">'+esc(l.grade_or_age||'')+'</div></td><td>'+esc(l.phone||l.parent_phone||'—')+'</td><td>'+esc(l.interested_course||'—')+'</td><td>'+esc(l.source||'—')+'</td><td><span class="badge info">'+esc(humanize(l.status))+'</span></td><td>'+fmtDate(l.next_follow_up)+'</td><td><div class="action-row">'+actionButton('Edit','lead-edit',l.id)+(l.status!=='enrolled'&&l.status!=='lost'?actionButton('Enroll','lead-enroll',l.id,'primary'):'')+'</div></td></tr>').join('');
+  setTimeout(()=>bindLeadActions(leads,groups),0);
+  return '<div class="section-note"><strong>Lead pipeline</strong><br>Track enquiries from first contact through trial lesson and enrollment. Use <strong>Enroll</strong> to turn a lead into a student without retyping their details.</div>'+tablePage('Prospective students','<button class="btn btn-primary" data-action="lead-new">'+uiIcon('plus')+'Add lead</button>',[['Name',''],['Phone',''],['Course',''],['Source',''],['Status',''],['Follow-up',''],['','']],rows,'No leads yet.');
 }
 function leadForm(l={}){
   return '<div class="form-cols">'+field('Full name','full_name',l.full_name||'','','required')+field('Grade / age','grade_or_age',l.grade_or_age||'')+field('Phone','phone',l.phone||'','tel')+field('Parent phone','parent_phone',l.parent_phone||'','tel')+field('Interested course','interested_course',l.interested_course||'')+field('Source','source',l.source||'')+
   selectField('Status','status',[['new','New'],['contacted','Contacted'],['trial_booked','Trial booked'],['trial_attended','Trial attended'],['enrolled','Enrolled'],['lost','Lost']],l.status||'new')+field('Next follow-up','next_follow_up',l.next_follow_up||'','date')+textArea('Notes','notes',l.notes||'')+'</div>';
 }
-function bindLeadActions(leads){
+function bindLeadActions(leads,groups){
   document.querySelector('[data-action="lead-new"]')?.addEventListener('click',()=>openModal('Add lead',leadForm(),async f=>query(sb.from('leads').insert({full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,phone:val(f,'phone')||null,parent_phone:val(f,'parent_phone')||null,interested_course:val(f,'interested_course')||null,source:val(f,'source')||null,status:val(f,'status'),next_follow_up:val(f,'next_follow_up')||null,notes:val(f,'notes')||null}))));
   document.querySelectorAll('[data-action="lead-edit"]').forEach(b=>b.onclick=()=>{const l=leads.find(x=>x.id===b.dataset.id);openModal('Edit lead',leadForm(l),async f=>query(sb.from('leads').update({full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,phone:val(f,'phone')||null,parent_phone:val(f,'parent_phone')||null,interested_course:val(f,'interested_course')||null,source:val(f,'source')||null,status:val(f,'status'),next_follow_up:val(f,'next_follow_up')||null,notes:val(f,'notes')||null}).eq('id',l.id)));});
+  document.querySelectorAll('[data-action="lead-enroll"]').forEach(b=>b.onclick=()=>{
+    const l=leads.find(x=>x.id===b.dataset.id);
+    const groupOpts=[['','Unassigned'],...groups.map(g=>[g.id,g.name])];
+    const body='<div class="section-note span-2">This creates an active student record and marks the lead as enrolled.</div><div class="form-cols">'+
+      field('Full name','full_name',l.full_name||'','','required')+
+      field('Grade / age','grade_or_age',l.grade_or_age||'')+
+      field('Student phone','phone',l.phone||'','tel')+
+      field('Parent phone','parent_phone',l.parent_phone||'','tel')+
+      selectField('Group','group_id',groupOpts,'')+
+      field('Join date','join_date',today(),'date','required')+
+      field('Monthly fee','monthly_fee','','number','min="0" step="1"')+
+      field('Discount amount','discount_amount',0,'number','min="0" step="1"')+
+      '<div class="field"><label>Free place</label><label class="inline-check"><input type="checkbox" name="is_free_place"> Student studies free</label></div>'+
+      textArea('Student notes','notes',l.notes||'')+'</div>';
+    openModal('Enroll '+l.full_name,body,async form=>{
+      const gid=val(form,'group_id');
+      const group=groups.find(g=>g.id===gid);
+      const feeRaw=val(form,'monthly_fee');
+      await query(sb.from('students').insert({
+        full_name:val(form,'full_name'),grade_or_age:val(form,'grade_or_age')||null,
+        phone:val(form,'phone')||null,parent_phone:val(form,'parent_phone')||null,
+        group_id:gid||null,join_date:val(form,'join_date')||today(),
+        monthly_fee:Number(feeRaw||group?.default_monthly_fee||0),
+        discount_amount:Number(val(form,'discount_amount')||0),
+        is_free_place:checked(form,'is_free_place'),status:'active',notes:val(form,'notes')||null
+      }));
+      await query(sb.from('leads').update({status:'enrolled',next_follow_up:null}).eq('id',l.id));
+    },'Enroll student');
+    const groupEl=modalRoot.querySelector('[name=group_id]');
+    const feeEl=modalRoot.querySelector('[name=monthly_fee]');
+    const setFee=()=>{const g=groups.find(x=>x.id===groupEl.value);if(g&&!feeEl.value)feeEl.value=g.default_monthly_fee||0;};
+    groupEl.onchange=setFee;
+  });
 }
-
 async function paymentsPage(){
   const selectedMonth=state.filters.paymentMonth||new Date().toISOString().slice(0,7);
   const feeMonth=selectedMonth+'-01';
@@ -581,24 +616,41 @@ function bindStaffActions(staff){
 }
 
 async function reportsPage(){
-  const first=monthStart(); const yearStart=new Date().getFullYear()+'-01-01';
+  const selectedMonth=state.filters.reportMonth||new Date().toISOString().slice(0,7);
+  const monthFirst=selectedMonth+'-01';
+  const monthLast=new Date(Number(selectedMonth.slice(0,4)),Number(selectedMonth.slice(5,7)),0).toISOString().slice(0,10);
   const [students,groups,payments,expenses,payroll] = await Promise.all([
     query(sb.from('students').select('id,status,monthly_fee,discount_amount,is_free_place,group_id')),
     query(sb.from('groups').select('id,name,capacity,active')),
-    query(sb.from('payments').select('amount,paid_at,student_id').gte('paid_at',yearStart)),
-    query(sb.from('expenses').select('amount,expense_date,category').gte('expense_date',yearStart)),
-    query(sb.from('payroll').select('amount,paid_at').gte('paid_at',yearStart))
+    query(sb.from('payments').select('amount,paid_at,fee_month,student_id').eq('fee_month',monthFirst)),
+    query(sb.from('expenses').select('amount,expense_date,category').gte('expense_date',monthFirst).lte('expense_date',monthLast)),
+    query(sb.from('payroll').select('amount,paid_at,salary_month,staff_id').eq('salary_month',monthFirst))
   ]);
   const active=students.filter(s=>s.status==='active');
-  const monthRevenue=payments.filter(p=>p.paid_at>=first).reduce((s,x)=>s+Number(x.amount),0);
-  const monthExpenses=expenses.filter(e=>e.expense_date>=first).reduce((s,x)=>s+Number(x.amount),0);
-  const monthPayroll=payroll.filter(p=>p.paid_at>=first).reduce((s,x)=>s+Number(x.amount),0);
   const expected=active.reduce((s,x)=>s+(x.is_free_place?0:Math.max(0,Number(x.monthly_fee)-Number(x.discount_amount))),0);
-  const ytdRevenue=payments.reduce((s,x)=>s+Number(x.amount),0);
-  const ytdCosts=expenses.reduce((s,x)=>s+Number(x.amount),0)+payroll.reduce((s,x)=>s+Number(x.amount),0);
-  const groupRows=groups.map(g=>{const n=active.filter(s=>s.group_id===g.id).length;return '<tr><td>'+esc(g.name)+'</td><td>'+n+'</td><td>'+g.capacity+'</td><td>'+Math.round(n/Number(g.capacity||1)*100)+'%</td></tr>';}).join('');
-  return '<div class="report-grid">'+reportCard('Expected monthly fees',fmtMoney(expected))+reportCard('Collected this month',fmtMoney(monthRevenue))+reportCard('Collection rate',(expected?Math.round(monthRevenue/expected*100):0)+'%')+reportCard('Operating expenses',fmtMoney(monthExpenses))+reportCard('Payroll this month',fmtMoney(monthPayroll))+reportCard('Month net cash',fmtMoney(monthRevenue-monthExpenses-monthPayroll))+reportCard('YTD revenue',fmtMoney(ytdRevenue))+reportCard('YTD total costs',fmtMoney(ytdCosts))+reportCard('YTD net cash',fmtMoney(ytdRevenue-ytdCosts))+'</div><div style="height:16px"></div>'+
-  '<section class="panel"><div class="panel-head"><div><h2>Group occupancy</h2><p>Active students against group capacity</p></div></div><div class="panel-body"><div class="table-wrap"><table><thead><tr><th>Group</th><th>Students</th><th>Capacity</th><th>Occupancy</th></tr></thead><tbody>'+groupRows+'</tbody></table></div></div></section>';
+  const collected=payments.reduce((s,x)=>s+Number(x.amount),0);
+  const operating=expenses.reduce((s,x)=>s+Number(x.amount),0);
+  const salary=payroll.reduce((s,x)=>s+Number(x.amount),0);
+  const outstanding=Math.max(0,expected-collected);
+  const collectionRate=expected?Math.min(100,Math.round(collected/expected*100)):0;
+  const net=collected-operating-salary;
+  const categoryTotals=new Map();
+  expenses.forEach(e=>categoryTotals.set(e.category,(categoryTotals.get(e.category)||0)+Number(e.amount)));
+  const expenseRows=[...categoryTotals.entries()].sort((a,b)=>b[1]-a[1]).map(([category,amount])=>'<tr><td>'+esc(category)+'</td><td class="num">'+fmtMoney(amount)+'</td></tr>').join('');
+  const groupRows=groups.filter(g=>g.active).map(g=>{const n=active.filter(s=>s.group_id===g.id).length;const pct=Math.round(n/Number(g.capacity||1)*100);return '<tr><td>'+esc(g.name)+'</td><td>'+n+'</td><td>'+g.capacity+'</td><td><div class="occupancy-cell"><span>'+pct+'%</span><div class="progress"><span style="width:'+Math.min(100,pct)+'%"></span></div></div></td></tr>';}).join('');
+  setTimeout(()=>document.getElementById('report-month-filter')?.addEventListener('change',e=>{state.filters.reportMonth=e.target.value;renderRoute();}),0);
+  return '<section class="report-toolbar"><div><span class="internal-eyebrow">MONTHLY PERFORMANCE</span><h2>'+new Date(monthFirst+'T00:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'})+'</h2><p>Fee collection, operating costs, payroll and centre capacity.</p></div><div class="month-control"><label>Report month</label><input class="input" id="report-month-filter" type="month" value="'+esc(selectedMonth)+'"></div></section>'+
+  '<div class="report-grid">'+
+    reportCard('Expected fees',fmtMoney(expected))+
+    reportCard('Fees collected',fmtMoney(collected))+
+    reportCard('Outstanding',fmtMoney(outstanding))+
+    reportCard('Collection rate',collectionRate+'%')+
+    reportCard('Operating expenses',fmtMoney(operating))+
+    reportCard('Payroll',fmtMoney(salary))+
+    reportCard('Net cash',fmtMoney(net))+
+  '</div><div class="section-spacer"></div>'+
+  '<div class="grid-2"><section class="panel"><div class="panel-head"><div><h2>Group occupancy</h2><p>Current active students against group capacity</p></div></div><div class="panel-body">'+(groupRows?'<div class="table-wrap"><table><thead><tr><th>Group</th><th>Students</th><th>Capacity</th><th>Occupancy</th></tr></thead><tbody>'+groupRows+'</tbody></table></div>':empty('No active groups.'))+'</div></section>'+
+  '<section class="panel"><div class="panel-head"><div><h2>Expense breakdown</h2><p>Operating expenses by category for this month</p></div></div><div class="panel-body">'+(expenseRows?'<div class="table-wrap"><table><thead><tr><th>Category</th><th class="num">Amount</th></tr></thead><tbody>'+expenseRows+'</tbody></table></div>':empty('No operating expenses this month.'))+'</div></section></div>';
 }
 function reportCard(label,value){return '<div class="report-card"><h3>'+esc(label)+'</h3><div class="report-value">'+esc(value)+'</div></div>';}
 
