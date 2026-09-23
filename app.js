@@ -253,28 +253,55 @@ function bindPasswordToggle(root=document){
 }
 function renderLogin(error=''){
   app.className='';
+  const mailIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>';
+  const lockIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
   app.innerHTML =
-    '<div class="auth-wrap auth-login">'+
-      '<section class="auth-hero">'+
-        '<div class="auth-logo"><img src="./vision-logo.jpg" alt="Vision Learning Centre logo"><div><strong>VISION</strong><span>LEARNING CENTRE</span></div></div>'+
-        '<div class="auth-hero-copy"><div class="eyebrow">VISION CRM</div><h1>Everything your centre needs,<br>in one clear system.</h1><p>Students, groups, attendance, payments, staff and academic progress — securely managed in one place.</p><div class="auth-badges"><span class="auth-badge">Students</span><span class="auth-badge">Attendance</span><span class="auth-badge">Payments</span><span class="auth-badge">Reports</span></div></div>'+
-        '<div class="auth-footer-note">Vision Learning Centre • Internal management system</div>'+
+    '<div class="auth-wrap auth-login premium-auth">'+
+      '<section class="auth-hero premium-auth-hero">'+
+        '<div class="hero-photo" aria-hidden="true"></div>'+
+        '<div class="hero-overlay" aria-hidden="true"></div>'+
+        '<div class="hero-orbit hero-orbit-one" aria-hidden="true"></div>'+
+        '<div class="hero-orbit hero-orbit-two" aria-hidden="true"></div>'+
+        '<div class="premium-hero-content">'+
+          '<div class="premium-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre logo"><div><strong>VISION</strong><span>LEARNING CENTRE</span></div></div>'+
+          '<div class="premium-copy">'+
+            '<span class="premium-kicker">VISION CRM</span>'+
+            '<h1>Everything your<br>centre needs,<br><em>in one clear system.</em></h1>'+
+            '<p>Students, groups, attendance, payments, staff and academic progress — securely managed in one place.</p>'+
+          '</div>'+
+          '<div class="premium-feature-grid">'+
+            '<div class="premium-feature-card"><span class="feature-icon">'+uiIcon('students')+'</span><div><strong>Students</strong><small>Manage with ease</small></div></div>'+
+            '<div class="premium-feature-card"><span class="feature-icon">'+uiIcon('attendance')+'</span><div><strong>Attendance</strong><small>Track in real time</small></div></div>'+
+            '<div class="premium-feature-card"><span class="feature-icon">'+uiIcon('payments')+'</span><div><strong>Payments</strong><small>Simple & secure</small></div></div>'+
+            '<div class="premium-feature-card"><span class="feature-icon">'+uiIcon('reports')+'</span><div><strong>Reports</strong><small>Insights that matter</small></div></div>'+
+          '</div>'+
+          '<div class="premium-hero-footer"><span></span><div><strong>Vision Learning Centre</strong><small>Internal management system</small></div></div>'+
+        '</div>'+
+        '<div class="floating-card float-one"><span>'+uiIcon('academic')+'</span><strong>Smarter<br>Education</strong></div>'+
+        '<div class="floating-card float-two"><span>'+uiIcon('reports')+'</span><strong>A Brighter<br>Tomorrow</strong></div>'+
       '</section>'+
-      '<section class="auth-panel"><div class="auth-card">'+
-        '<div class="login-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision CRM</strong><span>Secure staff access</span></div></div>'+
-        '<div class="login-heading"><h2>Welcome back</h2><p class="sub">Enter your account details to continue.</p></div>'+
-        (error?'<div class="login-error">'+esc(error)+'</div>':'')+
-        '<form id="login-form" class="form-grid">'+
-          field('Email address','email','','email','required autocomplete="email" placeholder="you@example.com"')+
-          passwordInput('Password','password','required autocomplete="current-password" placeholder="Enter your password"')+
-          '<button class="btn btn-primary btn-block login-submit" type="submit"><span>Sign in</span><span aria-hidden="true">→</span></button>'+
-        '</form>'+
-        '<div class="auth-help"><span>Vision Learning Centre staff only</span><button class="link-btn" id="forgot">Forgot password?</button></div>'+
-      '</div></section></div>';
+      '<section class="auth-panel premium-auth-panel">'+
+        '<div class="auth-ambient ambient-one" aria-hidden="true"></div><div class="auth-ambient ambient-two" aria-hidden="true"></div>'+
+        '<div class="auth-card premium-login-card">'+
+          '<div class="login-brand premium-login-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision CRM</strong><span>Secure staff access</span></div></div>'+
+          '<div class="login-heading premium-login-heading"><span class="login-kicker">WELCOME TO VISION</span><h2>Welcome back</h2><p class="sub">Enter your account details to continue.</p></div>'+
+          (error?'<div class="login-error">'+esc(error)+'</div>':'')+
+          '<form id="login-form" class="form-grid premium-login-form">'+
+            '<div class="field premium-field"><label>Email address</label><div class="login-input-shell"><span class="login-input-icon">'+mailIcon+'</span><input class="input" type="email" name="email" required autocomplete="email" placeholder="you@example.com"></div></div>'+
+            '<div class="field premium-field"><label>Password</label><div class="password-wrap login-input-shell"><span class="login-input-icon">'+lockIcon+'</span><input class="input password-input" type="password" name="password" required autocomplete="current-password" placeholder="Enter your password"><button class="password-toggle" type="button" aria-label="Show password" title="Show password"><span class="eye-open">◉</span><span class="eye-closed">—</span></button></div></div>'+
+            '<div class="login-form-row"><span class="secure-note"><span class="secure-dot"></span>Protected staff access</span><button class="link-btn" type="button" id="forgot">Forgot password?</button></div>'+
+            '<button class="btn btn-primary btn-block login-submit premium-signin" type="submit"><span>Sign in</span><span aria-hidden="true">→</span></button>'+
+          '</form>'+
+          '<div class="premium-login-divider"><span></span><b>VISION</b><span></span></div>'+
+          '<div class="login-trust"><span class="trust-icon">'+uiIcon('students')+'</span><div><strong>Built for your centre.</strong><span>Vision Learning Centre staff only</span></div></div>'+
+        '</div>'+
+        '<div class="premium-panel-footer">More than learning. <strong>A brighter tomorrow.</strong></div>'+
+      '</section>'+
+    '</div>';
   bindPasswordToggle(app);
   document.getElementById('login-form').onsubmit=async e=>{
     e.preventDefault();
-    const b=e.currentTarget.querySelector('[type="submit"]'); b.disabled=true;b.innerHTML='<span>Signing in…</span>';
+    const b=e.currentTarget.querySelector('[type="submit"]'); b.disabled=true;b.innerHTML='<span>Signing in…</span><span class="signin-spinner" aria-hidden="true"></span>';
     const {error}=await sb.auth.signInWithPassword({email:val(e.currentTarget,'email'),password:val(e.currentTarget,'password')});
     if(error){renderLogin(error.message);}
   };
