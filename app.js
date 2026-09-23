@@ -335,9 +335,10 @@ async function dashboardPage(){
     ...(can('owner','admin')?[['expenses','Expenses','expenses']]:[])
   ];
   return '<section class="dashboard-welcome"><div><span class="internal-eyebrow">VISION LEARNING CENTRE</span><h2>'+greeting+', '+esc((state.profile?.full_name||'').split(' ')[0]||'there')+'.</h2><p>Here is what needs your attention today.</p></div><div class="quick-actions">'+quickActions.map(a=>'<button class="quick-action" data-route="'+a[0]+'"><span>'+uiIcon(a[2])+'</span>'+a[1]+'</button>').join('')+'</div></section>'+
-  '<div class="cards">'+
+  '<div class="cards dashboard-cards '+(can('owner','admin','cashier')?'has-finance':'')+'">'+
     statCard('Active students',students.length,'Across '+groups.length+' active groups','students')+
-    statCard(can('owner','admin','cashier')?'Collected this month':'My active groups',can('owner','admin','cashier')?fmtMoney(revenue):groups.length,can('owner','admin','cashier')?Math.round(expected?revenue/expected*100:0)+'% of expected fees':'Assigned teaching view','payments')+
+    (can('owner','admin','cashier')?statCard('Expected this month',fmtMoney(expected),'Total scheduled student fees','payments'):'')+
+    statCard(can('owner','admin','cashier')?'Collected this month':'My active groups',can('owner','admin','cashier')?fmtMoney(revenue):groups.length,can('owner','admin','cashier')?Math.round(expected?revenue/expected*100:0)+'% collected · '+fmtMoney(Math.max(0,expected-revenue))+' outstanding':'Assigned teaching view','payments')+
     statCard(can('owner','admin','teacher')?'Attendance rate':'Group capacity',can('owner','admin','teacher')?attendanceRate+'%':(capacity?Math.round(fill/capacity*100):0)+'%',can('owner','admin','teacher')?attendance.length+' attendance records':fill+' / '+capacity+' places','attendance')+
     statCard(can('owner','admin','cashier')?'Unpaid students':'Active learners',can('owner','admin','cashier')?unpaid.length:students.length,can('owner','admin','cashier')?'Current month':'Visible to your account','alert')+
   '</div>'+
