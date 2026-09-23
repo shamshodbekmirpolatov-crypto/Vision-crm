@@ -868,7 +868,8 @@ function bindStaffActions(staff){
   document.querySelector('[data-action=staff-new]')?.addEventListener('click',()=>openModal('Add staff member',staffForm(),async f=>query(sb.from('staff').insert({full_name:val(f,'full_name'),role_title:val(f,'role_title')||null,phone:val(f,'phone')||null,monthly_salary:Number(val(f,'monthly_salary')||0),start_date:val(f,'start_date')||null,active:checked(f,'active')}))));
   document.querySelectorAll('[data-action=staff-edit]').forEach(b=>b.onclick=()=>{
     const s=staff.find(x=>x.id===b.dataset.id);
-    openModal('Edit staff member',staffForm(s),async f=>{
+    const footer='<div class="danger-zone"><div><strong>Permanent deletion</strong><span>Only available if this person has no CRM history or active assignments.</span></div><button type="button" class="btn btn-danger" id="staff-delete">Delete permanently</button></div>';
+    openModal('Edit staff member',staffForm(s)+footer,async f=>{
       const fullName=val(f,'full_name');
       const phone=val(f,'phone')||null;
       await query(sb.from('staff').update({
@@ -891,6 +892,28 @@ function bindStaffActions(staff){
         if(error)throw error;
         if(data?.error)throw new Error(data.error);
       }
+    });
+    document.getElementById('staff-delete')?.addEventListener('click',()=>{
+      openModal('Delete '+s.full_name+' permanently','<div class="login-error"><strong>This cannot be undone.</strong><br>The CRM will refuse the deletion if this person has any history or active assignments.</div>'+field('Type DELETE to confirm','confirm_delete','','text','required autocomplete="off"'),async form=>{
+        if(val(form,'confirm_delete')!=='DELETE')throw new Error('Type DELETE exactly to confirm.');
+        const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'delete_staff',staff_id:s.id}});
+        if(error){
+          const context=error?.context;
+          let detail='';
+          try{
+            const payload=await context?.json?.();
+            if(payload?.blockers?.length)detail='\n'+payload.blockers.join(' • ');
+            throw new Error((payload?.error||error.message)+detail);
+          }catch(parseErr){
+            if(parseErr instanceof Error && parseErr.message!==error.message)throw parseErr;
+            throw error;
+          }
+        }
+        if(data?.error){
+          const detail=data.blockers?.length?' '+data.blockers.join(' • '):'';
+          throw new Error(data.error+detail);
+        }
+      },'Delete permanently');
     });
   });
 }
