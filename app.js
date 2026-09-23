@@ -833,23 +833,66 @@ async function expensesPage(){
 }
 
 async function staffPage(){
-  const [staff,payroll]=await Promise.all([
+  const [staff,payroll,userResult]=await Promise.all([
     query(sb.from('staff').select('*').order('full_name')),
-    query(sb.from('payroll').select('*, staff(full_name)').order('paid_at',{ascending:false}).limit(300))
+    query(sb.from('payroll').select('*, staff(full_name)').order('paid_at',{ascending:false}).limit(300)),
+    sb.functions.invoke('manage-users',{body:{action:'list'}})
   ]);
-  const rows=staff.map(s=>'<tr><td><strong>'+esc(s.full_name)+'</strong></td><td>'+esc(s.role_title||'—')+'</td><td>'+esc(s.phone||'—')+'</td><td class="num">'+fmtMoney(s.monthly_salary)+'</td><td><span class="badge '+(s.active?'success':'')+'">'+(s.active?'Active':'Inactive')+'</span></td><td>'+actionButton('Edit','staff-edit',s.id)+'</td></tr>').join('');
-  setTimeout(()=>bindStaffActions(staff),0);
+  const users=userResult.error?[]:(userResult.data?.users||[]);
+  const userMap=new Map(users.map(u=>[u.id,u]));
+  const staffWithAccounts=staff.map(s=>({...s,account:s.user_id?userMap.get(s.user_id)||null:null}));
+  const rows=staffWithAccounts.map(s=>'<tr><td><strong>'+esc(s.full_name)+'</strong><div class="muted">'+esc(s.account?.email||'No CRM login')+'</div></td><td>'+esc(s.role_title||'—')+'</td><td>'+esc(s.phone||'—')+'</td><td class="num">'+fmtMoney(s.monthly_salary)+'</td><td><span class="badge '+(s.active?'success':'')+'">'+(s.active?'Active':'Inactive')+'</span></td><td>'+actionButton('Edit','staff-edit',s.id)+'</td></tr>').join('');
+  setTimeout(()=>bindStaffActions(staffWithAccounts),0);
   const staffTable=tablePage('Staff records','<button class="btn btn-primary" data-action="staff-new">'+uiIcon('plus')+'Add staff</button>',[['Name',''],['Role',''],['Phone',''],['Monthly salary','num'],['Status',''],['','']],rows,'No staff records.');
   const pRows=payroll.map(p=>'<tr><td>'+fmtDate(p.paid_at)+'</td><td>'+esc(p.staff?.full_name||'Staff')+'</td><td>'+new Date(p.salary_month+'T00:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'})+'</td><td class="num">'+fmtMoney(p.amount)+'</td><td>'+esc(p.notes||'—')+'</td></tr>').join('');
   setTimeout(()=>document.querySelector('[data-action=payroll-new]')?.addEventListener('click',()=>openModal('Record payroll','<div class="form-cols">'+selectField('Staff member','staff_id',staff.filter(s=>s.active).map(s=>[s.id,s.full_name]))+field('Salary month','salary_month',monthStart().slice(0,7),'month','required')+field('Amount','amount','','number','required min="1"')+field('Paid date','paid_at',today(),'date','required')+textArea('Notes','notes','')+'</div>',async f=>{const m=val(f,'salary_month');return query(sb.from('payroll').insert({staff_id:val(f,'staff_id'),salary_month:m+'-01',amount:Number(val(f,'amount')),paid_at:val(f,'paid_at'),notes:val(f,'notes')||null,created_by:state.session.user.id}));})),0);
   return staffTable+'<div style="height:16px"></div>'+tablePage('Payroll history',staff.some(s=>s.active)?'<button class="btn btn-primary" data-action="payroll-new">'+uiIcon('plus')+'Record salary</button>':'<button class="btn btn-primary" disabled>No active staff</button>',[['Paid on',''],['Staff',''],['Salary month',''],['Amount','num'],['Notes','']],pRows,'No payroll entries.');
 }
 function staffForm(s={}){
-  return '<div class="form-cols">'+field('Full name','full_name',s.full_name||'','','required')+field('Role title','role_title',s.role_title||'')+field('Phone','phone',s.phone||'','tel')+field('Monthly salary','monthly_salary',s.monthly_salary??0,'number','min="0"')+field('Start date','start_date',s.start_date||'','date')+'<div class="field"><label>Status</label><label class="inline-check"><input type="checkbox" name="active" '+(s.active!==false?'checked':'')+'> Active staff member</label></div></div>';
+  const accountSection=s.user_id
+    ? '<div class="span-2 linked-account-box"><div><strong>Linked CRM account</strong><span>This staff member can sign in to Vision CRM.</span></div><span class="badge info">'+esc(humanize(s.account?.role||''))+'</span></div>'+
+      field('Email address','email',s.account?.email||'','email','required')+
+      selectField('CRM access role','account_role',[['teacher','Teacher'],['cashier','Cashier']],s.account?.role||((s.role_title||'').toLowerCase().includes('cash')?'cashier':'teacher'))
+    : '<div class="span-2 linked-account-box muted-account"><div><strong>No CRM login linked</strong><span>This staff profile does not currently have a login account.</span></div></div>';
+  return '<div class="form-cols">'+
+    field('Full name','full_name',s.full_name||'','','required')+
+    field('Role title','role_title',s.role_title||'')+
+    field('Phone','phone',s.phone||'','tel')+
+    field('Monthly salary','monthly_salary',s.monthly_salary??0,'number','min="0"')+
+    field('Start date','start_date',s.start_date||'','date')+
+    '<div class="field"><label>Status</label><label class="inline-check"><input type="checkbox" name="active" '+(s.active!==false?'checked':'')+'> Active staff member</label></div>'+
+    accountSection+
+  '</div>';
 }
 function bindStaffActions(staff){
   document.querySelector('[data-action=staff-new]')?.addEventListener('click',()=>openModal('Add staff member',staffForm(),async f=>query(sb.from('staff').insert({full_name:val(f,'full_name'),role_title:val(f,'role_title')||null,phone:val(f,'phone')||null,monthly_salary:Number(val(f,'monthly_salary')||0),start_date:val(f,'start_date')||null,active:checked(f,'active')}))));
-  document.querySelectorAll('[data-action=staff-edit]').forEach(b=>b.onclick=()=>{const s=staff.find(x=>x.id===b.dataset.id);openModal('Edit staff member',staffForm(s),async f=>query(sb.from('staff').update({full_name:val(f,'full_name'),role_title:val(f,'role_title')||null,phone:val(f,'phone')||null,monthly_salary:Number(val(f,'monthly_salary')||0),start_date:val(f,'start_date')||null,active:checked(f,'active')}).eq('id',s.id)));});
+  document.querySelectorAll('[data-action=staff-edit]').forEach(b=>b.onclick=()=>{
+    const s=staff.find(x=>x.id===b.dataset.id);
+    openModal('Edit staff member',staffForm(s),async f=>{
+      const fullName=val(f,'full_name');
+      const phone=val(f,'phone')||null;
+      await query(sb.from('staff').update({
+        full_name:fullName,
+        role_title:val(f,'role_title')||null,
+        phone,
+        monthly_salary:Number(val(f,'monthly_salary')||0),
+        start_date:val(f,'start_date')||null,
+        active:checked(f,'active')
+      }).eq('id',s.id));
+      if(s.user_id){
+        const {data,error}=await sb.functions.invoke('manage-users',{body:{
+          action:'edit_account',
+          user_id:s.user_id,
+          full_name:fullName,
+          email:val(f,'email'),
+          phone,
+          role:val(f,'account_role')
+        }});
+        if(error)throw error;
+        if(data?.error)throw new Error(data.error);
+      }
+    });
+  });
 }
 
 async function reportsPage(){
@@ -909,7 +952,7 @@ async function usersPage(){
   const {data,error}=userResult;
   if(error) throw error;
   const users=data?.users||[];
-  const rows=users.map(u=>'<tr><td><strong>'+esc(u.full_name||'—')+'</strong><div class="muted">'+esc(u.email||'')+'</div></td><td><span class="badge info">'+esc(humanize(u.role))+'</span></td><td><span class="badge '+(u.active?'success':'danger')+'">'+(u.active?'Active':'Inactive')+'</span></td><td>'+fmtDate((u.last_sign_in_at||'').slice(0,10))+'</td><td>'+(u.id!==state.session.user.id?'<div class="action-row">'+actionButton('Change role','user-role',u.id)+(u.active?actionButton('Deactivate','user-deactivate',u.id,'danger'):'<span class="muted">Deactivated</span>')+'</div>':'<span class="muted">Current user</span>')+'</td></tr>').join('');
+  const rows=users.map(u=>'<tr><td><strong>'+esc(u.full_name||'—')+'</strong><div class="muted">'+esc(u.email||'')+'</div></td><td><span class="badge info">'+esc(humanize(u.role))+'</span></td><td><span class="badge '+(u.active?'success':'danger')+'">'+(u.active?'Active':'Inactive')+'</span></td><td>'+fmtDate((u.last_sign_in_at||'').slice(0,10))+'</td><td>'+(u.id!==state.session.user.id?'<div class="action-row">'+actionButton('Edit','user-edit',u.id)+actionButton('Change role','user-role',u.id)+(u.active?actionButton('Deactivate','user-deactivate',u.id,'danger'):'<span class="muted">Deactivated</span>')+'</div>':'<span class="muted">Current user</span>')+'</td></tr>').join('');
   setTimeout(()=>bindUserActions(users,staff),0);
   return '<div class="section-note"><strong>Staff access</strong><br>Create teacher or cashier login accounts and link them to an existing staff record when possible.</div>'+tablePage('Login accounts','<button class="btn btn-primary" data-action="user-new">'+uiIcon('plus')+'Create account</button>',[['User',''],['Role',''],['Status',''],['Last sign-in',''],['','']],rows,'No accounts found.');
 }
@@ -928,6 +971,28 @@ function bindUserActions(users,staff){
       modalRoot.querySelector('[name=phone]').value=s.phone||'';
       modalRoot.querySelector('[name=role]').value=(s.role_title||'').toLowerCase().includes('cash')?'cashier':'teacher';
     };
+  });
+  document.querySelectorAll('[data-action=user-edit]').forEach(b=>b.onclick=()=>{
+    const u=users.find(x=>x.id===b.dataset.id);
+    const s=staff.find(x=>x.user_id===u.id);
+    openModal('Edit login account','<div class="form-cols">'+
+      field('Full name','full_name',u.full_name||'','','required')+
+      field('Email address','email',u.email||'','email','required')+
+      field('Phone','phone',s?.phone||'','tel')+
+      selectField('Role','role',[['teacher','Teacher'],['cashier','Cashier']],u.role)+
+      '<div class="span-2 section-note">This updates the linked CRM login and staff profile together.</div>'+
+    '</div>',async f=>{
+      const {data,error}=await sb.functions.invoke('manage-users',{body:{
+        action:'edit_account',
+        user_id:u.id,
+        full_name:val(f,'full_name'),
+        email:val(f,'email'),
+        phone:val(f,'phone'),
+        role:val(f,'role')
+      }});
+      if(error)throw error;
+      if(data?.error)throw new Error(data.error);
+    },'Save changes');
   });
   document.querySelectorAll('[data-action=user-role]').forEach(b=>b.onclick=()=>{const u=users.find(x=>x.id===b.dataset.id);openModal('Change role',selectField('Role','role',[['teacher','Teacher'],['cashier','Cashier']],u.role),async f=>{const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'set_role',user_id:u.id,role:val(f,'role')}});if(error)throw error;if(data?.error)throw new Error(data.error);},'Update role');});
   document.querySelectorAll('[data-action=user-deactivate]').forEach(b=>b.onclick=async()=>{if(!confirm('Deactivate this user account?'))return;try{const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'deactivate',user_id:b.dataset.id}});if(error)throw error;if(data?.error)throw new Error(data.error);await renderRoute();toast('Account deactivated.');}catch(e){fail(e);}});
