@@ -462,3 +462,9 @@ tbody tr:hover{background:#f8fbfd}
 @media(max-width:1250px){.dashboard-cards.has-finance{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:850px){.dashboard-cards.has-finance{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.dashboard-cards.has-finance{grid-template-columns:1fr}}
+
+.linked-account-box{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 13px;border:1px solid #dbe6ed;background:#f5fafc;border-radius:12px}
+.linked-account-box strong{display:block;font-size:12px}
+.linked-account-box span{display:block;font-size:10px;color:var(--muted);margin-top:2px}
+.linked-account-box>.badge{margin-top:0}
+.muted-account{background:#fafbfc;border-style:dashed}
