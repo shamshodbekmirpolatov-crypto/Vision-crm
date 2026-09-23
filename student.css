@@ -204,3 +204,117 @@ button{cursor:pointer}
   font-size:10px;
   white-space:nowrap;
 }
+
+
+/* Student dashboard layout refinements */
+.bar-track{
+  justify-content:flex-start;
+  gap:20px;
+  padding:0 8px;
+}
+.result-bar-wrap{
+  flex:0 0 78px;
+  min-width:78px;
+}
+.progress-chart{
+  min-width:max(660px,fit-content);
+}
+.results-panel{
+  margin-bottom:14px;
+  overflow:hidden;
+}
+.results-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:14px;
+  margin-bottom:12px;
+}
+.results-head h3{margin:0}
+.results-head p{
+  margin:4px 0 0;
+  color:var(--muted);
+  font-size:10px;
+}
+.results-head>span{
+  flex:0 0 auto;
+  padding:6px 9px;
+  border-radius:999px;
+  background:#eef5f9;
+  color:#456a81;
+  font-size:9px;
+  font-weight:800;
+}
+.result-strip{
+  display:flex;
+  gap:10px;
+  overflow-x:auto;
+  padding:2px 2px 8px;
+  scroll-snap-type:x proximity;
+}
+.result-strip::-webkit-scrollbar{height:7px}
+.result-strip::-webkit-scrollbar-thumb{background:#d5e0e8;border-radius:999px}
+.result-card{
+  flex:0 0 220px;
+  scroll-snap-align:start;
+  border:1px solid #e3e9ee;
+  border-radius:14px;
+  padding:13px;
+  background:linear-gradient(180deg,#fff,#fbfdff);
+  box-shadow:0 4px 14px rgba(18,45,70,.035);
+}
+.result-card-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:10px;
+}
+.result-card-top small{color:#8a9aa7;font-size:8px}
+.result-dot{
+  width:8px;height:8px;border-radius:50%;display:block;
+}
+.result-dot.red{background:var(--red)}
+.result-dot.yellow{background:var(--yellow)}
+.result-dot.green{background:var(--green)}
+.result-card>strong{
+  display:block;
+  font-size:11px;
+  color:#1e435d;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.result-type{
+  display:block;
+  color:#8797a4;
+  font-size:8px;
+  margin-top:3px;
+}
+.result-card-score{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:16px;
+}
+.result-card-score b{font-size:11px;color:#294e68}
+.result-card-score em{
+  font-style:normal;
+  font-size:16px;
+  font-weight:900;
+}
+.result-card-score em.red{color:var(--red)}
+.result-card-score em.yellow{color:#aa7900}
+.result-card-score em.green{color:var(--green)}
+.learning-panel{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(300px,.9fr);
+  gap:22px;
+  margin-bottom:14px;
+}
+.feedback-block h3{margin:0 0 12px}
+@media(max-width:760px){
+  .learning-panel{grid-template-columns:1fr}
+  .result-card{flex-basis:190px}
+}
