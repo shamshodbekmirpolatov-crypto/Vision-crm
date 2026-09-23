@@ -29,6 +29,13 @@ const state = {
   route: 'dashboard',
   sidebarOpen: false,
   cache: {},
+  filters: {
+    paymentMonth: new Date().toISOString().slice(0,7),
+    paymentStatus: 'all',
+    reportMonth: new Date().toISOString().slice(0,7),
+    expenseMonth: new Date().toISOString().slice(0,7),
+    payrollMonth: new Date().toISOString().slice(0,7)
+  },
 };
 
 const NAV = [
@@ -165,33 +172,44 @@ function allowedRoutes(){
 }
 function renderShell(content){
   const meta=PAGE_META[state.route]||['Vision CRM',''];
-  let lastGroup='';
-  const nav=allowedRoutes().map(n=>{
-    const heading=n.group!==lastGroup ? '<div class="nav-group">'+esc(n.group)+'</div>' : '';
-    lastGroup=n.group;
-    return heading+'<button class="nav-btn '+(state.route===n.id?'active':'')+'" data-route="'+n.id+'"><span class="nav-icon">'+uiIcon(n.id)+'</span><span>'+esc(n.label)+'</span></button>';
-  }).join('');
+  const allowed=allowedRoutes();
+  const current=allowed.find(n=>n.id===state.route)||allowed[0];
+  const activeGroup=current?.group||'Overview';
+  const groups=[...new Set(allowed.map(n=>n.group))];
+  const categoryIcon={Overview:'dashboard',Students:'students',Teaching:'academic',Finance:'payments',Management:'settings'};
+  const defaults={Overview:'dashboard',Students:'students',Teaching:'attendance',Finance:'payments',Management:'reports'};
+  const categoryNav=groups.map(g=>'<button class="category-tab '+(g===activeGroup?'active':'')+'" data-category="'+esc(g)+'"><span>'+uiIcon(categoryIcon[g]||'dashboard')+'</span>'+esc(g)+'</button>').join('');
+  const subNav=allowed.filter(n=>n.group===activeGroup).map(n=>'<button class="subnav-tab '+(n.id===state.route?'active':'')+'" data-route="'+n.id+'">'+esc(n.label)+'</button>').join('');
   app.className='';
   app.innerHTML =
-    '<div class="shell">'+
-      '<aside class="sidebar '+(state.sidebarOpen?'open':'')+'">'+
-        '<div class="sidebar-brand"><img class="sidebar-logo" src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision CRM</strong><span>Learning Centre</span></div></div>'+
-        '<nav class="nav">'+nav+'</nav>'+
-        '<div class="sidebar-foot"><div class="user-mini"><div class="avatar">'+esc(initials(state.profile?.full_name))+'</div><div><strong>'+esc(state.profile?.full_name||'User')+'</strong><span>'+esc(role())+'</span></div></div>'+
-        '<button id="signout" class="nav-btn nav-signout" style="width:100%;margin-top:4px"><span class="nav-icon">'+uiIcon('logout')+'</span><span>Sign out</span></button></div>'+
-      '</aside>'+
-      (state.sidebarOpen?'<div class="mobile-overlay" id="overlay"></div>':'')+
-      '<main class="main">'+
-        '<header class="topbar"><div class="topbar-left"><button class="icon-btn menu-btn" id="menu">☰</button><div class="page-title"><h1>'+esc(meta[0])+'</h1><p>'+esc(meta[1])+'</p></div></div>'+
-        '<div class="top-actions"><span class="role-chip desktop-only">'+esc(humanize(role()))+'</span><button class="btn btn-secondary desktop-only" id="refresh">'+uiIcon('refresh')+'<span>Refresh</span></button></div></header>'+
+    '<div class="shell top-shell">'+
+      '<header class="app-header">'+
+        '<div class="app-header-main">'+
+          '<div class="app-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision CRM</strong><span>Vision Learning Centre</span></div></div>'+
+          '<div class="app-user">'+
+            '<button class="btn btn-secondary desktop-only" id="refresh">'+uiIcon('refresh')+'<span>Refresh</span></button>'+
+            '<span class="role-chip desktop-only">'+esc(humanize(role()))+'</span>'+
+            '<div class="user-chip"><div class="avatar">'+esc(initials(state.profile?.full_name))+'</div><div class="user-chip-copy"><strong>'+esc(state.profile?.full_name||'User')+'</strong><span>'+esc(humanize(role()))+'</span></div></div>'+
+            '<button id="signout" class="icon-btn signout-icon" title="Sign out" aria-label="Sign out">'+uiIcon('logout')+'</button>'+
+          '</div>'+
+        '</div>'+
+        '<nav class="category-nav">'+categoryNav+'</nav>'+
+        '<nav class="subnav">'+subNav+'</nav>'+
+      '</header>'+
+      '<main class="main top-main">'+
+        '<header class="pagebar"><div class="page-title"><h1>'+esc(meta[0])+'</h1><p>'+esc(meta[1])+'</p></div></header>'+
         '<div class="content">'+content+'</div>'+
       '</main>'+
     '</div>';
   document.querySelectorAll('[data-route]').forEach(b=>b.onclick=()=>go(b.dataset.route));
+  document.querySelectorAll('[data-category]').forEach(b=>b.onclick=()=>{
+    const group=b.dataset.category;
+    const preferred=defaults[group];
+    const target=allowed.find(n=>n.group===group&&n.id===preferred)||allowed.find(n=>n.group===group);
+    if(target) go(target.id);
+  });
   document.getElementById('signout').onclick=async()=>{await sb.auth.signOut();};
-  document.getElementById('refresh').onclick=()=>renderRoute(true);
-  document.getElementById('menu').onclick=()=>{state.sidebarOpen=!state.sidebarOpen;renderRoute();};
-  document.getElementById('overlay')?.addEventListener('click',()=>{state.sidebarOpen=false;renderRoute();});
+  document.getElementById('refresh')?.addEventListener('click',()=>renderRoute(true));
 }
 function go(routeName){
   if(!allowedRoutes().some(n=>n.id===routeName)) routeName='dashboard';
