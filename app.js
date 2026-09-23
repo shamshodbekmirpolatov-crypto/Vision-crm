@@ -324,17 +324,59 @@ async function dashboardPage(){
 function statCard(label,value,note,icon){return '<div class="stat"><div class="stat-top"><span class="stat-label">'+esc(label)+'</span><span class="stat-icon">'+uiIcon(icon)+'</span></div><div class="stat-value">'+esc(value)+'</div><div class="stat-note">'+esc(note)+'</div></div>';}
 
 async function studentsPage(){
-  const [students,groups]=await Promise.all([
-    query(sb.from('students').select('*, groups(name)').order('full_name')),
-    query(sb.from('groups').select('id,name,default_monthly_fee').eq('active',true).order('name'))
+  const feeMonth=monthStart();
+  const [students,groups,payments]=await Promise.all([
+    query(sb.from('students').select('*, groups(name,teacher_id,staff(full_name))').order('full_name')),
+    query(sb.from('groups').select('id,name,default_monthly_fee').eq('active',true).order('name')),
+    can('owner','admin','cashier')?query(sb.from('payments').select('student_id,amount,fee_month').eq('fee_month',feeMonth)):Promise.resolve([])
   ]);
   state.cache.groups=groups;
+  const paidMap=new Map();
+  payments.forEach(p=>paidMap.set(p.student_id,(paidMap.get(p.student_id)||0)+Number(p.amount||0)));
+  const search=(state.filters.studentSearch||'').toLowerCase();
+  const statusFilter=state.filters.studentStatus||'active';
+  const decorated=students.map(s=>{
+    const due=s.is_free_place?0:Math.max(0,Number(s.monthly_fee||0)-Number(s.discount_amount||0));
+    const paid=paidMap.get(s.id)||0;
+    const balance=Math.max(0,due-paid);
+    const payment_status=s.is_free_place?'free':paid<=0?'unpaid':balance>0?'partial':'paid';
+    return {...s,due,paid,balance,payment_status};
+  });
+  const visible=decorated.filter(s=>{
+    const matchesStatus=statusFilter==='all'||s.status===statusFilter;
+    const hay=[s.full_name,s.phone,s.parent_phone,s.grade_or_age,s.groups?.name].filter(Boolean).join(' ').toLowerCase();
+    return matchesStatus&&(!search||hay.includes(search));
+  });
+  const activeCount=decorated.filter(s=>s.status==='active').length;
+  const attention=decorated.filter(s=>s.status==='active'&&(s.payment_status==='partial'||s.payment_status==='unpaid')).length;
+  const freeCount=decorated.filter(s=>s.status==='active'&&s.is_free_place).length;
   const add=can('owner','admin','cashier')?'<button class="btn btn-primary" data-action="student-new">'+uiIcon('plus')+'Add student</button>':'';
-  const rows=students.map(s=>'<tr><td><strong>'+esc(s.full_name)+'</strong><div class="muted">'+esc(s.grade_or_age||'')+'</div></td><td>'+esc(s.groups?.name||'Unassigned')+'</td><td>'+esc(s.phone||'—')+'</td><td class="num">'+fmtMoney(s.is_free_place?0:Math.max(0,Number(s.monthly_fee)-Number(s.discount_amount)))+'</td><td><span class="badge '+(s.status==='active'?'success':s.status==='paused'?'warn':'')+'">'+esc(humanize(s.status))+'</span></td><td><div class="action-row">'+(can('owner','admin','cashier')?actionButton('Edit','student-edit',s.id):'')+'</div></td></tr>').join('');
-  setTimeout(()=>bindStudentActions(students,groups),0);
-  return tablePage('Student records',add,[
-    ['Student',''],['Group',''],['Phone',''],['Monthly due','num'],['Status',''],['','']
-  ],rows,'No students found.');
+  const rows=visible.map(s=>'<tr class="student-row" data-student-open="'+s.id+'">'+
+    '<td><div class="student-identity"><div class="student-avatar">'+esc(initials(s.full_name))+'</div><div><strong>'+esc(s.full_name)+'</strong><span>'+esc(s.phone||s.parent_phone||'No phone')+'</span></div></div></td>'+
+    '<td><span class="course-pill">'+esc(s.groups?.name||'Unassigned')+'</span><div class="muted row-sub">'+esc(s.groups?.staff?.full_name||'No teacher')+'</div></td>'+
+    '<td>'+fmtDate(s.join_date)+'</td>'+
+    (can('owner','admin','cashier')?'<td class="num"><strong class="'+(s.balance>0?'balance-due':'balance-clear')+'">'+(s.is_free_place?'—':fmtMoney(s.balance))+'</strong><div class="muted row-sub">'+(s.is_free_place?'Free place':s.payment_status==='paid'?'Paid this month':humanize(s.payment_status))+'</div></td>':'')+
+    '<td><span class="badge '+(s.status==='active'?'success':s.status==='paused'?'warn':'')+'">'+esc(humanize(s.status))+'</span></td>'+
+    '<td class="student-actions"><button class="kebab-btn" data-student-menu="'+s.id+'" title="Student actions" aria-label="Student actions">•••</button></td>'+
+  '</tr>').join('');
+  setTimeout(()=>bindStudentActions(decorated,groups),0);
+  const headers=[['Student',''],['Group',''],['Joined',''],...(can('owner','admin','cashier')?[['Balance','num']]:[]),['Status',''],['','']];
+  return '<div class="student-summary">'+
+    '<div class="mini-metric"><span>Active students</span><strong>'+activeCount+'</strong></div>'+
+    '<div class="mini-metric"><span>Groups</span><strong>'+groups.length+'</strong></div>'+
+    (can('owner','admin','cashier')?'<div class="mini-metric attention"><span>Need payment attention</span><strong>'+attention+'</strong></div><div class="mini-metric"><span>Free places</span><strong>'+freeCount+'</strong></div>':'')+
+  '</div>'+
+  '<section class="panel student-operations"><div class="panel-head"><div><h2>Students</h2><p>Search, review balances and open a complete student profile.</p></div>'+add+'</div>'+
+    '<div class="panel-body">'+
+      '<div class="student-toolbar"><div class="student-search">'+uiIcon('students')+'<input id="student-search" placeholder="Search student, phone or group…" value="'+esc(state.filters.studentSearch||'')+'"></div>'+
+      '<div class="status-chips student-status-chips">'+
+        '<button class="status-chip '+(statusFilter==='active'?'active':'')+'" data-student-status="active">Active</button>'+
+        '<button class="status-chip '+(statusFilter==='paused'?'active':'')+'" data-student-status="paused">Paused</button>'+
+        '<button class="status-chip '+(statusFilter==='left'?'active':'')+'" data-student-status="left">Left</button>'+
+        '<button class="status-chip '+(statusFilter==='all'?'active':'')+'" data-student-status="all">All</button>'+
+      '</div></div>'+
+      (rows?'<div class="table-wrap student-table"><table><thead><tr>'+headers.map(h=>'<th class="'+(h[1]||'')+'">'+esc(h[0])+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table></div>':empty('No students match these filters.'))+
+    '</div></section>';
 }
 function studentForm(s={},groups=[]){
   const groupOpts=[['','Unassigned'],...groups.map(g=>[g.id,g.name])];
@@ -347,7 +389,7 @@ function studentForm(s={},groups=[]){
     field('Join date','join_date',s.join_date||today(),'date')+
     field('Monthly fee','monthly_fee',s.monthly_fee??'', 'number','min="0" step="1"')+
     field('Discount amount','discount_amount',s.discount_amount??0,'number','min="0" step="1"')+
-    selectField('Status','status',['active','paused','left'],s.status||'active')+
+    selectField('Status','status',[['active','Active'],['paused','Paused'],['left','Left']],s.status||'active')+
     '<div class="field"><label>Free place</label><label class="inline-check"><input type="checkbox" name="is_free_place" '+(s.is_free_place?'checked':'')+'> Student studies free</label></div>'+
     textArea('Notes','notes',s.notes||'')+'</div>';
 }
@@ -355,15 +397,129 @@ function bindStudentActions(students,groups){
   document.querySelector('[data-action="student-new"]')?.addEventListener('click',()=>openModal('Add student',studentForm({},groups),async f=>{
     const gid=val(f,'group_id'); const g=groups.find(x=>x.id===gid);
     const payload={full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,phone:val(f,'phone')||null,parent_phone:val(f,'parent_phone')||null,group_id:gid||null,join_date:val(f,'join_date')||today(),monthly_fee:Number(val(f,'monthly_fee')||g?.default_monthly_fee||0),discount_amount:Number(val(f,'discount_amount')||0),is_free_place:checked(f,'is_free_place'),status:val(f,'status'),notes:val(f,'notes')||null};
+    if(payload.discount_amount>payload.monthly_fee&&!payload.is_free_place)throw new Error('Discount cannot be greater than the monthly fee.');
     await query(sb.from('students').insert(payload));
   }));
-  document.querySelectorAll('[data-action="student-edit"]').forEach(b=>b.onclick=()=>{
-    const s=students.find(x=>x.id===b.dataset.id); openModal('Edit student',studentForm(s,groups),async f=>{
-      const payload={full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,phone:val(f,'phone')||null,parent_phone:val(f,'parent_phone')||null,group_id:val(f,'group_id')||null,join_date:val(f,'join_date'),monthly_fee:Number(val(f,'monthly_fee')||0),discount_amount:Number(val(f,'discount_amount')||0),is_free_place:checked(f,'is_free_place'),status:val(f,'status'),notes:val(f,'notes')||null};
-      await query(sb.from('students').update(payload).eq('id',s.id));
-    });
+  document.querySelectorAll('[data-student-open]').forEach(row=>row.onclick=e=>{
+    if(e.target.closest('[data-student-menu]'))return;
+    openStudentProfile(row.dataset.studentOpen,'overview',groups);
+  });
+  document.querySelectorAll('[data-student-menu]').forEach(btn=>btn.onclick=e=>{
+    e.stopPropagation();
+    const s=students.find(x=>x.id===btn.dataset.studentMenu);
+    openStudentQuickActions(s,groups);
+  });
+  const searchEl=document.getElementById('student-search');
+  if(searchEl){
+    let timer;
+    searchEl.oninput=()=>{clearTimeout(timer);timer=setTimeout(()=>{state.filters.studentSearch=searchEl.value;renderRoute();},250);};
+  }
+  document.querySelectorAll('[data-student-status]').forEach(b=>b.onclick=()=>{state.filters.studentStatus=b.dataset.studentStatus;renderRoute();});
+}
+function openStudentQuickActions(student,groups){
+  const body='<div class="action-sheet">'+
+    '<button type="button" class="action-sheet-btn" data-student-action="profile"><span>'+uiIcon('students')+'</span><div><strong>Open profile</strong><small>Payments, attendance and progress</small></div></button>'+
+    (can('owner','admin','cashier')?'<button type="button" class="action-sheet-btn" data-student-action="payment"><span>'+uiIcon('payments')+'</span><div><strong>Record payment</strong><small>Record this student\'s fee payment</small></div></button>':'')+
+    (can('owner','admin','cashier')?'<button type="button" class="action-sheet-btn" data-student-action="edit"><span>'+uiIcon('settings')+'</span><div><strong>Edit details</strong><small>Group, fee, phone and status</small></div></button>':'')+
+  '</div>';
+  openModal(student.full_name,body,async()=>{},'Close');
+  const form=modalRoot.querySelector('#modal-form');
+  const submit=form.querySelector('[type=submit]'); if(submit) submit.style.display='none';
+  form.querySelectorAll('[data-student-action]').forEach(b=>b.onclick=()=>{
+    const action=b.dataset.studentAction; closeModal();
+    if(action==='profile')openStudentProfile(student.id,'overview',groups);
+    if(action==='payment')openStudentPayment(student);
+    if(action==='edit')openStudentEdit(student,groups);
   });
 }
+function openStudentEdit(student,groups){
+  openModal('Edit student',studentForm(student,groups),async f=>{
+    const payload={full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,phone:val(f,'phone')||null,parent_phone:val(f,'parent_phone')||null,group_id:val(f,'group_id')||null,join_date:val(f,'join_date'),monthly_fee:Number(val(f,'monthly_fee')||0),discount_amount:Number(val(f,'discount_amount')||0),is_free_place:checked(f,'is_free_place'),status:val(f,'status'),notes:val(f,'notes')||null};
+    if(payload.discount_amount>payload.monthly_fee&&!payload.is_free_place)throw new Error('Discount cannot be greater than the monthly fee.');
+    await query(sb.from('students').update(payload).eq('id',student.id));
+  });
+}
+function openStudentPayment(student){
+  const currentMonth=new Date().toISOString().slice(0,7);
+  const due=student.is_free_place?0:Math.max(0,Number(student.monthly_fee||0)-Number(student.discount_amount||0));
+  if(student.is_free_place){toast('This student is marked as a free place.','error');return;}
+  openModal('Record payment · '+student.full_name,'<div class="form-cols">'+
+    field('Course month','fee_month',currentMonth,'month','required')+
+    field('Amount','amount',due,'number','required min="1" step="1"')+
+    field('Paid date','paid_at',today(),'date','required')+
+    selectField('Method','method',[['cash','Cash'],['card_transfer','Card / transfer'],['other','Other']],'cash')+
+    field('Reference','reference','')+
+    textArea('Notes','notes','')+'</div>',async form=>{
+      const m=val(form,'fee_month');
+      const monthKey=m+'-01';
+      const existing=await query(sb.from('payments').select('amount').eq('student_id',student.id).eq('fee_month',monthKey));
+      const paid=existing.reduce((a,p)=>a+Number(p.amount||0),0);
+      const remaining=Math.max(0,due-paid);
+      const amount=Number(val(form,'amount'));
+      if(amount<=0)throw new Error('Enter a valid payment amount.');
+      if(m===currentMonth&&amount>remaining)throw new Error('This is more than the remaining balance ('+fmtMoney(remaining)+').');
+      await query(sb.from('payments').insert({student_id:student.id,fee_month:monthKey,amount,paid_at:val(form,'paid_at'),method:val(form,'method'),reference:val(form,'reference')||null,notes:val(form,'notes')||null,created_by:state.session.user.id}));
+    },'Save payment');
+}
+async function openStudentProfile(studentId,tab='overview',groups=[]){
+  try{
+    modalRoot.innerHTML='<div class="drawer-backdrop"><aside class="student-drawer"><div class="drawer-loading">Loading student profile…</div></aside></div>';
+    modalRoot.querySelector('.drawer-backdrop').onclick=e=>{if(e.target.classList.contains('drawer-backdrop'))closeModal();};
+    const monthFirst=monthStart();
+    const ninety=new Date();ninety.setDate(ninety.getDate()-90);
+    const ninetyDate=ninety.toISOString().slice(0,10);
+    const [student,payments,attendance,academic]=await Promise.all([
+      query(sb.from('students').select('*, groups(name,level,schedule,room,staff(full_name))').eq('id',studentId).single()),
+      query(sb.from('payments').select('*').eq('student_id',studentId).order('fee_month',{ascending:false}).order('paid_at',{ascending:false}).limit(60)),
+      query(sb.from('attendance').select('*').eq('student_id',studentId).gte('lesson_date',ninetyDate).order('lesson_date',{ascending:false}).limit(100)),
+      query(sb.from('academic_records').select('*').eq('student_id',studentId).order('record_date',{ascending:false}).limit(50))
+    ]);
+    const monthPaid=payments.filter(p=>p.fee_month===monthFirst).reduce((a,p)=>a+Number(p.amount||0),0);
+    const due=student.is_free_place?0:Math.max(0,Number(student.monthly_fee||0)-Number(student.discount_amount||0));
+    const balance=Math.max(0,due-monthPaid);
+    const paymentStatus=student.is_free_place?'free':monthPaid<=0?'unpaid':balance>0?'partial':'paid';
+    const present=attendance.filter(a=>a.status==='present'||a.status==='late').length;
+    const attendanceRate=attendance.length?Math.round(present/attendance.length*100):0;
+    const tabs=['overview','payments','attendance','academic','notes'];
+    const tabLabels={overview:'Overview',payments:'Payments',attendance:'Attendance',academic:'Academic',notes:'Notes'};
+    const tabNav=tabs.map(t=>'<button class="drawer-tab '+(tab===t?'active':'')+'" data-profile-tab="'+t+'">'+tabLabels[t]+'</button>').join('');
+    let body='';
+    if(tab==='overview'){
+      body='<div class="profile-grid">'+
+        '<div class="profile-card"><span>Group</span><strong>'+esc(student.groups?.name||'Unassigned')+'</strong><small>'+esc(student.groups?.staff?.full_name||'No teacher')+'</small></div>'+
+        '<div class="profile-card"><span>Monthly fee</span><strong>'+fmtMoney(due)+'</strong><small>'+(student.discount_amount?fmtMoney(student.discount_amount)+' discount':'No discount')+'</small></div>'+
+        '<div class="profile-card"><span>Current balance</span><strong class="'+(balance>0?'balance-due':'balance-clear')+'">'+(student.is_free_place?'Free':fmtMoney(balance))+'</strong><small>'+humanize(paymentStatus)+'</small></div>'+
+        '<div class="profile-card"><span>Attendance · 90 days</span><strong>'+attendanceRate+'%</strong><small>'+attendance.length+' recorded lessons</small></div>'+
+      '</div>'+
+      '<div class="profile-section"><h4>Contact & enrolment</h4><div class="detail-list">'+
+        detailRow('Student phone',student.phone||'—')+detailRow('Parent phone',student.parent_phone||'—')+detailRow('Grade / age',student.grade_or_age||'—')+detailRow('Joined',fmtDate(student.join_date))+detailRow('Status',humanize(student.status))+
+      '</div></div>'+
+      '<div class="profile-section"><h4>Class information</h4><div class="detail-list">'+detailRow('Schedule',student.groups?.schedule||'—')+detailRow('Room',student.groups?.room||'—')+detailRow('Level',student.groups?.level||'—')+'</div></div>';
+    }else if(tab==='payments'){
+      const rows=payments.map(p=>'<tr><td>'+new Date(p.fee_month+'T00:00:00').toLocaleDateString('en-GB',{month:'short',year:'numeric'})+'</td><td>'+fmtDate(p.paid_at)+'</td><td class="num">'+fmtMoney(p.amount)+'</td><td>'+humanize(p.method)+'</td></tr>').join('');
+      body=rows?'<div class="table-wrap drawer-table"><table><thead><tr><th>Course month</th><th>Paid on</th><th class="num">Amount</th><th>Method</th></tr></thead><tbody>'+rows+'</tbody></table></div>':empty('No payments recorded for this student.');
+    }else if(tab==='attendance'){
+      const rows=attendance.map(a=>'<tr><td>'+fmtDate(a.lesson_date)+'</td><td><span class="badge '+(a.status==='present'?'success':a.status==='late'?'warn':'danger')+'">'+humanize(a.status)+'</span></td><td>'+esc(a.notes||'—')+'</td></tr>').join('');
+      body='<div class="drawer-summary-line"><span>90-day attendance rate</span><strong>'+attendanceRate+'%</strong></div>'+(rows?'<div class="table-wrap drawer-table"><table><thead><tr><th>Date</th><th>Status</th><th>Note</th></tr></thead><tbody>'+rows+'</tbody></table></div>':empty('No attendance records yet.'));
+    }else if(tab==='academic'){
+      const rows=academic.map(r=>'<tr><td>'+fmtDate(r.record_date)+'</td><td>'+esc(r.record_type)+'</td><td>'+esc(r.topic||'—')+'</td><td>'+(r.score==null?'—':esc(r.score)+' / '+esc(r.max_score??'—'))+'</td></tr>').join('');
+      body=rows?'<div class="table-wrap drawer-table"><table><thead><tr><th>Date</th><th>Type</th><th>Topic</th><th>Score</th></tr></thead><tbody>'+rows+'</tbody></table></div>':empty('No academic records yet.');
+    }else{
+      body='<div class="profile-notes">'+(student.notes?'<p>'+esc(student.notes).replace(/\n/g,'<br>')+'</p>':empty('No student notes yet.'))+'</div>';
+    }
+    modalRoot.innerHTML='<div class="drawer-backdrop"><aside class="student-drawer">'+
+      '<div class="drawer-head"><button class="icon-btn drawer-close" aria-label="Close">×</button><div class="profile-hero"><div class="student-avatar large">'+esc(initials(student.full_name))+'</div><div><h3>'+esc(student.full_name)+'</h3><p>'+esc(student.groups?.name||'Unassigned')+' · '+esc(student.grade_or_age||'Student')+'</p><div class="profile-badges"><span class="badge '+(student.status==='active'?'success':student.status==='paused'?'warn':'')+'">'+humanize(student.status)+'</span>'+(can('owner','admin','cashier')?'<span class="badge payment-'+paymentStatus+'">'+humanize(paymentStatus)+'</span>':'')+'</div></div></div>'+
+      '<div class="drawer-actions">'+(can('owner','admin','cashier')&&!student.is_free_place?'<button class="btn btn-primary" data-profile-action="payment">'+uiIcon('payments')+'Payment</button>':'')+(can('owner','admin','cashier')?'<button class="btn btn-secondary" data-profile-action="edit">Edit</button>':'')+'</div></div>'+
+      '<nav class="drawer-tabs">'+tabNav+'</nav><div class="drawer-body">'+body+'</div>'+
+    '</aside></div>';
+    modalRoot.querySelector('.drawer-close').onclick=closeModal;
+    modalRoot.querySelector('.drawer-backdrop').onclick=e=>{if(e.target.classList.contains('drawer-backdrop'))closeModal();};
+    modalRoot.querySelectorAll('[data-profile-tab]').forEach(b=>b.onclick=()=>openStudentProfile(student.id,b.dataset.profileTab,groups));
+    modalRoot.querySelector('[data-profile-action="payment"]')?.addEventListener('click',()=>{closeModal();openStudentPayment(student);});
+    modalRoot.querySelector('[data-profile-action="edit"]')?.addEventListener('click',()=>{closeModal();openStudentEdit(student,groups.length?groups:state.cache.groups||[]);});
+  }catch(e){closeModal();fail(e);}
+}
+function detailRow(label,value){return '<div class="detail-row"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong></div>';}
 
 async function groupsPage(){
   const [groups,staff,students]=await Promise.all([
