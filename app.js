@@ -876,6 +876,9 @@ async function staffPage(){
   return staffTable+'<div style="height:16px"></div>'+tablePage('Payroll history',staff.some(s=>s.active)?'<button class="btn btn-primary" data-action="payroll-new">'+uiIcon('plus')+'Record salary</button>':'<button class="btn btn-primary" disabled>No active staff</button>',[['Paid on',''],['Staff',''],['Salary month',''],['Amount','num'],['Notes','']],pRows,'No payroll entries.');
 }
 function staffForm(s={}){
+  const staffRoleOptions=can('owner')
+    ? [['Owner','Owner'],['Administrator','Administrator'],['Teacher','Teacher'],['Cashier','Cashier']]
+    : [['Administrator','Administrator'],['Teacher','Teacher'],['Cashier','Cashier']];
   const accountSection=s.user_id
     ? '<div class="span-2 linked-account-box"><div><strong>Linked CRM account</strong><span>This staff member can sign in to Vision CRM.</span></div><span class="badge info">'+esc(humanize(s.account?.role||''))+'</span></div>'+
       field('Email address','email',s.account?.email||'','email','required')+
@@ -883,7 +886,7 @@ function staffForm(s={}){
     : '<div class="span-2 linked-account-box muted-account"><div><strong>No CRM login linked</strong><span>This staff profile does not currently have a login account.</span></div></div>';
   return '<div class="form-cols">'+
     field('Full name','full_name',s.full_name||'','','required')+
-    field('Role title','role_title',s.role_title||'')+
+    selectField('Role','role_title',staffRoleOptions,s.role_title||'Teacher')+
     field('Phone','phone',s.phone||'','tel')+
     field('Monthly salary','monthly_salary',s.monthly_salary??0,'number','min="0"')+
     field('Start date','start_date',s.start_date||'','date')+
