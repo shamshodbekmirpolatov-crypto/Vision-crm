@@ -84,27 +84,22 @@ function renderPortal(){
   '</div>';
 
   const chart=valid.length?renderChart(valid):'<div class="empty-progress"><div><strong>No test results yet</strong><p>As soon as your teacher records your first test in Vision CRM, your progress chart will appear here automatically.</p></div></div>';
-  const rows=valid.slice().reverse().map(r=>'<div class="result-row"><div><strong>'+esc(r.topic||r.record_type)+'</strong><small>'+esc(r.record_type)+'</small></div><span class="result-score">'+esc(r.score)+' / '+esc(r.max_score)+'</span><span class="result-percent '+pctClass(r.percentage)+'">'+esc(r.percentage)+'%</span><span class="result-date">'+fmtDate(r.record_date)+'</span></div>').join('');
+  const rows=valid.slice().reverse().map(r=>'<article class="result-card"><div class="result-card-top"><span class="result-dot '+pctClass(r.percentage)+'"></span><small>'+fmtDate(r.record_date)+'</small></div><strong>'+esc(r.topic||r.record_type)+'</strong><span class="result-type">'+esc(r.record_type)+'</span><div class="result-card-score"><b>'+esc(r.score)+' / '+esc(r.max_score)+'</b><em class="'+pctClass(r.percentage)+'">'+esc(r.percentage)+'%</em></div></article>').join('');
   const latestNote=[...valid].reverse().find(r=>r.teacher_note)?.teacher_note||null;
 
   app.innerHTML='<div class="portal">'+
     '<header class="portal-header"><div class="portal-header-inner"><div class="portal-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision Student Progress</strong><span>VISION LEARNING CENTRE</span></div></div><button class="signout" id="student-signout">Sign out</button></div></header>'+
     '<main class="portal-main">'+
-      '<section class="student-welcome"><div><small>YOUR PROGRESS DASHBOARD</small><h1>'+esc(student.full_name)+'</h1><p>'+esc(student.teacher||'Vision Learning Centre')+' · '+esc(student.grade_or_age||'Student')+'</p></div><span class="group-badge">'+esc(student.group||'Unassigned')+'</span></section>'+
+      '<section class="student-welcome"><div><small>YOUR PROGRESS DASHBOARD</small><h1>'+esc(student.full_name)+'</h1><p>'+esc(student.grade_or_age||'Student')+'</p></div><span class="group-badge">'+esc(student.group||'Unassigned')+'</span></section>'+
       summary+
       '<section class="chart-panel"><div class="chart-head"><div><h2>Your Progress</h2><p>Every bar is one test. Bigger bars mean higher percentages.</p></div><div class="legend"><span><i class="red"></i>Below 70%</span><span><i class="yellow"></i>70–79%</span><span><i class="green"></i>80%+</span></div></div><div class="chart-wrap">'+chart+'</div></section>'+
-      '<div class="lower-grid">'+
-        '<section class="info-panel"><h3>Recent test results</h3>'+(rows?'<div class="result-list">'+rows+'</div>':'<div class="teacher-note">No test records yet.</div>')+'</section>'+
-        '<section class="info-panel"><h3>Learning overview</h3>'+
-          '<div class="detail-row"><span>Attendance · last 90 days</span><strong>'+(attendance.rate===null?'No records':esc(attendance.rate)+'%')+'</strong></div>'+
-          '<div class="detail-row"><span>Recorded lessons</span><strong>'+esc(attendance.records)+'</strong></div>'+
-          '<div class="detail-row"><span>Group</span><strong>'+esc(student.group||'—')+'</strong></div>'+
-          '<div class="detail-row"><span>Teacher</span><strong>'+esc(student.teacher||'—')+'</strong></div>'+
-          '<div class="detail-row"><span>Schedule</span><strong>'+esc(student.schedule||'—')+'</strong></div>'+
-          '<div class="detail-row"><span>Room</span><strong>'+esc(student.room||'—')+'</strong></div>'+
-          '<h3 style="margin-top:18px">Latest teacher feedback</h3><div class="teacher-note">'+esc(latestNote||'Teacher feedback will appear here after it is added to a test record.')+'</div>'+
-        '</section>'+
-      '</div>'+
+      '<section class="info-panel results-panel"><div class="results-head"><div><h3>All test results</h3><p>Scroll horizontally to review every recorded test.</p></div><span>'+valid.length+' test'+(valid.length===1?'':'s')+'</span></div>'+(rows?'<div class="result-strip">'+rows+'</div>':'<div class="teacher-note">No test records yet.</div>')+'</section>'+
+      '<section class="info-panel learning-panel"><div class="learning-details"><h3>Learning overview</h3>'+
+        '<div class="detail-row"><span>Group</span><strong>'+esc(student.group||'—')+'</strong></div>'+
+        '<div class="detail-row"><span>Teacher</span><strong>'+esc(student.teacher||'—')+'</strong></div>'+
+        '<div class="detail-row"><span>Schedule</span><strong>'+esc(student.schedule||'—')+'</strong></div>'+
+        '<div class="detail-row"><span>Room</span><strong>'+esc(student.room||'—')+'</strong></div>'+
+      '</div><div class="feedback-block"><h3>Latest teacher feedback</h3><div class="teacher-note">'+esc(latestNote||'Teacher feedback will appear here after it is added to a test record.')+'</div></div></section>'+
     '</main>'+
   '</div>';
   document.getElementById('student-signout').onclick=()=>{portalData=null;renderLogin();toast('Signed out.');};
