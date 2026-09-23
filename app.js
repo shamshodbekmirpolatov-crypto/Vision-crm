@@ -984,7 +984,17 @@ function bindUserActions(users,staff){
     const available=staff.filter(s=>s.active&&!s.user_id);
     const staffOptions=[['','Create a new staff record'],...available.map(s=>[s.id,s.full_name+' — '+(s.role_title||'Staff')])];
     openModal('Create login account','<div class="form-cols">'+selectField('Link staff record','staff_id',staffOptions,'')+field('Full name','full_name','','','required')+field('Email','email','','email','required')+passwordInput('Temporary password','password','required minlength="8" autocomplete="new-password"')+field('Phone','phone','','tel')+selectField('Role','role',[['teacher','Teacher'],['cashier','Cashier']],'teacher')+'</div>',async f=>{
-      const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'create',full_name:val(f,'full_name'),email:val(f,'email'),password:val(f,'password'),phone:val(f,'phone'),role:val(f,'role'),staff_id:val(f,'staff_id')||null}}); if(error) throw error;if(data?.error)throw new Error(data.error);
+      const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'create',full_name:val(f,'full_name'),email:val(f,'email'),password:val(f,'password'),phone:val(f,'phone'),role:val(f,'role'),staff_id:val(f,'staff_id')||null}});
+      if(error){
+        try{
+          const payload=await error.context?.json?.();
+          throw new Error(payload?.error||error.message);
+        }catch(e){
+          if(e instanceof Error && e.message!==error.message)throw e;
+          throw error;
+        }
+      }
+      if(data?.error)throw new Error(data.error);
     },'Create account');
     const staffEl=modalRoot.querySelector('[name=staff_id]');
     staffEl.onchange=()=>{
