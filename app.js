@@ -932,10 +932,10 @@ async function paymentsPage(){
   '<section class="panel"><div class="panel-head"><div><h2>Monthly fee status</h2><p>See exactly who has paid, partially paid, or still owes for the selected course month.</p></div><div class="payment-head-actions"><div class="month-control"><label>Course month</label><input class="input" id="payment-month-filter" type="month" value="'+esc(selectedMonth)+'"></div><button class="btn btn-primary" data-action="payment-new">'+uiIcon('plus')+'Record payment</button></div></div>'+
     '<div class="panel-body">'+
       '<div class="payment-spaces">'+
-        '<button class="payment-space attention '+(statusFilter==='attention'?'active':'')+'" data-payment-status="attention"><span class="payment-space-icon">'+uiIcon('alert')+'</span><span class="payment-space-copy"><strong>Needs payment</strong><small>Unpaid or partially paid</small></span><b>'+attentionCount+'</b></button>'+
-        '<button class="payment-space paid '+(statusFilter==='paid'?'active':'')+'" data-payment-status="paid"><span class="payment-space-icon">'+uiIcon('attendance')+'</span><span class="payment-space-copy"><strong>Paid</strong><small>Balance fully cleared</small></span><b>'+counts.paid+'</b></button>'+
-        '<button class="payment-space free '+(statusFilter==='free'?'active':'')+'" data-payment-status="free"><span class="payment-space-icon">'+uiIcon('students')+'</span><span class="payment-space-copy"><strong>Free places</strong><small>No monthly payment due</small></span><b>'+counts.free+'</b></button>'+
-        '<button class="payment-space correction '+(statusFilter==='overpaid'?'active':'')+'" data-payment-status="overpaid"><span class="payment-space-icon">'+uiIcon('refresh')+'</span><span class="payment-space-copy"><strong>Corrections</strong><small>Overpayments to review</small></span><b>'+counts.overpaid+'</b></button>'+
+        '<button type="button" class="payment-space attention '+(statusFilter==='attention'?'active':'')+'" data-payment-status="attention"><span class="payment-space-icon">'+uiIcon('alert')+'</span><span class="payment-space-copy"><strong>Needs payment</strong><small>Unpaid or partially paid</small></span><b>'+attentionCount+'</b></button>'+
+        '<button type="button" class="payment-space paid '+(statusFilter==='paid'?'active':'')+'" data-payment-status="paid"><span class="payment-space-icon">'+uiIcon('attendance')+'</span><span class="payment-space-copy"><strong>Paid</strong><small>Balance fully cleared</small></span><b>'+counts.paid+'</b></button>'+
+        '<button type="button" class="payment-space free '+(statusFilter==='free'?'active':'')+'" data-payment-status="free"><span class="payment-space-icon">'+uiIcon('students')+'</span><span class="payment-space-copy"><strong>Free places</strong><small>No monthly payment due</small></span><b>'+counts.free+'</b></button>'+
+        '<button type="button" class="payment-space correction '+(statusFilter==='overpaid'?'active':'')+'" data-payment-status="overpaid"><span class="payment-space-icon">'+uiIcon('refresh')+'</span><span class="payment-space-copy"><strong>Corrections</strong><small>Overpayments to review</small></span><b>'+counts.overpaid+'</b></button>'+
       '</div>'+
       '<div class="payment-panel-stack">'+Object.entries(paymentPanels).map(([key,p])=>'<div class="payment-status-panel" data-payment-panel="'+key+'" '+(statusFilter===key?'':'hidden')+'>'+
         '<div class="payment-space-title"><div><h3>'+esc(p.title)+'</h3><p>'+esc(p.description)+'</p></div>'+(key==='attention'?'<span class="queue-count">'+attentionCount+' remaining</span>':'')+'</div>'+
@@ -997,11 +997,14 @@ function bindPaymentActions(students,feeRows){
   document.querySelector('[data-action="payment-new"]')?.addEventListener('click',()=>openPayment());
   document.querySelectorAll('[data-action="payment-prefill"]').forEach(b=>b.onclick=()=>openPayment(b.dataset.id));
   document.getElementById('payment-month-filter')?.addEventListener('change',e=>{state.filters.paymentMonth=e.target.value;renderRoute();});
-  document.querySelectorAll('[data-payment-status]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('[data-payment-status]').forEach(b=>b.onclick=e=>{
+    e.preventDefault();
+    e.stopPropagation();
     const next=b.dataset.paymentStatus;
     state.filters.paymentStatus=next;
     document.querySelectorAll('[data-payment-status]').forEach(x=>x.classList.toggle('active',x.dataset.paymentStatus===next));
     document.querySelectorAll('[data-payment-panel]').forEach(panel=>{panel.hidden=panel.dataset.paymentPanel!==next;});
+    return false;
   });
   document.querySelectorAll('[data-action="payment-void"]').forEach(b=>b.onclick=()=>{
     const paymentId=b.dataset.id;
