@@ -323,6 +323,10 @@ tbody tr:hover{background:#f8fbfd}
   .user-chip-copy,.app-user .role-chip{display:none}
 }
 @media(max-width:560px){
+  .payment-head-actions{width:100%;justify-content:stretch}
+  .payment-head-actions .month-control{flex:1}
+  .payment-head-actions .month-control .input{width:100%}
+  .payment-head-actions .btn{white-space:nowrap}
   .app-header-main{height:64px}
   .app-brand span{display:none}
   .finance-summary{grid-template-columns:1fr 1fr}
@@ -431,6 +435,8 @@ tbody tr:hover{background:#f8fbfd}
 
 
 /* Payment workflow spaces */
+.payment-head-actions{display:flex;align-items:end;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.payment-head-actions .month-control{min-width:175px}
 .payment-workspace-head{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;margin-bottom:14px}
 .payment-workspace-note{font-size:11px;color:var(--muted)}
 .payment-spaces{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
