@@ -147,11 +147,12 @@ function sentenceHtml(sentence,index){
 function header(active){
   return '<header class="portal-header"><div class="portal-header-inner">'+
     '<div class="portal-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision Student Progress</strong><span>VISION LEARNING CENTRE</span></div></div>'+
-    '<div class="student-top-actions"><nav class="student-tabs" aria-label="Student portal sections">'+
-      '<button class="student-tab '+(active==='dashboard'?'active':'')+'" id="practice-dashboard-tab" type="button">Dashboard</button>'+
-      '<button class="student-tab '+(active==='practice'?'active':'')+'" type="button">Practice</button>'+
-    '</nav><button class="signout" id="practice-signout" type="button">Sign out</button></div>'+
-  '</div></header>';
+    '<button class="signout" id="practice-signout" type="button">Sign out</button>'+
+  '</div></header>'+
+  '<div class="student-section-nav-wrap"><nav class="student-section-nav" aria-label="Student portal sections">'+
+    '<button class="student-section-tab '+(active==='dashboard'?'active':'')+'" id="practice-dashboard-tab" type="button">Dashboard</button>'+
+    '<button class="student-section-tab '+(active==='practice'?'active':'')+'" type="button">Practice</button>'+
+  '</nav></div>';
 }
 
 function libraryHtml(data){
