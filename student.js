@@ -7,6 +7,7 @@ const SUPABASE_URL='https://ctdzmoaftajdkvreyqox.supabase.co';
 const SUPABASE_KEY='sb_publishable_DW6EY5_aJ6TShRxhq3x28g_TGJ-kEBJ';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
 let portalData=null;
+let portalAuth=null;
 
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 const fmtDate=v=>v?new Date(v+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—';
@@ -41,18 +42,65 @@ async function login(e){
   const form=e.currentTarget;
   const btn=form.querySelector('button[type=submit]');
   btn.disabled=true;btn.innerHTML='<span>Checking…</span><span>•••</span>';
-  const {data,error}=await sb.functions.invoke('student-portal',{body:{phone:form.phone.value,pin:form.pin.value}});
+  const credentials={phone:form.phone.value,pin:form.pin.value};
+  const {data,error}=await sb.functions.invoke('student-portal',{body:credentials});
   if(error){
     let msg=error.message;
     try{const body=await error.context?.json?.();if(body?.error)msg=body.error;}catch{}
     return renderLogin(msg);
   }
   if(data?.error)return renderLogin(data.error);
+  portalAuth=credentials;
   if(data?.selection_required&&Array.isArray(data.students)){
     return renderStudentPicker(data.students);
   }
   portalData=data;
   renderPortal();
+}
+
+function signOut(){
+  portalData=null;
+  portalAuth=null;
+  renderLogin();
+  toast('Signed out.');
+}
+
+async function refreshPortal(view='dashboard'){
+  if(!portalAuth){
+    toast('Please sign in again to refresh.');
+    return;
+  }
+  const refreshBtn=document.querySelector('#student-refresh, #practice-refresh');
+  if(refreshBtn){refreshBtn.disabled=true;refreshBtn.textContent='Refreshing…';}
+  try{
+    const {data,error}=await sb.functions.invoke('student-portal',{body:portalAuth});
+    if(error||data?.error){
+      toast(data?.error||'Could not refresh right now.');
+      return;
+    }
+    if(data?.selection_required&&Array.isArray(data.students)){
+      const current=portalData?.student;
+      const selected=data.students.find(p=>{
+        const next=p?.student||{};
+        if(current?.id&&next?.id)return String(current.id)===String(next.id);
+        return current?.full_name&&next.full_name===current.full_name&&next.group===current.group;
+      });
+      if(selected)portalData={ok:true,...selected};
+      else{
+        renderStudentPicker(data.students);
+        return;
+      }
+    }else{
+      portalData=data;
+    }
+    if(view==='dashboard')renderPortal();
+    toast('Refreshed.');
+  }catch{
+    toast('Could not refresh right now.');
+  }finally{
+    const btn=document.querySelector('#student-refresh, #practice-refresh');
+    if(btn){btn.disabled=false;btn.textContent='↻ Refresh';}
+  }
 }
 
 function renderStudentPicker(portals){
@@ -88,7 +136,7 @@ function renderPortal(){
   const latestNote=[...valid].reverse().find(r=>r.teacher_note)?.teacher_note||null;
 
   app.innerHTML='<div class="portal">'+
-    '<header class="portal-header"><div class="portal-header-inner"><div class="portal-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision Student Progress</strong><span>VISION LEARNING CENTRE</span></div></div><button class="signout" id="student-signout">Sign out</button></div></header>'+
+    '<header class="portal-header"><div class="portal-header-inner"><div class="portal-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision Student Progress</strong><span>VISION LEARNING CENTRE</span></div></div><div class="portal-header-actions"><button class="signout refresh-button" id="student-refresh" type="button">↻ Refresh</button><button class="signout" id="student-signout">Sign out</button></div></div></header>'+
     '<div class="student-section-nav-wrap"><nav class="student-section-nav" aria-label="Student portal sections"><button class="student-section-tab active" type="button">Dashboard</button><button class="student-section-tab" id="student-practice-tab" type="button">Practice</button></nav></div>'+
     '<main class="portal-main">'+
       '<section class="student-welcome"><div><small>YOUR PROGRESS DASHBOARD</small><h1>'+esc(student.full_name)+'</h1><p>'+esc(student.grade_or_age||'Student')+'</p></div><span class="group-badge">'+esc(student.group||'Unassigned')+'</span></section>'+
@@ -103,14 +151,17 @@ function renderPortal(){
       '</div><div class="feedback-block"><h3>Latest teacher feedback</h3><div class="teacher-note">'+esc(latestNote||'Teacher feedback will appear here after it is added to a test record.')+'</div></div></section>'+
     '</main>'+
   '</div>';
-  document.getElementById('student-signout').onclick=()=>{portalData=null;renderLogin();toast('Signed out.');};
+  document.getElementById('student-signout').onclick=signOut;
+  const refreshBtn=document.getElementById('student-refresh');
+  if(refreshBtn)refreshBtn.onclick=()=>refreshPortal('dashboard');
   const practiceTab=document.getElementById('student-practice-tab');
   if(practiceTab&&window.VisionStudentPractice){
     practiceTab.onclick=()=>window.VisionStudentPractice.render({
       root:app,
       data:portalData,
       onDashboard:renderPortal,
-      onSignOut:()=>{portalData=null;renderLogin();toast('Signed out.');}
+      onRefresh:()=>refreshPortal('practice'),
+      onSignOut:signOut
     });
   }
 }
