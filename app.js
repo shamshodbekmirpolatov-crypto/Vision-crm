@@ -314,13 +314,25 @@ function renderLogin(error=''){
     },'Send reset link');
   };
 }
-function renderPasswordUpdate(){
+function renderPasswordUpdate(forced=false){
   app.className='';
-  app.innerHTML='<div class="auth-wrap"><section class="auth-hero"><div class="auth-logo"><img src="./vision-logo.jpg" alt="Vision Learning Centre logo"><div><strong>VISION</strong><span>LEARNING CENTRE</span></div></div><div class="auth-hero-copy"><div class="eyebrow">ACCOUNT SECURITY</div><h1>Set a new password.</h1><p>Choose a strong password for your Vision CRM account.</p></div><div></div></section><section class="auth-panel"><div class="auth-card"><div class="login-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision CRM</strong><span>Secure account access</span></div></div><h2>New password</h2><p class="sub">Use at least 8 characters.</p><form id="pw-form" class="form-grid">'+passwordInput('New password','password','required minlength="8" autocomplete="new-password"')+'<button class="btn btn-primary btn-block" type="submit">Update password</button></form></div></section></div>';
+  const title=forced?'Change your temporary password.':'Set a new password.';
+  const copy=forced?'For security, you must create your own password before entering Vision CRM.':'Choose a strong password for your Vision CRM account.';
+  app.innerHTML='<div class="auth-wrap"><section class="auth-hero"><div class="auth-logo"><img src="./vision-logo.jpg" alt="Vision Learning Centre logo"><div><strong>VISION</strong><span>LEARNING CENTRE</span></div></div><div class="auth-hero-copy"><div class="eyebrow">ACCOUNT SECURITY</div><h1>'+esc(title)+'</h1><p>'+esc(copy)+'</p></div><div></div></section><section class="auth-panel"><div class="auth-card"><div class="login-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision CRM</strong><span>Secure account access</span></div></div><h2>'+esc(title)+'</h2><p class="sub">Use at least 8 characters.</p><form id="pw-form" class="form-grid">'+passwordInput('New password','password','required minlength="8" autocomplete="new-password"')+'<button class="btn btn-primary btn-block" type="submit">Update password</button></form></div></section></div>';
   bindPasswordToggle(app);
   document.getElementById('pw-form').onsubmit=async e=>{
-    e.preventDefault(); const {error}=await sb.auth.updateUser({password:val(e.currentTarget,'password')});
-    if(error) return fail(error); toast('Password updated.'); state.route='dashboard'; await renderRoute();
+    e.preventDefault();
+    const {error}=await sb.auth.updateUser({password:val(e.currentTarget,'password')});
+    if(error) return fail(error);
+    if(forced){
+      const {data,error:clearError}=await sb.functions.invoke('manage-users',{body:{action:'clear_first_login'}});
+      if(clearError) return fail(clearError);
+      if(data?.error) return fail(new Error(data.error));
+      await loadIdentity();
+    }
+    toast('Password updated.');
+    state.route='dashboard';
+    await renderRoute();
   };
 }
 
@@ -1111,7 +1123,10 @@ async function applySession(session,{render=true}={}){
     return;
   }
   await loadIdentity();
-  if(render) await renderRoute();
+  if(render){
+    if(state.profile?.role!=='owner' && state.profile?.must_change_password) renderPasswordUpdate(true);
+    else await renderRoute();
+  }
 }
 
 async function handleAuthEvent(event,session,generation){
