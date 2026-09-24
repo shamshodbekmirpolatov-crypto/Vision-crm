@@ -1314,6 +1314,37 @@ function tablePage(title,actions,headers,rows,emptyMessage){
 }
 
 let routeRenderGeneration=0;
+async function routeContent(routeName){
+  switch(routeName){
+    case 'dashboard': return await dashboardPage();
+    case 'leads': return await leadsPage();
+    case 'students': return await studentsPage();
+    case 'groups': return await groupsPage();
+    case 'attendance': return await attendancePage();
+    case 'academic': return await academicPage();
+    case 'payments': return await paymentsPage();
+    case 'expenses': return await expensesPage();
+    case 'staff': return await staffPage();
+    case 'reports': return await reportsPage();
+    case 'users': return await usersPage();
+    case 'settings': return await settingsPage();
+    default: return await dashboardPage();
+  }
+}
+function swapRouteContent(content){
+  const swap=()=>renderShell(content);
+  if(document.startViewTransition && app.querySelector('.top-shell')){
+    document.startViewTransition(swap);
+  }else{
+    const current=app.querySelector('.content');
+    if(!current){swap();return;}
+    current.classList.add('route-swap-out');
+    setTimeout(()=>{
+      swap();
+      app.querySelector('.content')?.classList.remove('route-swap-out');
+    },90);
+  }
+}
 async function renderRoute(force=false){
   if(!state.session){renderLogin();return;}
   if(!state.profile) await loadIdentity();
@@ -1323,42 +1354,26 @@ async function renderRoute(force=false){
 
   const generation=++routeRenderGeneration;
   const requestedRoute=state.route;
-  const existingContent=app.querySelector('.content');
+  const hasShell=!!app.querySelector('.top-shell');
 
-  if(existingContent){
+  if(hasShell){
     updateShellChrome();
-    existingContent.classList.add('route-loading');
-    existingContent.setAttribute('aria-busy','true');
-  }else{
-    renderShell('<div class="panel route-placeholder"><div class="panel-body">Loading…</div></div>');
+    app.querySelector('.top-shell')?.classList.add('route-fetching');
   }
 
   try{
-    let content='';
-    switch(requestedRoute){
-      case 'dashboard': content=await dashboardPage(); break;
-      case 'leads': content=await leadsPage(); break;
-      case 'students': content=await studentsPage(); break;
-      case 'groups': content=await groupsPage(); break;
-      case 'attendance': content=await attendancePage(); break;
-      case 'academic': content=await academicPage(); break;
-      case 'payments': content=await paymentsPage(); break;
-      case 'expenses': content=await expensesPage(); break;
-      case 'staff': content=await staffPage(); break;
-      case 'reports': content=await reportsPage(); break;
-      case 'users': content=await usersPage(); break;
-      case 'settings': content=await settingsPage(); break;
-      default: content=await dashboardPage();
-    }
+    const content=await routeContent(requestedRoute);
     if(generation!==routeRenderGeneration || requestedRoute!==state.route) return;
-    renderShell(content);
-    const currentContent=app.querySelector('.content');
-    currentContent?.removeAttribute('aria-busy');
+    app.querySelector('.top-shell')?.classList.remove('route-fetching');
+    swapRouteContent(content);
   }catch(e){
     if(generation!==routeRenderGeneration) return;
+    app.querySelector('.top-shell')?.classList.remove('route-fetching');
     console.error(e);
-    renderShell('<section class="panel"><div class="panel-body"><div class="login-error"><strong>Could not load this page.</strong><br>'+esc(e.message||e)+'</div><button type="button" class="btn btn-primary" id="retry">Try again</button></div></section>');
-    document.getElementById('retry').onclick=()=>renderRoute(true);
+    const errorContent='<section class="panel"><div class="panel-body"><div class="login-error"><strong>Could not load this page.</strong><br>'+esc(e.message||e)+'</div><button type="button" class="btn btn-primary" id="retry">Try again</button></div></section>';
+    if(hasShell) swapRouteContent(errorContent);
+    else renderShell(errorContent);
+    setTimeout(()=>{const retry=document.getElementById('retry');if(retry)retry.onclick=()=>renderRoute(true);},0);
   }
 }
 
