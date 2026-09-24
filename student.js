@@ -88,7 +88,8 @@ function renderPortal(){
   const latestNote=[...valid].reverse().find(r=>r.teacher_note)?.teacher_note||null;
 
   app.innerHTML='<div class="portal">'+
-    '<header class="portal-header"><div class="portal-header-inner"><div class="portal-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision Student Progress</strong><span>VISION LEARNING CENTRE</span></div></div><div class="student-top-actions"><nav class="student-tabs" aria-label="Student portal sections"><button class="student-tab active" type="button">Dashboard</button><button class="student-tab" id="student-practice-tab" type="button">Practice</button></nav><button class="signout" id="student-signout">Sign out</button></div></div></header>'+
+    '<header class="portal-header"><div class="portal-header-inner"><div class="portal-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision Student Progress</strong><span>VISION LEARNING CENTRE</span></div></div><button class="signout" id="student-signout">Sign out</button></div></header>'+
+    '<div class="student-section-nav-wrap"><nav class="student-section-nav" aria-label="Student portal sections"><button class="student-section-tab active" type="button">Dashboard</button><button class="student-section-tab" id="student-practice-tab" type="button">Practice</button></nav></div>'+
     '<main class="portal-main">'+
       '<section class="student-welcome"><div><small>YOUR PROGRESS DASHBOARD</small><h1>'+esc(student.full_name)+'</h1><p>'+esc(student.grade_or_age||'Student')+'</p></div><span class="group-badge">'+esc(student.group||'Unassigned')+'</span></section>'+
       summary+
