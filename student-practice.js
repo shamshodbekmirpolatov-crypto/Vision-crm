@@ -147,7 +147,7 @@ function sentenceHtml(sentence,index){
 function header(active){
   return '<header class="portal-header"><div class="portal-header-inner">'+
     '<div class="portal-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision Student Progress</strong><span>VISION LEARNING CENTRE</span></div></div>'+
-    '<button class="signout" id="practice-signout" type="button">Sign out</button>'+
+    '<div class="portal-header-actions"><button class="signout refresh-button" id="practice-refresh" type="button">↻ Refresh</button><button class="signout" id="practice-signout" type="button">Sign out</button></div>'+
   '</div></header>'+
   '<div class="student-section-nav-wrap"><nav class="student-section-nav" aria-label="Student portal sections">'+
     '<button class="student-section-tab '+(active==='dashboard'?'active':'')+'" id="practice-dashboard-tab" type="button">Dashboard</button>'+
@@ -217,8 +217,10 @@ function articleHtml(){
 
 function bindHeader(root,callbacks){
   const dash=root.querySelector('#practice-dashboard-tab');
+  const refresh=root.querySelector('#practice-refresh');
   const signout=root.querySelector('#practice-signout');
   if(dash)dash.onclick=()=>callbacks.onDashboard&&callbacks.onDashboard();
+  if(refresh)refresh.onclick=()=>callbacks.onRefresh&&callbacks.onRefresh();
   if(signout)signout.onclick=()=>callbacks.onSignOut&&callbacks.onSignOut();
 }
 
@@ -334,8 +336,8 @@ function renderArticle(root,data,callbacks){
   };
 }
 
-function render({root,data,onDashboard,onSignOut}){
-  renderLibrary(root,data,{onDashboard,onSignOut});
+function render({root,data,onDashboard,onRefresh,onSignOut}){
+  renderLibrary(root,data,{onDashboard,onRefresh,onSignOut});
 }
 
 window.VisionStudentPractice={render};
