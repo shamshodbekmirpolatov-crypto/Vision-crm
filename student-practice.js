@@ -78,6 +78,9 @@ const article = {
   ]
 };
 
+const readingArticles=[article];
+let activeArticle=readingArticles[0];
+
 const paragraphBreaks = new Set([2,4,6,8,10]);
 
 const exerciseQuestions = [
@@ -177,17 +180,22 @@ function practiceHomeHtml(data){
 
 function libraryHtml(data){
   const student=data?.student||{};
+  const articleRows=readingArticles.map((item,index)=>
+    '<button class="reading-list-row" data-article-index="'+index+'" type="button">'+
+      '<div class="reading-list-number">'+(index+1)+'</div>'+
+      '<div class="reading-list-copy"><strong>Article '+(index+1)+'</strong><span>'+esc(item.title)+'</span></div>'+
+      '<div class="reading-list-meta"><small>'+esc(item.level)+'</small><small>'+esc(item.minutes)+'</small></div>'+
+      '<div class="reading-list-arrow">→</div>'+
+    '</button>'
+  ).join('');
+  const count=readingArticles.length;
   return '<div class="portal practice-view">'+header('practice')+
     '<main class="portal-main practice-main">'+
       '<button class="back-to-reading" id="back-to-practice" type="button">← Practice</button>'+
-      '<section class="practice-hero"><div><small>PRACTICE</small><h1>Reading</h1><p>Read useful English, explore vocabulary, and practise what you learn.</p></div><div class="practice-student">'+esc(student.full_name||'Student')+'</div></section>'+
+      '<section class="practice-hero"><div><small>PRACTICE</small><h1>Reading</h1><p>Choose an article to read and practise.</p></div><div class="practice-student">'+esc(student.full_name||'Student')+'</div></section>'+
       '<section class="reading-library">'+
-        '<div class="section-title-row"><div><span>READING MATERIALS</span><h2>Start with an article</h2></div><small>1 article</small></div>'+
-        '<button class="reading-card" id="open-reading-article" type="button">'+
-          '<div class="reading-card-copy"><div class="reading-card-kicker">'+esc(article.kicker)+'</div><h3>'+esc(article.title)+'</h3><p>Learn useful vocabulary while reading. Tap highlighted words for Uzbek translations.</p>'+
-          '<div class="reading-meta"><span>'+esc(article.level)+'</span><span>'+esc(article.minutes)+'</span><span>'+Object.keys(vocab).length+' vocabulary items</span></div></div>'+
-          '<div class="reading-card-arrow">→</div>'+
-        '</button>'+
+        '<div class="section-title-row"><div><span>READING MATERIALS</span><h2>Articles</h2></div><small>'+count+' '+(count===1?'article':'articles')+'</small></div>'+
+        '<div class="reading-list">'+articleRows+'</div>'+
       '</section>'+
     '</main></div>';
 }
@@ -208,9 +216,9 @@ function listeningHtml(data){
 function articleBodyHtml(){
   let out='';
   let paragraph='';
-  article.sentences.forEach((s,i)=>{
+  activeArticle.sentences.forEach((s,i)=>{
     paragraph+=sentenceHtml(s,i);
-    if(paragraphBreaks.has(i)||i===article.sentences.length-1){
+    if(paragraphBreaks.has(i)||i===activeArticle.sentences.length-1){
       out+='<p>'+paragraph+'</p>';
       paragraph='';
     }
@@ -235,7 +243,7 @@ function articleHtml(){
       '<button class="back-to-reading" id="back-to-reading" type="button">← Reading library</button>'+
       '<article class="reading-article-shell" id="reading-article-shell">'+
         '<div class="article-topbar">'+
-          '<div><span class="article-kicker">'+esc(article.kicker)+'</span><h1>'+esc(article.title)+'</h1><div class="article-meta"><span>'+esc(article.level)+'</span><span>'+esc(article.minutes)+'</span><span>'+Object.keys(vocab).length+' key items</span></div></div>'+
+          '<div><span class="article-kicker">'+esc(activeArticle.kicker)+'</span><h1>'+esc(activeArticle.title)+'</h1><div class="article-meta"><span>'+esc(activeArticle.level)+'</span><span>'+esc(activeArticle.minutes)+'</span><span>'+Object.keys(vocab).length+' key items</span></div></div>'+
           '<button class="translation-toggle" id="translation-toggle" type="button" aria-pressed="false"><span class="toggle-track"><i></i></span><span><b>Translation mode</b><small id="translation-mode-label">Off</small></span></button>'+
         '</div>'+
         '<div class="article-guide"><span class="guide-dot b1"></span><b>B1 useful English</b><span class="guide-dot b2"></span><b>B2–C1 vocabulary</b><p>Tap a bold word for its Uzbek translation. Turn on Translation Mode to translate full sentences.</p></div>'+
@@ -269,7 +277,13 @@ function renderLibrary(root,data,callbacks){
   root.innerHTML=libraryHtml(data);
   bindHeader(root,callbacks);
   root.querySelector('#back-to-practice').onclick=()=>renderHome(root,data,callbacks);
-  root.querySelector('#open-reading-article').onclick=()=>renderArticle(root,data,callbacks);
+  root.querySelectorAll('.reading-list-row').forEach(row=>{
+    row.onclick=()=>{
+      const index=Number(row.dataset.articleIndex);
+      activeArticle=readingArticles[index]||readingArticles[0];
+      renderArticle(root,data,callbacks);
+    };
+  });
 }
 
 function renderListening(root,data,callbacks){
