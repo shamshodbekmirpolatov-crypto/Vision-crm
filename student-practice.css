@@ -1,4 +1,7 @@
 /* Student Practice: Reading */
+.portal-header-actions{display:flex;align-items:center;gap:8px}
+.refresh-button{min-width:82px}
+.refresh-button:disabled{opacity:.6;cursor:wait}
 .student-section-nav-wrap{
   background:#f4f7fa;
   border-bottom:1px solid #e0e8ee;
@@ -139,6 +142,8 @@
   .portal-header-inner{gap:8px}
   .student-section-nav-wrap{padding:9px 10px 0;min-height:52px}
   .student-section-tab{font-size:10px;padding:10px 13px 11px}
+  .portal-header-actions{gap:5px}
+  .refresh-button{min-width:auto}
   .signout{padding:7px 8px;font-size:9px}
   .reading-card{padding:16px}
   .reading-card h3{font-size:20px}
