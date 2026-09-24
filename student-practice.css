@@ -2,29 +2,31 @@
 .student-section-nav-wrap{
   background:#f4f7fa;
   border-bottom:1px solid #e0e8ee;
-  padding:12px 24px 0;
+  padding:16px 24px 0;
+  min-height:62px;
 }
 .student-section-nav{
   max-width:1380px;
   margin:0 auto;
   display:flex;
   align-items:center;
-  gap:6px;
+  gap:10px;
 }
 .student-section-tab{
   border:0;
-  border-bottom:3px solid transparent;
+  border-bottom:4px solid transparent;
   background:transparent;
   color:#6b8191;
-  padding:10px 16px 11px;
-  font-size:10px;
+  padding:13px 22px 14px;
+  font-size:12px;
   font-weight:850;
+  letter-spacing:.01em;
   transition:.16s ease;
 }
 .student-section-tab:hover{
   color:#174b6d;
   background:#edf4f8;
-  border-radius:9px 9px 0 0;
+  border-radius:11px 11px 0 0;
 }
 .student-section-tab.active{
   color:#0b4f76;
@@ -119,8 +121,8 @@
 .check-answers{border:0;background:#0d5278;color:#fff}
 .retry-exercises{border:1px solid #d7e1e8;background:#fff;color:#567386}
 @media(max-width:760px){
-  .student-section-nav-wrap{padding:9px 12px 0}
-  .student-section-tab{padding:9px 12px 10px}
+  .student-section-nav-wrap{padding:12px 12px 0;min-height:56px}
+  .student-section-tab{padding:11px 16px 12px;font-size:11px}
   .practice-hero{align-items:flex-start;flex-direction:column}
   .article-topbar{padding:20px;flex-direction:column}
   .translation-toggle{width:100%;justify-content:space-between}
@@ -135,8 +137,8 @@
   .portal-brand img{width:40px;height:40px}
   .portal-header{padding:12px}
   .portal-header-inner{gap:8px}
-  .student-section-nav-wrap{padding:7px 10px 0}
-  .student-section-tab{font-size:9px;padding:8px 10px 9px}
+  .student-section-nav-wrap{padding:9px 10px 0;min-height:52px}
+  .student-section-tab{font-size:10px;padding:10px 13px 11px}
   .signout{padding:7px 8px;font-size:9px}
   .reading-card{padding:16px}
   .reading-card h3{font-size:20px}
