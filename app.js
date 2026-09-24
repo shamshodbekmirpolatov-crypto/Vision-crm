@@ -343,12 +343,14 @@ async function dashboardPage(){
   supportStartDate.setDate(supportStartDate.getDate()-90);
   const supportStart=supportStartDate.toISOString().slice(0,10);
   const isTeacher=role()==='teacher';
-  const [students,groups,payments,attendance,academic] = await Promise.all([
+  const isAdmin=role()==='admin';
+  const [students,groups,payments,attendance,academic,leads] = await Promise.all([
     query(sb.from('students').select('id,full_name,status,group_id,monthly_fee,discount_amount,is_free_place').eq('status','active')),
-    query(sb.from('groups').select('id,name,capacity,active,default_monthly_fee,schedule,room,meeting_days,start_time,end_time').eq('active',true)),
+    query(sb.from('groups').select('id,name,capacity,active,default_monthly_fee,schedule,room,meeting_days,start_time,end_time,teacher_id,staff(full_name)').eq('active',true)),
     can('owner','admin','cashier') ? query(sb.from('payments').select('id,amount,paid_at,fee_month,student_id,voided_at').eq('fee_month',first).is('voided_at',null)) : Promise.resolve([]),
     can('owner','admin','teacher') ? query(sb.from('attendance').select('id,status,lesson_date,student_id').gte('lesson_date',first).lte('lesson_date',last)) : Promise.resolve([]),
-    isTeacher ? query(sb.from('academic_records').select('id,student_id,record_date,record_type,score,max_score,topic').gte('record_date',supportStart).not('score','is',null).not('max_score','is',null).order('record_date',{ascending:false})) : Promise.resolve([])
+    (isTeacher||isAdmin) ? query(sb.from('academic_records').select('id,student_id,record_date,record_type,score,max_score,topic').gte('record_date',supportStart).not('score','is',null).not('max_score','is',null).order('record_date',{ascending:false})) : Promise.resolve([]),
+    isAdmin ? query(sb.from('leads').select('id,full_name,phone,parent_phone,interested_course,status,next_follow_up,created_at').order('created_at',{ascending:false})) : Promise.resolve([])
   ]);
 
   const expected=students.reduce((s,x)=>s+(x.is_free_place?0:Math.max(0,Number(x.monthly_fee)-Number(x.discount_amount))),0);
@@ -390,7 +392,7 @@ async function dashboardPage(){
   });
 
   const groupNameById=new Map(groups.map(g=>[g.id,g.name]));
-  const supportStudents=isTeacher ? students.map(s=>{
+  const supportStudents=(isTeacher||isAdmin) ? students.map(s=>{
     const reasons=[];
     const att=attendanceByStudent.get(s.id);
     let attRate=null;
@@ -428,7 +430,12 @@ async function dashboardPage(){
     if(text.includes('every day')||text.includes('daily')) return true;
     return (dayAliases[dayName]||[]).some(alias=>new RegExp('(^|[^a-z])'+alias+'([^a-z]|$)','i').test(text));
   };
-  const todayGroups=isTeacher ? groups.filter(g=>scheduleMatchesToday(g)) : [];
+  const todayGroups=(isTeacher||isAdmin) ? groups.filter(g=>scheduleMatchesToday(g)) : [];
+
+  const followUpsDue=isAdmin ? leads.filter(l=>l.next_follow_up && l.next_follow_up<=today() && !['enrolled','lost'].includes(l.status)) : [];
+  const newLeads=isAdmin ? leads.filter(l=>l.status==='new') : [];
+  const todayAttendance=attendance.filter(a=>a.lesson_date===today());
+  const todayAttendanceRate=todayAttendance.length?Math.round(todayAttendance.filter(a=>a.status==='present'||a.status==='late').length/todayAttendance.length*100):0;
 
   const fill=groups.reduce((a,g)=>a+students.filter(s=>s.group_id===g.id).length,0);
   const capacity=groups.reduce((a,g)=>a+Number(g.capacity||0),0);
@@ -439,6 +446,52 @@ async function dashboardPage(){
     ...(can('owner','admin','teacher')?[['attendance','Attendance','attendance']]:[]),
     ...(can('owner','admin')?[['expenses','Expenses','expenses']]:[])
   ];
+
+
+  if(isAdmin){
+    const adminQuickActions=[
+      ['leads','Leads','leads'],
+      ['students','Students','students'],
+      ['attendance','Attendance','attendance'],
+      ['payments','Payments','payments']
+    ];
+    const todayClassesPanel='<section class="panel"><div class="panel-head"><div><h2>Today\'s classes</h2><p>'+esc(dayName)+' · live teaching schedule</p></div><span class="badge '+(todayGroups.length?'info':'')+'">'+todayGroups.length+' class'+(todayGroups.length===1?'':'es')+'</span></div><div class="panel-body">'+
+      (todayGroups.length
+        ? '<div class="list">'+todayGroups.map(g=>{const count=students.filter(s=>s.group_id===g.id).length;const details=[formattedGroupSchedule(g),g.staff?.full_name||'No teacher assigned',g.room?'Room '+g.room:null,count+' student'+(count===1?'':'s')].filter(Boolean).join(' · ');return '<div class="list-item"><div class="list-main"><strong>'+esc(g.name)+'</strong><span>'+esc(details)+'</span></div><span class="badge success">Today</span></div>';}).join('')+'</div>'
+        : '<div class="section-note">No active groups are scheduled for '+esc(dayName)+'.</div>')+
+      '</div></section>';
+
+    const followUpPanel='<section class="panel"><div class="panel-head"><div><h2>Lead follow-ups</h2><p>People who need contact today or are already overdue</p></div><span class="badge '+(followUpsDue.length?'warn':'success')+'">'+followUpsDue.length+' due</span></div><div class="panel-body">'+
+      (followUpsDue.length
+        ? '<div class="list">'+followUpsDue.slice(0,8).map(l=>'<div class="list-item"><div class="list-main"><strong>'+esc(l.full_name)+'</strong><span>'+esc([l.interested_course,l.phone||l.parent_phone].filter(Boolean).join(' · ')||'Lead')+'</span></div><div class="row-actions"><span class="badge '+(l.next_follow_up<today()?'danger':'warn')+'">'+(l.next_follow_up<today()?'Overdue':'Today')+'</span></div></div>').join('')+'</div>'
+        : '<div class="section-note">No lead follow-ups are due today.</div>')+
+      (newLeads.length?'<div class="section-note" style="margin-top:12px"><strong>'+newLeads.length+' new lead'+(newLeads.length===1?'':'s')+'</strong> still waiting for first contact.</div>':'')+
+      '</div></section>';
+
+    const paymentPanel='<section class="panel"><div class="panel-head"><div><h2>Payment attention</h2><p>This month\'s unpaid and partially paid students</p></div><span class="badge '+(unpaid.length?'warn':'success')+'">'+unpaid.length+' student'+(unpaid.length===1?'':'s')+'</span></div><div class="panel-body">'+
+      '<div class="section-note"><strong>'+Math.round(expected?revenue/expected*100:0)+'% collected</strong> · '+fmtMoney(Math.max(0,expected-revenue))+' outstanding this month.</div>'+
+      (unpaid.length
+        ? '<div class="list" style="margin-top:12px">'+unpaid.slice(0,8).map(s=>{const due=Math.max(0,Number(s.monthly_fee)-Number(s.discount_amount));const paid=paidByStudent.get(s.id)||0;const balance=Math.max(0,due-paid);return '<div class="list-item"><div class="list-main"><strong>'+esc(s.full_name)+'</strong><span>'+esc(groupNameById.get(s.group_id)||'Unassigned')+'</span></div><span class="badge '+(paid>0?'warn':'danger')+'">'+fmtMoney(balance)+' due</span></div>';}).join('')+'</div>'
+        : '<div class="section-note" style="margin-top:12px">All current student fees are fully paid or free.</div>')+
+      '</div></section>';
+
+    const adminSupportPanel='<section class="panel"><div class="panel-head"><div><h2>Students needing extra support</h2><p>Attendance below 75% or recent test average below 70%</p></div><span class="badge '+(supportStudents.length?'warn':'success')+'">'+supportStudents.length+' student'+(supportStudents.length===1?'':'s')+'</span></div><div class="panel-body">'+
+      (supportStudents.length
+        ? '<div class="list">'+supportStudents.slice(0,10).map(s=>'<div class="list-item"><div class="list-main"><strong>'+esc(s.full_name)+'</strong><span>'+esc(s.group_name)+'</span></div><div class="row-actions">'+s.reasons.map(r=>'<span class="badge warn">'+esc(r)+'</span>').join('')+'</div></div>').join('')+'</div>'
+        : '<div class="section-note">No students currently fall below the support thresholds.</div>')+
+      '</div></section>';
+
+    return '<section class="dashboard-welcome"><div><span class="internal-eyebrow">VISION LEARNING CENTRE · ADMINISTRATION</span><h2>'+greeting+', '+esc((state.profile?.full_name||'').split(' ')[0]||'there')+'.</h2><p>Here is what needs administrative attention today.</p></div><div class="quick-actions">'+adminQuickActions.map(a=>'<button class="quick-action" data-route="'+a[0]+'"><span>'+uiIcon(a[2])+'</span>'+a[1]+'</button>').join('')+'</div></section>'+
+      '<div class="cards dashboard-cards">'+
+        statCard('Active students',students.length,'Across '+groups.length+' active groups','students')+
+        statCard('Active groups',groups.length,'Currently running classes','groups')+
+        statCard("Today\'s classes",todayGroups.length,dayName+' teaching schedule','attendance')+
+        statCard('Follow-ups due',followUpsDue.length,(newLeads.length?newLeads.length+' new lead'+(newLeads.length===1?'':'s')+' waiting':'Lead pipeline is clear'),'alert')+
+      '</div>'+
+      '<div class="grid-2">'+todayClassesPanel+followUpPanel+'</div>'+
+      '<div class="grid-2" style="margin-top:16px">'+paymentPanel+adminSupportPanel+'</div>'+
+      '<section class="panel" style="margin-top:16px"><div class="panel-head"><div><h2>Attendance snapshot</h2><p>Centre-wide attendance monitoring</p></div></div><div class="panel-body"><div class="finance-summary"><div class="finance-kpi"><span>This month</span><strong>'+attendanceRate+'%</strong></div><div class="finance-kpi"><span>Today</span><strong>'+todayAttendanceRate+'%</strong></div><div class="finance-kpi"><span>Today records</span><strong>'+todayAttendance.length+'</strong></div><div class="finance-kpi"><span>Month records</span><strong>'+attendance.length+'</strong></div></div></div></section>';
+  }
 
   const teacherSupportPanel=isTeacher
     ? '<section class="panel"><div class="panel-head"><div><h2>Students needing extra support</h2><p>Based on this month\'s attendance and the latest three scored assessments from the last 90 days.</p></div><span class="badge '+(supportStudents.length?'warn':'success')+'">'+supportStudents.length+' student'+(supportStudents.length===1?'':'s')+'</span></div><div class="panel-body">'+
