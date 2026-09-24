@@ -345,7 +345,7 @@ async function dashboardPage(){
   const isTeacher=role()==='teacher';
   const [students,groups,payments,attendance,academic] = await Promise.all([
     query(sb.from('students').select('id,full_name,status,group_id,monthly_fee,discount_amount,is_free_place').eq('status','active')),
-    query(sb.from('groups').select('id,name,capacity,active,default_monthly_fee,schedule,room').eq('active',true)),
+    query(sb.from('groups').select('id,name,capacity,active,default_monthly_fee,schedule,room,meeting_days,start_time,end_time').eq('active',true)),
     can('owner','admin','cashier') ? query(sb.from('payments').select('id,amount,paid_at,fee_month,student_id,voided_at').eq('fee_month',first).is('voided_at',null)) : Promise.resolve([]),
     can('owner','admin','teacher') ? query(sb.from('attendance').select('id,status,lesson_date,student_id').gte('lesson_date',first).lte('lesson_date',last)) : Promise.resolve([]),
     isTeacher ? query(sb.from('academic_records').select('id,student_id,record_date,record_type,score,max_score,topic').gte('record_date',supportStart).not('score','is',null).not('max_score','is',null).order('record_date',{ascending:false})) : Promise.resolve([])
@@ -421,13 +421,14 @@ async function dashboardPage(){
     Friday:['friday','fri'],
     Saturday:['saturday','sat']
   };
-  const scheduleMatchesToday=schedule=>{
-    const text=String(schedule||'').toLowerCase().trim();
+  const scheduleMatchesToday=g=>{
+    if(Array.isArray(g.meeting_days)&&g.meeting_days.length) return g.meeting_days.includes(dayName);
+    const text=String(g.schedule||'').toLowerCase().trim();
     if(!text) return false;
     if(text.includes('every day')||text.includes('daily')) return true;
     return (dayAliases[dayName]||[]).some(alias=>new RegExp('(^|[^a-z])'+alias+'([^a-z]|$)','i').test(text));
   };
-  const todayGroups=isTeacher ? groups.filter(g=>scheduleMatchesToday(g.schedule)) : [];
+  const todayGroups=isTeacher ? groups.filter(g=>scheduleMatchesToday(g)) : [];
 
   const fill=groups.reduce((a,g)=>a+students.filter(s=>s.group_id===g.id).length,0);
   const capacity=groups.reduce((a,g)=>a+Number(g.capacity||0),0);
@@ -461,7 +462,7 @@ async function dashboardPage(){
     (can('owner','admin','cashier')
       ? ((overpaymentTotal>0?'<div class="section-note correction-note"><strong>Payment correction needed</strong><br>'+fmtMoney(overpaymentTotal)+' is above students\' expected fees this month. Review Finance → Payments history.</div>':'')+(unpaid.length?'<div class="list">'+unpaid.slice(0,8).map(s=>{const due=Math.max(0,Number(s.monthly_fee)-Number(s.discount_amount));const paid=paidByStudent.get(s.id)||0;const balance=Math.max(0,due-paid);const status=paid>0?'Partial':'Unpaid';return '<div class="list-item"><div class="list-main"><strong>'+esc(s.full_name)+'</strong><span>'+fmtMoney(balance)+' remaining</span></div><span class="badge '+(paid>0?'warn':'danger')+'">'+status+'</span></div>';}).join('')+'</div>':overpaymentTotal>0?'':empty('All current fees are fully paid or free.')))
       : (todayGroups.length
-          ? '<div class="list">'+todayGroups.map(g=>{const count=students.filter(s=>s.group_id===g.id).length;const detail=[g.schedule,g.room?'Room '+g.room:null,count+' student'+(count===1?'':'s')].filter(Boolean).join(' · ');return '<div class="list-item"><div class="list-main"><strong>'+esc(g.name)+'</strong><span>'+esc(detail)+'</span></div><span class="badge success">Today</span></div>';}).join('')+'</div>'
+          ? '<div class="list">'+todayGroups.map(g=>{const count=students.filter(s=>s.group_id===g.id).length;const detail=[formattedGroupSchedule(g),g.room?'Room '+g.room:null,count+' student'+(count===1?'':'s')].filter(Boolean).join(' · ');return '<div class="list-item"><div class="list-main"><strong>'+esc(g.name)+'</strong><span>'+esc(detail)+'</span></div><span class="badge success">Today</span></div>';}).join('')+'</div>'
           : '<div class="section-note">No assigned groups are scheduled for '+esc(dayName)+'. Groups appear here automatically when their schedule includes today\'s day.</div>'))+
   '</div></section></div>'+
   teacherSupportPanel;
@@ -686,22 +687,53 @@ async function groupsPage(){
     can('owner','admin')?query(sb.from('staff').select('id,full_name,role_title,active').eq('active',true).order('full_name')):Promise.resolve([]),
     query(sb.from('students').select('id,group_id,status').eq('status','active'))
   ]);
-  const rows=groups.map(g=>{const n=students.filter(s=>s.group_id===g.id).length;return '<tr><td><strong>'+esc(g.name)+'</strong><div class="muted">'+esc(g.level||'')+'</div></td><td>'+esc(g.schedule||'—')+'</td><td>'+esc(g.staff?.full_name||'—')+'</td><td>'+n+' / '+g.capacity+'</td><td class="num">'+fmtMoney(g.default_monthly_fee)+'</td><td><span class="badge '+(g.active?'success':'')+'">'+(g.active?'Active':'Inactive')+'</span></td><td>'+(can('owner','admin')?actionButton('Edit','group-edit',g.id):'')+'</td></tr>';}).join('');
+  const rows=groups.map(g=>{const n=students.filter(s=>s.group_id===g.id).length;return '<tr><td><strong>'+esc(g.name)+'</strong><div class="muted">'+esc(g.level||'')+'</div></td><td>'+esc(formattedGroupSchedule(g))+'</td><td>'+esc(g.staff?.full_name||'—')+'</td><td>'+n+' / '+g.capacity+'</td><td class="num">'+fmtMoney(g.default_monthly_fee)+'</td><td><span class="badge '+(g.active?'success':'')+'">'+(g.active?'Active':'Inactive')+'</span></td><td>'+(can('owner','admin')?actionButton('Edit','group-edit',g.id):'')+'</td></tr>';}).join('');
   setTimeout(()=>bindGroupActions(groups,staff),0);
   return tablePage('Class groups',can('owner','admin')?'<button class="btn btn-primary" data-action="group-new">'+uiIcon('plus')+'Add group</button>':'',[['Group',''],['Schedule',''],['Teacher',''],['Students',''],['Default fee','num'],['Status',''],['','']],rows,'No groups found.');
 }
 function groupForm(g={},staff=[]){
-  return '<div class="form-cols">'+field('Group name','name',g.name||'','','required')+field('Level','level',g.level||'')+field('Schedule','schedule',g.schedule||'')+field('Room','room',g.room||'')+
-  selectField('Teacher','teacher_id',[['','Unassigned'],...staff.map(s=>[s.id,s.full_name])],g.teacher_id||'')+field('Capacity','capacity',g.capacity??20,'number','min="1"')+
-  field('Default monthly fee','default_monthly_fee',g.default_monthly_fee??0,'number','min="0"')+field('Start date','start_date',g.start_date||'','date')+
-  '<div class="field"><label>Status</label><label class="inline-check"><input type="checkbox" name="active" '+(g.active!==false?'checked':'')+'> Active group</label></div></div>';
+  const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const selected=new Set(Array.isArray(g.meeting_days)?g.meeting_days:[]);
+  const dayChecks='<div class="field span-2"><label>Teaching days</label><div class="weekday-checks">'+days.map(d=>'<label class="inline-check weekday-check"><input type="checkbox" name="meeting_days" value="'+d+'" '+(selected.has(d)?'checked':'')+'> '+d+'</label>').join('')+'</div></div>';
+  return '<div class="form-cols">'+
+    field('Group name','name',g.name||'','','required')+
+    field('Level','level',g.level||'')+
+    dayChecks+
+    field('Start time','start_time',g.start_time?String(g.start_time).slice(0,5):'','time','required')+
+    field('End time','end_time',g.end_time?String(g.end_time).slice(0,5):'','time','required')+
+    field('Room','room',g.room||'')+
+    selectField('Teacher','teacher_id',[['','Unassigned'],...staff.map(s=>[s.id,s.full_name])],g.teacher_id||'')+
+    field('Capacity','capacity',g.capacity??20,'number','min="1"')+
+    field('Default monthly fee','default_monthly_fee',g.default_monthly_fee??0,'number','min="0"')+
+    field('Start date','start_date',g.start_date||'','date')+
+    '<div class="field"><label>Status</label><label class="inline-check"><input type="checkbox" name="active" '+(g.active!==false?'checked':'')+'> Active group</label></div></div>';
+}
+function selectedGroupDays(form){
+  return [...form.querySelectorAll('input[name="meeting_days"]:checked')].map(x=>x.value);
+}
+function formattedGroupSchedule(g){
+  const days=Array.isArray(g.meeting_days)&&g.meeting_days.length?g.meeting_days.join(' / '):'';
+  const start=g.start_time?String(g.start_time).slice(0,5):'';
+  const end=g.end_time?String(g.end_time).slice(0,5):'';
+  const time=start&&end?start+'–'+end:(start||end);
+  return [days,time].filter(Boolean).join(' · ') || g.schedule || '—';
 }
 function bindGroupActions(groups,staff){
   document.querySelector('[data-action="group-new"]')?.addEventListener('click',()=>openModal('Add group',groupForm({},staff),async f=>{
-    await query(sb.from('groups').insert({name:val(f,'name'),level:val(f,'level')||null,schedule:val(f,'schedule')||null,room:val(f,'room')||null,teacher_id:val(f,'teacher_id')||null,capacity:Number(val(f,'capacity')||20),default_monthly_fee:Number(val(f,'default_monthly_fee')||0),start_date:val(f,'start_date')||null,active:checked(f,'active')}));
+    const meeting_days=selectedGroupDays(f);
+    if(!meeting_days.length) throw new Error('Choose at least one teaching day.');
+    const start_time=val(f,'start_time');
+    const end_time=val(f,'end_time');
+    if(start_time && end_time && end_time<=start_time) throw new Error('End time must be later than start time.');
+    await query(sb.from('groups').insert({name:val(f,'name'),level:val(f,'level')||null,meeting_days,start_time:start_time||null,end_time:end_time||null,schedule:null,room:val(f,'room')||null,teacher_id:val(f,'teacher_id')||null,capacity:Number(val(f,'capacity')||20),default_monthly_fee:Number(val(f,'default_monthly_fee')||0),start_date:val(f,'start_date')||null,active:checked(f,'active')}));
   }));
   document.querySelectorAll('[data-action="group-edit"]').forEach(b=>b.onclick=()=>{const g=groups.find(x=>x.id===b.dataset.id);openModal('Edit group',groupForm(g,staff),async f=>{
-    await query(sb.from('groups').update({name:val(f,'name'),level:val(f,'level')||null,schedule:val(f,'schedule')||null,room:val(f,'room')||null,teacher_id:val(f,'teacher_id')||null,capacity:Number(val(f,'capacity')||20),default_monthly_fee:Number(val(f,'default_monthly_fee')||0),start_date:val(f,'start_date')||null,active:checked(f,'active')}).eq('id',g.id));
+    const meeting_days=selectedGroupDays(f);
+    if(!meeting_days.length) throw new Error('Choose at least one teaching day.');
+    const start_time=val(f,'start_time');
+    const end_time=val(f,'end_time');
+    if(start_time && end_time && end_time<=start_time) throw new Error('End time must be later than start time.');
+    await query(sb.from('groups').update({name:val(f,'name'),level:val(f,'level')||null,meeting_days,start_time:start_time||null,end_time:end_time||null,schedule:null,room:val(f,'room')||null,teacher_id:val(f,'teacher_id')||null,capacity:Number(val(f,'capacity')||20),default_monthly_fee:Number(val(f,'default_monthly_fee')||0),start_date:val(f,'start_date')||null,active:checked(f,'active')}).eq('id',g.id));
   });});
 }
 
