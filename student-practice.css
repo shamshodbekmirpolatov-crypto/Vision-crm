@@ -43,6 +43,76 @@
 .practice-hero h1{font-family:Georgia,"Times New Roman",serif;color:#0c3452;font-size:34px;line-height:1;margin:7px 0 7px;letter-spacing:-.035em}
 .practice-hero p{margin:0;color:#718594;font-size:11px}
 .practice-student{padding:8px 12px;border:1px solid #dce7ee;border-radius:999px;background:#fff;color:#42657b;font-size:10px;font-weight:800}
+.practice-category-list{display:grid;gap:14px}
+.practice-category-row{
+  width:100%;
+  min-height:94px;
+  border:1px solid #dce6ec;
+  border-radius:18px;
+  background:#fff;
+  padding:18px 20px;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:16px;
+  text-align:left;
+  color:inherit;
+  box-shadow:0 5px 20px rgba(14,50,76,.045);
+  transition:.17s ease;
+}
+.practice-category-row:hover{
+  transform:translateY(-2px);
+  border-color:#bfd2de;
+  box-shadow:0 12px 30px rgba(14,50,76,.085);
+}
+.practice-category-icon{
+  width:52px;
+  height:52px;
+  border-radius:15px;
+  display:grid;
+  place-items:center;
+  background:linear-gradient(135deg,#e8f3f9,#dbeaf3);
+  color:#0d5278;
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:22px;
+  font-weight:800;
+}
+.practice-category-copy strong{
+  display:block;
+  color:#123b58;
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:24px;
+  line-height:1.1;
+}
+.practice-category-copy span{
+  display:block;
+  margin-top:6px;
+  color:#748896;
+  font-size:10px;
+  line-height:1.45;
+}
+.practice-category-arrow{
+  width:40px;
+  height:40px;
+  border-radius:12px;
+  display:grid;
+  place-items:center;
+  background:#eef5f9;
+  color:#0d5278;
+  font-size:17px;
+  font-weight:900;
+}
+.practice-empty-state{
+  min-height:220px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  text-align:center;
+  padding:30px;
+  color:#728796;
+}
+.practice-empty-state strong{color:#34566d;font-size:15px}
+.practice-empty-state p{margin:7px 0 0;max-width:430px;font-size:10px;line-height:1.6}
 .reading-library{background:#fff;border:1px solid var(--line);border-radius:20px;padding:19px;box-shadow:0 6px 24px rgba(14,50,76,.05)}
 .section-title-row{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:14px}
 .section-title-row h2{margin:4px 0 0;color:#173b56;font-size:18px}
@@ -127,6 +197,9 @@
   .student-section-nav-wrap{padding:12px 12px 0;min-height:56px}
   .student-section-tab{padding:11px 16px 12px;font-size:11px}
   .practice-hero{align-items:flex-start;flex-direction:column}
+  .practice-category-row{min-height:84px;padding:15px}
+  .practice-category-icon{width:46px;height:46px;font-size:19px}
+  .practice-category-copy strong{font-size:21px}
   .article-topbar{padding:20px;flex-direction:column}
   .translation-toggle{width:100%;justify-content:space-between}
   .article-guide{padding:12px 20px}
@@ -145,6 +218,11 @@
   .portal-header-actions{gap:5px}
   .refresh-button{min-width:auto}
   .signout{padding:7px 8px;font-size:9px}
+  .practice-category-row{grid-template-columns:auto minmax(0,1fr) auto;gap:11px;padding:13px}
+  .practice-category-icon{width:42px;height:42px;border-radius:12px;font-size:17px}
+  .practice-category-copy strong{font-size:19px}
+  .practice-category-copy span{font-size:9px}
+  .practice-category-arrow{width:34px;height:34px}
   .reading-card{padding:16px}
   .reading-card h3{font-size:20px}
   .reading-card-arrow{width:36px;height:36px;border-radius:11px}
