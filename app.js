@@ -339,12 +339,18 @@ function renderPasswordUpdate(forced=false){
 async function dashboardPage(){
   const first=monthStart();
   const last=monthEnd(first);
-  const [students,groups,payments,attendance] = await Promise.all([
+  const supportStartDate=new Date();
+  supportStartDate.setDate(supportStartDate.getDate()-90);
+  const supportStart=supportStartDate.toISOString().slice(0,10);
+  const isTeacher=role()==='teacher';
+  const [students,groups,payments,attendance,academic] = await Promise.all([
     query(sb.from('students').select('id,full_name,status,group_id,monthly_fee,discount_amount,is_free_place').eq('status','active')),
-    query(sb.from('groups').select('id,name,capacity,active,default_monthly_fee').eq('active',true)),
+    query(sb.from('groups').select('id,name,capacity,active,default_monthly_fee,schedule,room').eq('active',true)),
     can('owner','admin','cashier') ? query(sb.from('payments').select('id,amount,paid_at,fee_month,student_id,voided_at').eq('fee_month',first).is('voided_at',null)) : Promise.resolve([]),
-    can('owner','admin','teacher') ? query(sb.from('attendance').select('id,status,lesson_date,student_id').gte('lesson_date',first).lte('lesson_date',last)) : Promise.resolve([])
+    can('owner','admin','teacher') ? query(sb.from('attendance').select('id,status,lesson_date,student_id').gte('lesson_date',first).lte('lesson_date',last)) : Promise.resolve([]),
+    isTeacher ? query(sb.from('academic_records').select('id,student_id,record_date,record_type,score,max_score,topic').gte('record_date',supportStart).not('score','is',null).not('max_score','is',null).order('record_date',{ascending:false})) : Promise.resolve([])
   ]);
+
   const expected=students.reduce((s,x)=>s+(x.is_free_place?0:Math.max(0,Number(x.monthly_fee)-Number(x.discount_amount))),0);
   const attendanceRate=attendance.length?Math.round(attendance.filter(x=>x.status==='present'||x.status==='late').length/attendance.length*100):0;
   const paidByStudent=new Map();
@@ -364,6 +370,65 @@ async function dashboardPage(){
     const due=Math.max(0,Number(s.monthly_fee)-Number(s.discount_amount));
     return (paidByStudent.get(s.id)||0)<due;
   });
+
+  const attendanceByStudent=new Map();
+  attendance.forEach(a=>{
+    const item=attendanceByStudent.get(a.student_id)||{attended:0,total:0};
+    item.total+=1;
+    if(a.status==='present'||a.status==='late') item.attended+=1;
+    attendanceByStudent.set(a.student_id,item);
+  });
+
+  const scoresByStudent=new Map();
+  academic.forEach(r=>{
+    const score=Number(r.score);
+    const max=Number(r.max_score);
+    if(!Number.isFinite(score)||!Number.isFinite(max)||max<=0) return;
+    const list=scoresByStudent.get(r.student_id)||[];
+    if(list.length<3) list.push(Math.max(0,Math.min(100,score/max*100)));
+    scoresByStudent.set(r.student_id,list);
+  });
+
+  const groupNameById=new Map(groups.map(g=>[g.id,g.name]));
+  const supportStudents=isTeacher ? students.map(s=>{
+    const reasons=[];
+    const att=attendanceByStudent.get(s.id);
+    let attRate=null;
+    if(att?.total){
+      attRate=Math.round(att.attended/att.total*100);
+      if(attRate<75) reasons.push('Attendance '+attRate+'%');
+    }
+    const scores=scoresByStudent.get(s.id)||[];
+    let testAverage=null;
+    if(scores.length){
+      testAverage=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+      if(testAverage<70) reasons.push('Test average '+testAverage+'%');
+    }
+    return {...s,reasons,attRate,testAverage,group_name:groupNameById.get(s.group_id)||'Unassigned'};
+  }).filter(s=>s.reasons.length).sort((a,b)=>{
+    const aScore=Math.min(a.attRate??100,a.testAverage??100);
+    const bScore=Math.min(b.attRate??100,b.testAverage??100);
+    return aScore-bScore;
+  }) : [];
+
+  const dayName=new Date().toLocaleDateString('en-US',{weekday:'long'});
+  const dayAliases={
+    Sunday:['sunday','sun'],
+    Monday:['monday','mon'],
+    Tuesday:['tuesday','tue','tues'],
+    Wednesday:['wednesday','wed'],
+    Thursday:['thursday','thu','thur','thurs'],
+    Friday:['friday','fri'],
+    Saturday:['saturday','sat']
+  };
+  const scheduleMatchesToday=schedule=>{
+    const text=String(schedule||'').toLowerCase().trim();
+    if(!text) return false;
+    if(text.includes('every day')||text.includes('daily')) return true;
+    return (dayAliases[dayName]||[]).some(alias=>new RegExp('(^|[^a-z])'+alias+'([^a-z]|$)','i').test(text));
+  };
+  const todayGroups=isTeacher ? groups.filter(g=>scheduleMatchesToday(g.schedule)) : [];
+
   const fill=groups.reduce((a,g)=>a+students.filter(s=>s.group_id===g.id).length,0);
   const capacity=groups.reduce((a,g)=>a+Number(g.capacity||0),0);
   const greeting=new Date().getHours()<12?'Good morning':new Date().getHours()<18?'Good afternoon':'Good evening';
@@ -373,19 +438,33 @@ async function dashboardPage(){
     ...(can('owner','admin','teacher')?[['attendance','Attendance','attendance']]:[]),
     ...(can('owner','admin')?[['expenses','Expenses','expenses']]:[])
   ];
+
+  const teacherSupportPanel=isTeacher
+    ? '<section class="panel"><div class="panel-head"><div><h2>Students needing extra support</h2><p>Based on this month\'s attendance and the latest three scored assessments from the last 90 days.</p></div><span class="badge '+(supportStudents.length?'warn':'success')+'">'+supportStudents.length+' student'+(supportStudents.length===1?'':'s')+'</span></div><div class="panel-body">'+
+      (supportStudents.length
+        ? '<div class="list">'+supportStudents.slice(0,10).map(s=>'<div class="list-item"><div class="list-main"><strong>'+esc(s.full_name)+'</strong><span>'+esc(s.group_name)+'</span></div><div class="row-actions">'+s.reasons.map(r=>'<span class="badge warn">'+esc(r)+'</span>').join('')+'</div></div>').join('')+'</div>'
+        : '<div class="section-note">No students currently fall below the support thresholds. Attendance must be below 75% or the recent test average below 70% to appear here.</div>')+
+      '</div></section>'
+    : '';
+
   return '<section class="dashboard-welcome"><div><span class="internal-eyebrow">VISION LEARNING CENTRE</span><h2>'+greeting+', '+esc((state.profile?.full_name||'').split(' ')[0]||'there')+'.</h2><p>Here is what needs your attention today.</p></div><div class="quick-actions">'+quickActions.map(a=>'<button class="quick-action" data-route="'+a[0]+'"><span>'+uiIcon(a[2])+'</span>'+a[1]+'</button>').join('')+'</div></section>'+
   '<div class="cards dashboard-cards '+(can('owner','admin','cashier')?'has-finance':'')+'">'+
-    statCard('Active students',students.length,'Across '+groups.length+' active groups','students')+
+    statCard(isTeacher?'My active students':'Active students',students.length,isTeacher?'Across '+groups.length+' assigned active groups':'Across '+groups.length+' active groups','students')+
     (can('owner','admin','cashier')?statCard('Expected this month',fmtMoney(expected),'Total scheduled student fees','payments'):'')+
     statCard(can('owner','admin','cashier')?'Collected this month':'My active groups',can('owner','admin','cashier')?fmtMoney(revenue):groups.length,can('owner','admin','cashier')?Math.round(expected?revenue/expected*100:0)+'% collected · '+fmtMoney(Math.max(0,expected-revenue))+' outstanding':'Assigned teaching view','payments')+
-    statCard(can('owner','admin','teacher')?'Attendance rate':'Group capacity',can('owner','admin','teacher')?attendanceRate+'%':(capacity?Math.round(fill/capacity*100):0)+'%',can('owner','admin','teacher')?attendance.length+' attendance records':fill+' / '+capacity+' places','attendance')+
-    statCard(can('owner','admin','cashier')?'Unpaid students':'Active learners',can('owner','admin','cashier')?unpaid.length:students.length,can('owner','admin','cashier')?'Current month':'Visible to your account','alert')+
+    statCard(can('owner','admin','teacher')?(isTeacher?'Attendance this month':'Attendance rate'):'Group capacity',can('owner','admin','teacher')?attendanceRate+'%':(capacity?Math.round(fill/capacity*100):0)+'%',can('owner','admin','teacher')?attendance.length+' attendance records':fill+' / '+capacity+' places','attendance')+
+    statCard(can('owner','admin','cashier')?'Unpaid students':'Students needing support',can('owner','admin','cashier')?unpaid.length:supportStudents.length,can('owner','admin','cashier')?'Current month':'Attendance <75% or tests <70%','alert')+
   '</div>'+
   '<div class="grid-2"><section class="panel"><div class="panel-head"><div><h2>Groups overview</h2><p>Current occupancy and monthly fee</p></div></div><div class="panel-body">'+
     (groups.length?'<div class="kpi-list">'+groups.map(g=>{const c=students.filter(s=>s.group_id===g.id).length;const pct=Math.min(100,Math.round(c/Number(g.capacity||1)*100));return '<div class="kpi-line"><div class="kpi-line-head"><strong>'+esc(g.name)+'</strong><span>'+c+' / '+g.capacity+'</span></div><div class="progress"><span style="width:'+pct+'%"></span></div><div class="muted" style="font-size:11px">'+fmtMoney(g.default_monthly_fee)+' default fee</div></div>';}).join('')+'</div>':empty('No active groups.'))+
-  '</div></section><section class="panel"><div class="panel-head"><div><h2>'+ (can('owner','admin','cashier')?'Payment attention':'Today') +'</h2><p>'+ (can('owner','admin','cashier')?'Students without a payment this month':'Teaching snapshot') +'</p></div></div><div class="panel-body">'+
-    (can('owner','admin','cashier') ? ((overpaymentTotal>0?'<div class="section-note correction-note"><strong>Payment correction needed</strong><br>'+fmtMoney(overpaymentTotal)+' is above students\' expected fees this month. Review Finance → Payments history.</div>':'')+(unpaid.length?'<div class="list">'+unpaid.slice(0,8).map(s=>{const due=Math.max(0,Number(s.monthly_fee)-Number(s.discount_amount));const paid=paidByStudent.get(s.id)||0;const balance=Math.max(0,due-paid);const status=paid>0?'Partial':'Unpaid';return '<div class="list-item"><div class="list-main"><strong>'+esc(s.full_name)+'</strong><span>'+fmtMoney(balance)+' remaining</span></div><span class="badge '+(paid>0?'warn':'danger')+'">'+status+'</span></div>';}).join('')+'</div>':overpaymentTotal>0?'':empty('All current fees are fully paid or free.'))) : '<div class="section-note">Use Attendance and Academic Records from the menu to manage your teaching work.</div>')+
-  '</div></section></div>';
+  '</div></section><section class="panel"><div class="panel-head"><div><h2>'+ (can('owner','admin','cashier')?'Payment attention':"Today's teaching") +'</h2><p>'+ (can('owner','admin','cashier')?'Students without a payment this month':dayName+' · groups scheduled today') +'</p></div></div><div class="panel-body">'+
+    (can('owner','admin','cashier')
+      ? ((overpaymentTotal>0?'<div class="section-note correction-note"><strong>Payment correction needed</strong><br>'+fmtMoney(overpaymentTotal)+' is above students\' expected fees this month. Review Finance → Payments history.</div>':'')+(unpaid.length?'<div class="list">'+unpaid.slice(0,8).map(s=>{const due=Math.max(0,Number(s.monthly_fee)-Number(s.discount_amount));const paid=paidByStudent.get(s.id)||0;const balance=Math.max(0,due-paid);const status=paid>0?'Partial':'Unpaid';return '<div class="list-item"><div class="list-main"><strong>'+esc(s.full_name)+'</strong><span>'+fmtMoney(balance)+' remaining</span></div><span class="badge '+(paid>0?'warn':'danger')+'">'+status+'</span></div>';}).join('')+'</div>':overpaymentTotal>0?'':empty('All current fees are fully paid or free.')))
+      : (todayGroups.length
+          ? '<div class="list">'+todayGroups.map(g=>{const count=students.filter(s=>s.group_id===g.id).length;const detail=[g.schedule,g.room?'Room '+g.room:null,count+' student'+(count===1?'':'s')].filter(Boolean).join(' · ');return '<div class="list-item"><div class="list-main"><strong>'+esc(g.name)+'</strong><span>'+esc(detail)+'</span></div><span class="badge success">Today</span></div>';}).join('')+'</div>'
+          : '<div class="section-note">No assigned groups are scheduled for '+esc(dayName)+'. Groups appear here automatically when their schedule includes today\'s day.</div>'))+
+  '</div></section></div>'+
+  teacherSupportPanel;
 }
 function statCard(label,value,note,icon){return '<div class="stat"><div class="stat-top"><span class="stat-label">'+esc(label)+'</span><span class="stat-icon">'+uiIcon(icon)+'</span></div><div class="stat-value">'+esc(value)+'</div><div class="stat-note">'+esc(note)+'</div></div>';}
 
