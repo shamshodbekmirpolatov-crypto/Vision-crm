@@ -155,10 +155,31 @@ function header(active){
   '</nav></div>';
 }
 
+function practiceHomeHtml(data){
+  const student=data?.student||{};
+  return '<div class="portal practice-view">'+header('practice')+
+    '<main class="portal-main practice-main">'+
+      '<section class="practice-hero"><div><small>PRACTICE</small><h1>Practice</h1><p>Choose what you want to practise.</p></div><div class="practice-student">'+esc(student.full_name||'Student')+'</div></section>'+
+      '<section class="practice-category-list" aria-label="Practice categories">'+
+        '<button class="practice-category-row" id="open-reading-library" type="button">'+
+          '<div class="practice-category-icon">R</div>'+
+          '<div class="practice-category-copy"><strong>Reading</strong><span>Articles, useful vocabulary, translations and interactive exercises</span></div>'+
+          '<div class="practice-category-arrow">→</div>'+
+        '</button>'+
+        '<button class="practice-category-row" id="open-listening-library" type="button">'+
+          '<div class="practice-category-icon">L</div>'+
+          '<div class="practice-category-copy"><strong>Listening</strong><span>Listening materials and practice activities</span></div>'+
+          '<div class="practice-category-arrow">→</div>'+
+        '</button>'+
+      '</section>'+
+    '</main></div>';
+}
+
 function libraryHtml(data){
   const student=data?.student||{};
   return '<div class="portal practice-view">'+header('practice')+
     '<main class="portal-main practice-main">'+
+      '<button class="back-to-reading" id="back-to-practice" type="button">← Practice</button>'+
       '<section class="practice-hero"><div><small>PRACTICE</small><h1>Reading</h1><p>Read useful English, explore vocabulary, and practise what you learn.</p></div><div class="practice-student">'+esc(student.full_name||'Student')+'</div></section>'+
       '<section class="reading-library">'+
         '<div class="section-title-row"><div><span>READING MATERIALS</span><h2>Start with an article</h2></div><small>1 article</small></div>'+
@@ -167,6 +188,19 @@ function libraryHtml(data){
           '<div class="reading-meta"><span>'+esc(article.level)+'</span><span>'+esc(article.minutes)+'</span><span>'+Object.keys(vocab).length+' vocabulary items</span></div></div>'+
           '<div class="reading-card-arrow">→</div>'+
         '</button>'+
+      '</section>'+
+    '</main></div>';
+}
+
+function listeningHtml(data){
+  const student=data?.student||{};
+  return '<div class="portal practice-view">'+header('practice')+
+    '<main class="portal-main practice-main">'+
+      '<button class="back-to-reading" id="back-to-practice" type="button">← Practice</button>'+
+      '<section class="practice-hero"><div><small>PRACTICE</small><h1>Listening</h1><p>Listen, understand, and build useful vocabulary.</p></div><div class="practice-student">'+esc(student.full_name||'Student')+'</div></section>'+
+      '<section class="reading-library listening-empty">'+
+        '<div class="section-title-row"><div><span>LISTENING MATERIALS</span><h2>Listening</h2></div><small>0 materials</small></div>'+
+        '<div class="practice-empty-state"><strong>Listening materials will appear here.</strong><p>We are building Reading first, then we can add the Listening system in this section.</p></div>'+
       '</section>'+
     '</main></div>';
 }
@@ -224,10 +258,24 @@ function bindHeader(root,callbacks){
   if(signout)signout.onclick=()=>callbacks.onSignOut&&callbacks.onSignOut();
 }
 
+function renderHome(root,data,callbacks){
+  root.innerHTML=practiceHomeHtml(data);
+  bindHeader(root,callbacks);
+  root.querySelector('#open-reading-library').onclick=()=>renderLibrary(root,data,callbacks);
+  root.querySelector('#open-listening-library').onclick=()=>renderListening(root,data,callbacks);
+}
+
 function renderLibrary(root,data,callbacks){
   root.innerHTML=libraryHtml(data);
   bindHeader(root,callbacks);
+  root.querySelector('#back-to-practice').onclick=()=>renderHome(root,data,callbacks);
   root.querySelector('#open-reading-article').onclick=()=>renderArticle(root,data,callbacks);
+}
+
+function renderListening(root,data,callbacks){
+  root.innerHTML=listeningHtml(data);
+  bindHeader(root,callbacks);
+  root.querySelector('#back-to-practice').onclick=()=>renderHome(root,data,callbacks);
 }
 
 function renderArticle(root,data,callbacks){
@@ -337,7 +385,7 @@ function renderArticle(root,data,callbacks){
 }
 
 function render({root,data,onDashboard,onRefresh,onSignOut}){
-  renderLibrary(root,data,{onDashboard,onRefresh,onSignOut});
+  renderHome(root,data,{onDashboard,onRefresh,onSignOut});
 }
 
 window.VisionStudentPractice={render};
