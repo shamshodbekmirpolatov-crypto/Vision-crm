@@ -1,9 +1,35 @@
 /* Student Practice: Reading */
-.student-top-actions{display:flex;align-items:center;gap:10px}
-.student-tabs{display:flex;align-items:center;gap:4px;padding:4px;border:1px solid rgba(255,255,255,.15);border-radius:12px;background:rgba(255,255,255,.06)}
-.student-tab{border:0;background:transparent;color:#c9deea;border-radius:8px;padding:8px 12px;font-size:10px;font-weight:800;transition:.16s ease}
-.student-tab:hover{background:rgba(255,255,255,.08);color:#fff}
-.student-tab.active{background:#fff;color:#0b496d;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.student-section-nav-wrap{
+  background:#f4f7fa;
+  border-bottom:1px solid #e0e8ee;
+  padding:12px 24px 0;
+}
+.student-section-nav{
+  max-width:1380px;
+  margin:0 auto;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.student-section-tab{
+  border:0;
+  border-bottom:3px solid transparent;
+  background:transparent;
+  color:#6b8191;
+  padding:10px 16px 11px;
+  font-size:10px;
+  font-weight:850;
+  transition:.16s ease;
+}
+.student-section-tab:hover{
+  color:#174b6d;
+  background:#edf4f8;
+  border-radius:9px 9px 0 0;
+}
+.student-section-tab.active{
+  color:#0b4f76;
+  border-bottom-color:#0d5278;
+}
 .practice-view{animation:practiceFade .18s ease both}
 @keyframes practiceFade{from{opacity:.35;transform:translateY(3px)}to{opacity:1;transform:none}}
 .practice-main{padding-bottom:48px}
@@ -93,10 +119,8 @@
 .check-answers{border:0;background:#0d5278;color:#fff}
 .retry-exercises{border:1px solid #d7e1e8;background:#fff;color:#567386}
 @media(max-width:760px){
-  .portal-header-inner{align-items:flex-start}
-  .student-top-actions{align-items:flex-end;flex-direction:column}
-  .student-tabs{order:2}
-  .student-tab{padding:7px 9px}
+  .student-section-nav-wrap{padding:9px 12px 0}
+  .student-section-tab{padding:9px 12px 10px}
   .practice-hero{align-items:flex-start;flex-direction:column}
   .article-topbar{padding:20px;flex-direction:column}
   .translation-toggle{width:100%;justify-content:space-between}
@@ -111,9 +135,8 @@
   .portal-brand img{width:40px;height:40px}
   .portal-header{padding:12px}
   .portal-header-inner{gap:8px}
-  .student-top-actions{gap:6px}
-  .student-tabs{padding:3px}
-  .student-tab{font-size:9px;padding:6px 8px}
+  .student-section-nav-wrap{padding:7px 10px 0}
+  .student-section-tab{font-size:9px;padding:8px 10px 9px}
   .signout{padding:7px 8px;font-size:9px}
   .reading-card{padding:16px}
   .reading-card h3{font-size:20px}
