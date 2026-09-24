@@ -187,7 +187,7 @@ async function loadIdentity(){
 function allowedRoutes(){
   return NAV.filter(n=>n.roles.includes(role()));
 }
-function renderShell(content){
+function shellContext(){
   const meta=PAGE_META[state.route]||['Vision CRM',''];
   const allowed=allowedRoutes();
   const current=allowed.find(n=>n.id===state.route)||allowed[0];
@@ -195,8 +195,48 @@ function renderShell(content){
   const groups=[...new Set(allowed.map(n=>n.group))];
   const categoryIcon={Overview:'dashboard',Students:'students',Teaching:'academic',Finance:'payments',Management:'settings'};
   const defaults={Overview:'dashboard',Students:'students',Teaching:'attendance',Finance:'payments',Management:'reports'};
-  const categoryNav=groups.map(g=>'<button class="category-tab '+(g===activeGroup?'active':'')+'" data-category="'+esc(g)+'"><span>'+uiIcon(categoryIcon[g]||'dashboard')+'</span>'+esc(g)+'</button>').join('');
-  const subNav=allowed.filter(n=>n.group===activeGroup).map(n=>'<button class="subnav-tab '+(n.id===state.route?'active':'')+'" data-route="'+n.id+'">'+esc(n.label)+'</button>').join('');
+  const categoryNav=groups.map(g=>'<button type="button" class="category-tab '+(g===activeGroup?'active':'')+'" data-category="'+esc(g)+'"><span>'+uiIcon(categoryIcon[g]||'dashboard')+'</span>'+esc(g)+'</button>').join('');
+  const subNav=allowed.filter(n=>n.group===activeGroup).map(n=>'<button type="button" class="subnav-tab '+(n.id===state.route?'active':'')+'" data-route="'+n.id+'">'+esc(n.label)+'</button>').join('');
+  return {meta,allowed,defaults,categoryNav,subNav};
+}
+function bindShellNavigation(ctx){
+  document.querySelectorAll('[data-route]').forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();go(b.dataset.route);});
+  document.querySelectorAll('[data-category]').forEach(b=>b.onclick=e=>{
+    e.preventDefault();e.stopPropagation();
+    const group=b.dataset.category;
+    const preferred=ctx.defaults[group];
+    const target=ctx.allowed.find(n=>n.group===group&&n.id===preferred)||ctx.allowed.find(n=>n.group===group);
+    if(target) go(target.id);
+  });
+  document.getElementById('signout').onclick=async()=>{await sb.auth.signOut();};
+  document.getElementById('refresh')?.addEventListener('click',()=>renderRoute(true));
+}
+function updateShellChrome(){
+  const ctx=shellContext();
+  const category=document.querySelector('.category-nav');
+  const subnav=document.querySelector('.subnav');
+  const title=document.querySelector('.page-title h1');
+  const subtitle=document.querySelector('.page-title p');
+  if(category) category.innerHTML=ctx.categoryNav;
+  if(subnav) subnav.innerHTML=ctx.subNav;
+  if(title) title.textContent=ctx.meta[0];
+  if(subtitle) subtitle.textContent=ctx.meta[1];
+  bindShellNavigation(ctx);
+}
+function renderShell(content){
+  const ctx=shellContext();
+  const existing=app.querySelector('.top-shell');
+  if(existing){
+    updateShellChrome();
+    const contentEl=app.querySelector('.content');
+    if(contentEl){
+      contentEl.innerHTML=content;
+      contentEl.classList.remove('route-loading','route-enter');
+      void contentEl.offsetWidth;
+      contentEl.classList.add('route-enter');
+    }
+    return;
+  }
   app.className='';
   app.innerHTML =
     '<div class="shell top-shell">'+
@@ -204,34 +244,28 @@ function renderShell(content){
         '<div class="app-header-main">'+
           '<div class="app-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision CRM</strong><span>Vision Learning Centre</span></div></div>'+
           '<div class="app-user">'+
-            '<button class="btn btn-secondary desktop-only" id="refresh">'+uiIcon('refresh')+'<span>Refresh</span></button>'+
+            '<button type="button" class="btn btn-secondary desktop-only" id="refresh">'+uiIcon('refresh')+'<span>Refresh</span></button>'+
             '<span class="role-chip desktop-only">'+esc(humanize(role()))+'</span>'+
             '<div class="user-chip"><div class="avatar">'+esc(initials(state.profile?.full_name))+'</div><div class="user-chip-copy"><strong>'+esc(state.profile?.full_name||'User')+'</strong><span>'+esc(humanize(role()))+'</span></div></div>'+
-            '<button id="signout" class="icon-btn signout-icon" title="Sign out" aria-label="Sign out">'+uiIcon('logout')+'</button>'+
+            '<button type="button" id="signout" class="icon-btn signout-icon" title="Sign out" aria-label="Sign out">'+uiIcon('logout')+'</button>'+
           '</div>'+
         '</div>'+
-        '<nav class="category-nav">'+categoryNav+'</nav>'+
-        '<nav class="subnav">'+subNav+'</nav>'+
+        '<nav class="category-nav">'+ctx.categoryNav+'</nav>'+
+        '<nav class="subnav">'+ctx.subNav+'</nav>'+
       '</header>'+
       '<main class="main top-main">'+
-        '<header class="pagebar"><div class="page-title"><h1>'+esc(meta[0])+'</h1><p>'+esc(meta[1])+'</p></div></header>'+
-        '<div class="content">'+content+'</div>'+
+        '<header class="pagebar"><div class="page-title"><h1>'+esc(ctx.meta[0])+'</h1><p>'+esc(ctx.meta[1])+'</p></div></header>'+
+        '<div class="content route-enter">'+content+'</div>'+
       '</main>'+
     '</div>';
-  document.querySelectorAll('[data-route]').forEach(b=>b.onclick=()=>go(b.dataset.route));
-  document.querySelectorAll('[data-category]').forEach(b=>b.onclick=()=>{
-    const group=b.dataset.category;
-    const preferred=defaults[group];
-    const target=allowed.find(n=>n.group===group&&n.id===preferred)||allowed.find(n=>n.group===group);
-    if(target) go(target.id);
-  });
-  document.getElementById('signout').onclick=async()=>{await sb.auth.signOut();};
-  document.getElementById('refresh')?.addEventListener('click',()=>renderRoute(true));
+  bindShellNavigation(ctx);
 }
 function go(routeName){
   if(!allowedRoutes().some(n=>n.id===routeName)) routeName='dashboard';
+  if(state.route===routeName && app.querySelector('.top-shell')) return;
   state.route=routeName; state.sidebarOpen=false;
   history.replaceState(null,'','#'+routeName);
+  updateShellChrome();
   renderRoute();
 }
 
@@ -1279,16 +1313,29 @@ function tablePage(title,actions,headers,rows,emptyMessage){
   return '<section class="panel"><div class="panel-head"><div><h2>'+esc(title)+'</h2></div>'+actions+'</div><div class="panel-body">'+(rows?'<div class="table-wrap"><table><thead><tr>'+headers.map(h=>'<th class="'+(h[1]||'')+'">'+esc(h[0])+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table></div>':empty(emptyMessage))+'</div></section>';
 }
 
+let routeRenderGeneration=0;
 async function renderRoute(force=false){
   if(!state.session){renderLogin();return;}
   if(!state.profile) await loadIdentity();
   const hash=(location.hash||'').replace('#','');
   if(hash && allowedRoutes().some(n=>n.id===hash)) state.route=hash;
   if(!allowedRoutes().some(n=>n.id===state.route)) state.route='dashboard';
+
+  const generation=++routeRenderGeneration;
+  const requestedRoute=state.route;
+  const existingContent=app.querySelector('.content');
+
+  if(existingContent){
+    updateShellChrome();
+    existingContent.classList.add('route-loading');
+    existingContent.setAttribute('aria-busy','true');
+  }else{
+    renderShell('<div class="panel route-placeholder"><div class="panel-body">Loading…</div></div>');
+  }
+
   try{
-    renderShell('<div class="panel"><div class="panel-body">Loading…</div></div>');
     let content='';
-    switch(state.route){
+    switch(requestedRoute){
       case 'dashboard': content=await dashboardPage(); break;
       case 'leads': content=await leadsPage(); break;
       case 'students': content=await studentsPage(); break;
@@ -1303,8 +1350,16 @@ async function renderRoute(force=false){
       case 'settings': content=await settingsPage(); break;
       default: content=await dashboardPage();
     }
+    if(generation!==routeRenderGeneration || requestedRoute!==state.route) return;
     renderShell(content);
-  }catch(e){console.error(e);renderShell('<section class="panel"><div class="panel-body"><div class="login-error"><strong>Could not load this page.</strong><br>'+esc(e.message||e)+'</div><button class="btn btn-primary" id="retry">Try again</button></div></section>');document.getElementById('retry').onclick=()=>renderRoute(true);}
+    const currentContent=app.querySelector('.content');
+    currentContent?.removeAttribute('aria-busy');
+  }catch(e){
+    if(generation!==routeRenderGeneration) return;
+    console.error(e);
+    renderShell('<section class="panel"><div class="panel-body"><div class="login-error"><strong>Could not load this page.</strong><br>'+esc(e.message||e)+'</div><button type="button" class="btn btn-primary" id="retry">Try again</button></div></section>');
+    document.getElementById('retry').onclick=()=>renderRoute(true);
+  }
 }
 
 let authGeneration=0;
