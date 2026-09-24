@@ -88,7 +88,7 @@ function renderPortal(){
   const latestNote=[...valid].reverse().find(r=>r.teacher_note)?.teacher_note||null;
 
   app.innerHTML='<div class="portal">'+
-    '<header class="portal-header"><div class="portal-header-inner"><div class="portal-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision Student Progress</strong><span>VISION LEARNING CENTRE</span></div></div><button class="signout" id="student-signout">Sign out</button></div></header>'+
+    '<header class="portal-header"><div class="portal-header-inner"><div class="portal-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision Student Progress</strong><span>VISION LEARNING CENTRE</span></div></div><div class="student-top-actions"><nav class="student-tabs" aria-label="Student portal sections"><button class="student-tab active" type="button">Dashboard</button><button class="student-tab" id="student-practice-tab" type="button">Practice</button></nav><button class="signout" id="student-signout">Sign out</button></div></div></header>'+
     '<main class="portal-main">'+
       '<section class="student-welcome"><div><small>YOUR PROGRESS DASHBOARD</small><h1>'+esc(student.full_name)+'</h1><p>'+esc(student.grade_or_age||'Student')+'</p></div><span class="group-badge">'+esc(student.group||'Unassigned')+'</span></section>'+
       summary+
@@ -103,6 +103,15 @@ function renderPortal(){
     '</main>'+
   '</div>';
   document.getElementById('student-signout').onclick=()=>{portalData=null;renderLogin();toast('Signed out.');};
+  const practiceTab=document.getElementById('student-practice-tab');
+  if(practiceTab&&window.VisionStudentPractice){
+    practiceTab.onclick=()=>window.VisionStudentPractice.render({
+      root:app,
+      data:portalData,
+      onDashboard:renderPortal,
+      onSignOut:()=>{portalData=null;renderLogin();toast('Signed out.');}
+    });
+  }
 }
 
 function renderChart(results){
