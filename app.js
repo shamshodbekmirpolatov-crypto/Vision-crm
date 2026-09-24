@@ -223,17 +223,43 @@ function updateShellChrome(){
   if(subtitle) subtitle.textContent=ctx.meta[1];
   bindShellNavigation(ctx);
 }
-function renderShell(content){
+function routePanel(routeName){
+  return app.querySelector('.route-page[data-route-page="'+routeName+'"]');
+}
+function activateRoutePanel(routeName){
+  const pages=app.querySelectorAll('.route-page');
+  let found=false;
+  pages.forEach(page=>{
+    const active=page.dataset.routePage===routeName;
+    page.hidden=!active;
+    page.classList.toggle('active',active);
+    if(active){
+      found=true;
+      page.classList.remove('route-panel-in');
+      void page.offsetWidth;
+      page.classList.add('route-panel-in');
+    }
+  });
+  return found;
+}
+function renderShell(content,routeName=state.route,activate=true){
   const ctx=shellContext();
   const existing=app.querySelector('.top-shell');
   if(existing){
-    updateShellChrome();
+    if(activate) updateShellChrome();
     const contentEl=app.querySelector('.content');
     if(contentEl){
-      contentEl.innerHTML=content;
-      contentEl.classList.remove('route-loading','route-enter');
-      void contentEl.offsetWidth;
-      contentEl.classList.add('route-enter');
+      let panel=routePanel(routeName);
+      if(!panel){
+        panel=document.createElement('section');
+        panel.className='route-page';
+        panel.dataset.routePage=routeName;
+        panel.hidden=true;
+        contentEl.appendChild(panel);
+      }
+      panel.innerHTML=content;
+      panel.dataset.loadedAt=String(Date.now());
+      if(activate) activateRoutePanel(routeName);
     }
     return;
   }
@@ -255,7 +281,7 @@ function renderShell(content){
       '</header>'+
       '<main class="main top-main">'+
         '<header class="pagebar"><div class="page-title"><h1>'+esc(ctx.meta[0])+'</h1><p>'+esc(ctx.meta[1])+'</p></div></header>'+
-        '<div class="content route-enter">'+content+'</div>'+
+        '<div class="content"><section class="route-page active route-panel-in" data-route-page="'+esc(routeName)+'" data-loaded-at="'+Date.now()+'">'+content+'</section></div>'+
       '</main>'+
     '</div>';
   bindShellNavigation(ctx);
@@ -266,7 +292,14 @@ function go(routeName){
   state.route=routeName; state.sidebarOpen=false;
   history.replaceState(null,'','#'+routeName);
   updateShellChrome();
-  renderRoute();
+  const cached=routePanel(routeName);
+  if(cached){
+    activateRoutePanel(routeName);
+    const age=Date.now()-Number(cached.dataset.loadedAt||0);
+    if(age>60000) void renderRoute(true,true);
+    return;
+  }
+  void renderRoute(false,true);
 }
 
 function passwordInput(label,name,extra=''){
@@ -1314,6 +1347,7 @@ function tablePage(title,actions,headers,rows,emptyMessage){
 }
 
 let routeRenderGeneration=0;
+let routePreloadStarted=false;
 async function routeContent(routeName){
   switch(routeName){
     case 'dashboard': return await dashboardPage();
@@ -1331,21 +1365,30 @@ async function routeContent(routeName){
     default: return await dashboardPage();
   }
 }
-function swapRouteContent(content){
-  const swap=()=>renderShell(content);
-  if(document.startViewTransition && app.querySelector('.top-shell')){
-    document.startViewTransition(swap);
-  }else{
-    const current=app.querySelector('.content');
-    if(!current){swap();return;}
-    current.classList.add('route-swap-out');
-    setTimeout(()=>{
-      swap();
-      app.querySelector('.content')?.classList.remove('route-swap-out');
-    },90);
+async function preloadRoute(routeName){
+  if(routePanel(routeName)||routeName===state.route) return;
+  try{
+    const content=await routeContent(routeName);
+    if(!state.session||routePanel(routeName)) return;
+    renderShell(content,routeName,false);
+  }catch(e){
+    console.warn('Route preload skipped:',routeName,e);
   }
 }
-async function renderRoute(force=false){
+function scheduleRoutePreload(){
+  if(routePreloadStarted) return;
+  routePreloadStarted=true;
+  const queue=allowedRoutes().map(n=>n.id).filter(id=>id!==state.route);
+  let index=0;
+  const next=()=>{
+    if(index>=queue.length||!state.session) return;
+    const id=queue[index++];
+    preloadRoute(id).finally(()=>setTimeout(next,180));
+  };
+  if('requestIdleCallback' in window) requestIdleCallback(next,{timeout:700});
+  else setTimeout(next,350);
+}
+async function renderRoute(force=false,navigation=false){
   if(!state.session){renderLogin();return;}
   if(!state.profile) await loadIdentity();
   const hash=(location.hash||'').replace('#','');
@@ -1354,25 +1397,23 @@ async function renderRoute(force=false){
 
   const generation=++routeRenderGeneration;
   const requestedRoute=state.route;
-  const hasShell=!!app.querySelector('.top-shell');
+  const cached=routePanel(requestedRoute);
 
-  if(hasShell){
-    updateShellChrome();
-    app.querySelector('.top-shell')?.classList.add('route-fetching');
+  if(navigation&&cached&&!force){
+    activateRoutePanel(requestedRoute);
+    return;
   }
 
   try{
     const content=await routeContent(requestedRoute);
     if(generation!==routeRenderGeneration || requestedRoute!==state.route) return;
-    app.querySelector('.top-shell')?.classList.remove('route-fetching');
-    swapRouteContent(content);
+    renderShell(content,requestedRoute,true);
+    scheduleRoutePreload();
   }catch(e){
     if(generation!==routeRenderGeneration) return;
-    app.querySelector('.top-shell')?.classList.remove('route-fetching');
     console.error(e);
     const errorContent='<section class="panel"><div class="panel-body"><div class="login-error"><strong>Could not load this page.</strong><br>'+esc(e.message||e)+'</div><button type="button" class="btn btn-primary" id="retry">Try again</button></div></section>';
-    if(hasShell) swapRouteContent(errorContent);
-    else renderShell(errorContent);
+    renderShell(errorContent,requestedRoute,true);
     setTimeout(()=>{const retry=document.getElementById('retry');if(retry)retry.onclick=()=>renderRoute(true);},0);
   }
 }
