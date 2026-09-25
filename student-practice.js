@@ -1016,7 +1016,7 @@ function exercisesHtml(){
 function articleHtml(){
   return '<div class="portal practice-view">'+header('practice')+
     '<main class="portal-main practice-main">'+
-      '<button class="back-to-reading" id="back-to-reading" type="button">← Reading library</button>'+
+      '<button class="back-to-reading article-return-button" id="back-to-reading" type="button" aria-label="Back to Reading library"><span class="return-arrow">←</span><span>Back to Reading</span></button>'+
       '<article class="reading-article-shell" id="reading-article-shell">'+
         '<div class="article-topbar">'+
           '<div><span class="article-kicker">'+esc(activeArticle.kicker)+'</span><h1>'+esc(activeArticle.title)+'</h1><div class="article-byline">'+esc(activeArticle.byline||'')+'</div><div class="article-meta"><span>'+esc(activeArticle.level)+'</span><span>'+esc(activeArticle.minutes)+'</span><span>'+Object.keys(vocab).length+' key items</span></div></div>'+
