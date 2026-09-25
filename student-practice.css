@@ -177,7 +177,9 @@
 .reading-article-shell{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:0 7px 28px rgba(14,50,76,.055);overflow:visible}
 .article-topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:22px;padding:25px 27px 20px;border-bottom:1px solid #e7edf1}
 .article-kicker{display:block;color:#56798e;font-size:9px;letter-spacing:.15em;font-weight:900}
-.article-topbar h1{font-family:Georgia,"Times New Roman",serif;margin:7px 0 11px;color:#0c3452;font-size:32px;line-height:1.08;letter-spacing:-.035em}
+.article-topbar h1{font-family:Georgia,"Times New Roman",serif;margin:7px 0 7px;color:#0c3452;font-size:32px;line-height:1.08;letter-spacing:-.035em}
+.article-byline{color:#7a8f9d;font-size:9px;margin-bottom:11px}
+.article-section-heading{font-family:Georgia,"Times New Roman",serif;color:#163e59;font-size:22px;line-height:1.25;margin:32px 0 12px}
 .article-meta{display:flex;gap:6px;flex-wrap:wrap}
 .translation-toggle{flex:0 0 auto;border:1px solid #d7e1e8;background:#f8fbfd;border-radius:14px;padding:9px 11px;display:flex;align-items:center;gap:9px;text-align:left;color:#35566d;transition:.17s ease}
 .translation-toggle:hover{border-color:#bfd1dc;background:#fff}
