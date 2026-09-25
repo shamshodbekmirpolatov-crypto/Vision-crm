@@ -711,7 +711,7 @@ let activeArticle=null;
 function completionKey(data){
   const student=data?.student||{};
   const id=student.id||[student.full_name,student.group,student.grade_or_age].filter(Boolean).join('|')||'student';
-  return 'vision-reading-completed:v2:'+String(id);
+  return 'vision-reading-completed:v3:'+String(id);
 }
 
 function getCompletedArticles(data){
@@ -959,9 +959,10 @@ function libraryHtml(data){
   const completed=getCompletedArticles(data);
   const articleRows=readingArticles.map((item,index)=>{
     const isDone=completed.has(index);
-    return '<button class="reading-list-row'+(isDone?' completed':'')+'" data-article-index="'+index+'" type="button">'+
+    const isUnlocked=index===0||Array.from({length:index},(_,i)=>i).every(i=>completed.has(i));
+    return '<button class="reading-list-row'+(isDone?' completed':'')+(isUnlocked?'':' locked')+'" data-article-index="'+index+'" type="button" '+(isUnlocked?'':'disabled aria-disabled="true"')+'>'+
       '<strong class="reading-list-label">Article '+(index+1)+'</strong>'+
-      '<div class="reading-list-status'+(isDone?' done':'')+'">'+(isDone?'✓':'→')+'</div>'+
+      '<div class="reading-list-status'+(isDone?' done':isUnlocked?'':' locked')+'">'+(isDone?'✓':isUnlocked?'→':'🔒')+'</div>'+
     '</button>';
   }).join('');
   const count=readingArticles.length;
@@ -1159,12 +1160,16 @@ function renderArticle(root,data,callbacks){
       }
     });
     const score=root.querySelector('#exercise-score');
-    score.textContent=correct+' / '+exerciseQuestions.length+' correct';
-    score.className='exercise-score '+(correct===exerciseQuestions.length?'excellent':correct>=6?'good':'keep-going');
-    if(answered<exerciseQuestions.length){
-      score.textContent=correct+' / '+exerciseQuestions.length+' correct · '+(exerciseQuestions.length-answered)+' unanswered';
-    }else{
+    const total=exerciseQuestions.length;
+    score.textContent=correct+' / '+total+' correct';
+    score.className='exercise-score '+(correct===total?'excellent':correct>=Math.ceil(total*.75)?'good':'keep-going');
+    if(answered<total){
+      score.textContent=correct+' / '+total+' correct · '+(total-answered)+' unanswered';
+    }else if(correct===total){
       markArticleCompleted(data,activeArticleIndex);
+      score.textContent='Perfect · '+correct+' / '+total+' · Article completed';
+    }else{
+      score.textContent=correct+' / '+total+' correct · Fix the incorrect answers to unlock the next article';
     }
   };
 
