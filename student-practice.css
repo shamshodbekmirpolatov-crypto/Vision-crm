@@ -139,6 +139,19 @@
   border-color:#c8e6d7;
   background:linear-gradient(180deg,#fff,#f9fdfb);
 }
+.reading-list-row.locked{
+  opacity:.58;
+  background:#f4f6f8;
+  border-color:#e1e6ea;
+  cursor:not-allowed;
+  box-shadow:none;
+  transform:none;
+}
+.reading-list-row.locked:hover{
+  transform:none;
+  border-color:#e1e6ea;
+  box-shadow:none;
+}
 .reading-list-label{
   color:#123b58;
   font-family:Georgia,"Times New Roman",serif;
@@ -160,6 +173,11 @@
 .reading-list-status.done{
   background:#28a46f;
   font-size:18px;
+}
+.reading-list-status.locked{
+  background:#dfe5e9;
+  color:#6f8190;
+  font-size:14px;
 }
 .section-title-row{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:14px}
 .section-title-row h2{margin:4px 0 0;color:#173b56;font-size:18px}
