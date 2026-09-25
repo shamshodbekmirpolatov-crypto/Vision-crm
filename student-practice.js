@@ -7,30 +7,30 @@ const vocab = {
     "level": "B1",
     "uz": "o‘zingizdan mamnun"
   },
-  "drained": {
-    "term": "drained",
+  "feel_low_on_energy": {
+    "term": "feel low on energy",
+    "level": "B1",
+    "uz": "o‘zingizni holsiz his qilmoq / quvvati kam bo‘lmoq"
+  },
+  "less_able_to_perform": {
+    "term": "less able to perform",
+    "level": "B1",
+    "uz": "avvalgidek yaxshi bajara olmaslik"
+  },
+  "depend_on_the_type_of_workout": {
+    "term": "depend on the type of workout",
+    "level": "B1",
+    "uz": "mashq turiga bog‘liq bo‘lmoq"
+  },
+  "accustomed_body": {
+    "term": "how accustomed your body is to it",
     "level": "B2–C1",
-    "uz": "juda holdan toygan"
+    "uz": "tanangiz bunga qanchalik odatlanganligi"
   },
-  "low_on_energy": {
-    "term": "low on energy",
+  "help_your_body_recover": {
+    "term": "help your body recover",
     "level": "B1",
-    "uz": "quvvati kam / holsiz"
-  },
-  "depend_on": {
-    "term": "depend on",
-    "level": "B1",
-    "uz": "...ga bog‘liq bo‘lmoq"
-  },
-  "accustomed": {
-    "term": "accustomed",
-    "level": "B2–C1",
-    "uz": "odatlangan"
-  },
-  "recover": {
-    "term": "recover",
-    "level": "B1",
-    "uz": "tiklanmoq"
+    "uz": "tanangizning tiklanishiga yordam bermoq"
   },
   "perceived_fatigue": {
     "term": "perceived fatigue",
@@ -42,235 +42,230 @@ const vocab = {
     "level": "B2–C1",
     "uz": "jismoniy ko‘rsatkichning charchoq sabab pasayishi"
   },
-  "measurable_drop": {
-    "term": "measurable drop",
+  "measurable_drop_in": {
+    "term": "a measurable drop in",
     "level": "B2–C1",
-    "uz": "o‘lchash mumkin bo‘lgan pasayish"
+    "uz": "...da o‘lchash mumkin bo‘lgan pasayish"
   },
-  "unable_to": {
-    "term": "unable to",
+  "unable_to_produce_as_much_force": {
+    "term": "unable to produce as much force",
+    "level": "B2–C1",
+    "uz": "avvalgidek ko‘p kuch hosil qila olmaslik"
+  },
+  "dont_always_match_perfectly": {
+    "term": "don’t always match perfectly",
+    "level": "B2–C1",
+    "uz": "har doim ham to‘liq mos kelmaslik"
+  },
+  "perception_of_tiredness": {
+    "term": "our perception of tiredness",
+    "level": "B2–C1",
+    "uz": "charchoqni qanday sezishimiz / idrok etishimiz"
+  },
+  "develop_after_working_out": {
+    "term": "develop after working out",
     "level": "B1",
-    "uz": "qila olmaydigan"
+    "uz": "mashqdan keyin paydo bo‘lmoq"
   },
-  "perception": {
-    "term": "perception",
-    "level": "B2–C1",
-    "uz": "idrok / sezish"
-  },
-  "delayed_onset_muscle_soreness": {
-    "term": "delayed-onset muscle soreness",
-    "level": "B2–C1",
-    "uz": "kechikib paydo bo‘ladigan mushak og‘rig‘i"
-  },
-  "aching_and_stiffness": {
-    "term": "aching and stiffness",
-    "level": "B2–C1",
-    "uz": "og‘riq va qotish"
-  },
-  "working_out": {
-    "term": "working out",
+  "unfamiliar_exercise": {
+    "term": "an unfamiliar exercise",
     "level": "B1",
-    "uz": "mashq qilish"
+    "uz": "odatlanilmagan / notanish mashq"
   },
-  "unfamiliar": {
-    "term": "unfamiliar",
-    "level": "B2–C1",
-    "uz": "notanish / odatlanilmagan"
+  "been_a_while_since": {
+    "term": "it’s been a while since",
+    "level": "B1",
+    "uz": "... qilganimizga ancha vaqt bo‘ldi"
   },
-  "associated_with": {
-    "term": "associated with",
+  "particularly_associated_with": {
+    "term": "particularly associated with",
     "level": "B2–C1",
-    "uz": "... bilan bog‘liq"
+    "uz": "ayniqsa ... bilan bog‘liq"
   },
-  "eccentric_exercise": {
-    "term": "eccentric exercise",
-    "level": "B2–C1",
-    "uz": "mushak cho‘zilgan holda ishlaydigan mashq"
+  "single_cause": {
+    "term": "There isn’t one single cause",
+    "level": "B1",
+    "uz": "buning faqat bitta sababi yo‘q"
   },
-  "contribute": {
-    "term": "contribute",
+  "depending_on_what_exercise": {
+    "term": "depending on what exercise you’ve done",
     "level": "B2–C1",
-    "uz": "sabab bo‘lishga hissa qo‘shmoq"
+    "uz": "qaysi mashqni qilganingizga qarab"
   },
   "rely_on": {
     "term": "rely on",
     "level": "B1",
-    "uz": "...ga tayanmoq"
+    "uz": "...ga tayanmoq / bog‘liq bo‘lmoq"
   },
-  "electrically_charged_particles": {
-    "term": "electrically-charged particles",
+  "trigger_muscle_contractions": {
+    "term": "trigger muscle contractions",
     "level": "B2–C1",
-    "uz": "elektr zaryadlangan zarrachalar"
+    "uz": "mushak qisqarishlarini qo‘zg‘atmoq"
   },
-  "ions": {
-    "term": "ions",
+  "affect_ability_to": {
+    "term": "affect the muscle’s ability to",
     "level": "B2–C1",
-    "uz": "ionlar"
+    "uz": "mushakning ... qobiliyatiga ta’sir qilmoq"
   },
-  "muscle_contractions": {
-    "term": "muscle contractions",
+  "produce_force": {
+    "term": "produce force",
     "level": "B2–C1",
-    "uz": "mushak qisqarishlari"
-  },
-  "affect": {
-    "term": "affect",
-    "level": "B1",
-    "uz": "ta’sir qilmoq"
-  },
-  "depleted": {
-    "term": "depleted",
-    "level": "B2–C1",
-    "uz": "zaxirasi tugagan / holdan toygan"
-  },
-  "nervous_system": {
-    "term": "nervous system",
-    "level": "B2–C1",
-    "uz": "asab tizimi"
+    "uz": "kuch hosil qilmoq"
   },
   "plays_a_part": {
     "term": "plays a part",
     "level": "B1",
-    "uz": "rol o‘ynaydi"
+    "uz": "rol o‘ynamoq"
   },
-  "spinal_cord": {
-    "term": "spinal cord",
+  "temporarily_reduce_ability": {
+    "term": "temporarily reduce the nervous system’s ability to",
     "level": "B2–C1",
-    "uz": "orqa miya"
+    "uz": "asab tizimining ... qobiliyatini vaqtincha kamaytirmoq"
   },
-  "strenuous_exercise": {
-    "term": "strenuous exercise",
+  "contributing_to": {
+    "term": "contributing to",
     "level": "B2–C1",
-    "uz": "juda kuch talab qiladigan mashq"
-  },
-  "temporarily": {
-    "term": "temporarily",
-    "level": "B2–C1",
-    "uz": "vaqtincha"
-  },
-  "central_fatigue": {
-    "term": "central fatigue",
-    "level": "B2–C1",
-    "uz": "markaziy charchoq"
+    "uz": "...ga sabab bo‘lishga hissa qo‘shib"
   },
   "demanding_exercise": {
     "term": "demanding exercise",
     "level": "B2–C1",
     "uz": "katta kuch talab qiladigan mashq"
   },
-  "carbohydrates": {
-    "term": "carbohydrates",
+  "contribute_to_fatigue": {
+    "term": "contribute to fatigue",
     "level": "B2–C1",
-    "uz": "uglevodlar"
+    "uz": "charchoqqa sabab bo‘lishga hissa qo‘shmoq"
   },
-  "electrolytes": {
-    "term": "electrolytes",
+  "reduce_performance": {
+    "term": "reduce performance",
     "level": "B2–C1",
-    "uz": "elektrolitlar"
+    "uz": "jismoniy ko‘rsatkichni pasaytirmoq"
   },
-  "sodium": {
-    "term": "sodium",
+  "accustomed_to_activity": {
+    "term": "aren’t accustomed to the activity",
     "level": "B2–C1",
-    "uz": "natriy"
+    "uz": "bu faoliyatga odatlanmagan"
   },
-  "dehydration": {
-    "term": "dehydration",
-    "level": "B2–C1",
-    "uz": "suvsizlanish"
-  },
-  "soreness": {
-    "term": "soreness",
-    "level": "B2–C1",
-    "uz": "mushak og‘rig‘i / achishish"
-  },
-  "adapt": {
-    "term": "adapt",
+  "try_something_unfamiliar": {
+    "term": "try something unfamiliar",
     "level": "B1",
-    "uz": "moslashmoq"
+    "uz": "odatlanilmagan narsani sinab ko‘rmoq"
   },
-  "repeated_bout_effect": {
-    "term": "repeated-bout effect",
+  "less_muscle_damage_and_soreness": {
+    "term": "less muscle damage and soreness",
     "level": "B2–C1",
-    "uz": "takroriy mashq ta’siri"
+    "uz": "kamroq mushak shikastlanishi va og‘rig‘i"
   },
-  "preservation": {
-    "term": "preservation",
+  "preservation_of_physical_performance": {
+    "term": "better preservation of physical performance",
     "level": "B2–C1",
-    "uz": "saqlanib qolish"
+    "uz": "jismoniy ko‘rsatkichning yaxshiroq saqlanib qolishi"
   },
   "recovery_strategies": {
     "term": "recovery strategies",
     "level": "B2–C1",
-    "uz": "tiklanish usullari"
+    "uz": "tiklanish usullari / strategiyalari"
   },
-  "amino_acids": {
-    "term": "amino acids",
+  "replace_energy_stores": {
+    "term": "replace the energy stores",
     "level": "B2–C1",
-    "uz": "aminokislotalar"
+    "uz": "energiya zaxiralarini qayta to‘ldirmoq"
   },
-  "instant_cure": {
-    "term": "instant cure",
-    "level": "B2–C1",
-    "uz": "darhol davolaydigan yechim"
-  },
-  "mixed_results": {
-    "term": "mixed results",
-    "level": "B2–C1",
-    "uz": "turlicha / bir xil bo‘lmagan natijalar"
-  },
-  "consume": {
-    "term": "consume",
-    "level": "B2–C1",
-    "uz": "iste’mol qilmoq"
-  },
-  "benefit": {
-    "term": "benefit",
+  "adapt_and_recover_from": {
+    "term": "adapt and recover from",
     "level": "B1",
-    "uz": "foyda bermoq"
+    "uz": "...ga moslashmoq va undan tiklanmoq"
   },
-  "water_immersion": {
-    "term": "water immersion",
+  "instant_cure_for": {
+    "term": "an instant cure for",
     "level": "B2–C1",
-    "uz": "suvga tushib tiklanish usuli"
+    "uz": "... uchun darhol yechim / tezkor davo"
+  },
+  "produced_mixed_results": {
+    "term": "produced mixed results",
+    "level": "B2–C1",
+    "uz": "turlicha / bir xil bo‘lmagan natijalar berdi"
+  },
+  "consume_some_electrolytes": {
+    "term": "consume some electrolytes",
+    "level": "B2–C1",
+    "uz": "elektrolitlarni iste’mol qilmoq"
+  },
+  "opportunity_to_recover": {
+    "term": "further opportunity to recover",
+    "level": "B2–C1",
+    "uz": "yanada tiklanish imkoniyati"
+  },
+  "benefit_aspects_of": {
+    "term": "may benefit aspects of",
+    "level": "B2–C1",
+    "uz": "...ning ayrim jihatlariga foyda berishi mumkin"
+  },
+  "alternate_recovery_techniques": {
+    "term": "alternate recovery techniques",
+    "level": "B2–C1",
+    "uz": "muqobil tiklanish usullari"
+  },
+  "reduce_muscle_soreness": {
+    "term": "reduce muscle soreness",
+    "level": "B2–C1",
+    "uz": "mushak og‘rig‘ini kamaytirmoq"
+  },
+  "strongest_effects_on": {
+    "term": "one of the strongest effects on",
+    "level": "B2–C1",
+    "uz": "...ga eng kuchli ta’sirlardan biri"
   },
   "manageable_level": {
-    "term": "manageable level",
+    "term": "at a manageable level",
     "level": "B2–C1",
-    "uz": "uddalash mumkin bo‘lgan daraja"
+    "uz": "uddalash mumkin bo‘lgan darajada"
   },
   "gradually_building_up": {
     "term": "gradually building up",
     "level": "B2–C1",
     "uz": "asta-sekin oshirib borish"
   },
-  "well_hydrated": {
-    "term": "well hydrated",
+  "well_hydrated_before_workouts": {
+    "term": "well hydrated before workouts",
     "level": "B2–C1",
-    "uz": "yetarli darajada suyuqlik ichgan"
+    "uz": "mashqdan oldin yetarlicha suyuqlik ichgan"
   },
-  "exhausted": {
-    "term": "exhausted",
+  "allowing_time_to_recover": {
+    "term": "allowing time to recover",
     "level": "B1",
-    "uz": "juda charchagan / holdan toygan"
+    "uz": "tiklanishga vaqt bermoq"
+  },
+  "completely_exhausted": {
+    "term": "completely exhausted",
+    "level": "B1",
+    "uz": "butunlay holdan toygan"
+  },
+  "doesnt_necessarily_mean": {
+    "term": "doesn’t necessarily mean",
+    "level": "B2–C1",
+    "uz": "har doim ham ... degani emas"
   },
   "in_proportion_to": {
     "term": "in proportion to",
     "level": "B2–C1",
     "uz": "...ga mutanosib ravishda"
   },
-  "disproportionate": {
-    "term": "disproportionate",
+  "disproportionate_to": {
+    "term": "seems disproportionate to",
     "level": "B2–C1",
-    "uz": "nomutanosib / haddan tashqari"
+    "uz": "...ga nisbatan nomutanosibdek tuyulmoq"
   },
-  "fainting": {
-    "term": "fainting",
-    "level": "B2–C1",
-    "uz": "hushdan ketish"
+  "improve_with_recovery": {
+    "term": "improve with recovery",
+    "level": "B1",
+    "uz": "tiklanish bilan yaxshilanmoq"
   },
-  "breathlessness": {
-    "term": "breathlessness",
+  "comes_with_symptoms": {
+    "term": "comes with symptoms such as",
     "level": "B2–C1",
-    "uz": "nafas qisishi"
+    "uz": "... kabi alomatlar bilan birga kelmoq"
   }
 };
 
@@ -607,115 +602,150 @@ function markArticleCompleted(data,index){
 const paragraphBreaks = new Set([]);
 const exerciseQuestions = [
   {
-    "prompt": "If you feel “drained” after exercise, you feel...",
+    "prompt": "If you “feel low on energy”, you...",
     "options": [
-      "full of energy",
-      "very tired and without energy",
-      "slightly hungry"
-    ],
-    "answer": 1
-  },
-  {
-    "prompt": "If your body is “accustomed” to an activity, it is...",
-    "options": [
-      "used to it",
-      "afraid of it",
-      "injured by it"
+      "do not have much energy",
+      "feel stronger than usual",
+      "need less rest"
     ],
     "answer": 0
   },
   {
-    "prompt": "A “measurable drop” is a decrease that...",
+    "prompt": "If something “depends on the type of workout”, the result...",
     "options": [
-      "can be measured",
-      "cannot be noticed",
-      "happens only once"
+      "changes according to the workout",
+      "is always the same",
+      "has nothing to do with exercise"
     ],
     "answer": 0
   },
   {
-    "prompt": "Which phrase means that something helps cause a result?",
+    "prompt": "To “help your body recover” means to help it...",
     "options": [
-      "contribute to",
-      "recover from",
-      "depend on"
+      "return to a normal condition",
+      "work much harder",
+      "avoid all movement"
     ],
     "answer": 0
   },
   {
-    "prompt": "Muscles “rely on” ions means muscles...",
+    "prompt": "“A measurable drop in performance” is...",
     "options": [
-      "avoid ions",
-      "depend on ions",
-      "remove ions"
-    ],
-    "answer": 1
-  },
-  {
-    "prompt": "“Strenuous exercise” is exercise that...",
-    "options": [
-      "requires a lot of effort",
-      "is always short",
-      "needs no recovery"
+      "a decrease that can be measured",
+      "a feeling with no change at all",
+      "an increase in performance"
     ],
     "answer": 0
   },
   {
-    "prompt": "If muscles are “depleted”, their available resources are...",
+    "prompt": "If two things “don’t always match perfectly”, they...",
     "options": [
-      "built up",
-      "largely used up",
-      "unchanged"
-    ],
-    "answer": 1
-  },
-  {
-    "prompt": "“Dehydration” happens when the body...",
-    "options": [
-      "loses too much fluid",
-      "stores too much energy",
-      "builds more muscle"
+      "are not always completely the same",
+      "are never related",
+      "always produce the same result"
     ],
     "answer": 0
   },
   {
-    "prompt": "The “repeated-bout effect” describes how...",
+    "prompt": "“It’s been a while since I exercised” means...",
     "options": [
-      "repeating similar exercise may cause less soreness",
-      "every workout becomes harder",
-      "sleep makes exercise unnecessary"
+      "I exercised a long time ago",
+      "I exercise every day",
+      "I have just finished exercising"
     ],
     "answer": 0
   },
   {
-    "prompt": "If research produces “mixed results”, the findings are...",
+    "prompt": "If one thing is “particularly associated with” another, it is...",
     "options": [
-      "all identical",
-      "not completely consistent",
-      "always negative"
-    ],
-    "answer": 1
-  },
-  {
-    "prompt": "“Gradually building up” an activity means...",
-    "options": [
-      "increasing it little by little",
-      "stopping it suddenly",
-      "doing the maximum immediately"
+      "strongly connected with it",
+      "completely separate from it",
+      "less important than it"
     ],
     "answer": 0
   },
   {
-    "prompt": "If fatigue is “disproportionate”, it is...",
+    "prompt": "If something “affects the muscle’s ability to produce force”, it...",
     "options": [
-      "too great compared with what caused it",
-      "exactly expected",
-      "very short-lived"
+      "changes how well the muscle can produce force",
+      "makes the muscle disappear",
+      "only changes body temperature"
+    ],
+    "answer": 0
+  },
+  {
+    "prompt": "If the nervous system “plays a part”, it...",
+    "options": [
+      "has a role in what happens",
+      "is not involved at all",
+      "stops the process completely"
+    ],
+    "answer": 0
+  },
+  {
+    "prompt": "To “reduce performance” means to...",
+    "options": [
+      "make performance worse",
+      "make performance perfect",
+      "measure performance"
+    ],
+    "answer": 0
+  },
+  {
+    "prompt": "Research that has “produced mixed results” has...",
+    "options": [
+      "given different or inconsistent findings",
+      "given exactly the same finding every time",
+      "not produced any findings"
+    ],
+    "answer": 0
+  },
+  {
+    "prompt": "Starting “at a manageable level” means starting...",
+    "options": [
+      "at a level you can reasonably handle",
+      "at the hardest possible level",
+      "without any preparation"
+    ],
+    "answer": 0
+  },
+  {
+    "prompt": "To “gradually build up” activity means to...",
+    "options": [
+      "increase it little by little",
+      "increase it all at once",
+      "stop it completely"
+    ],
+    "answer": 0
+  },
+  {
+    "prompt": "If fatigue is “in proportion to” the exercise, it is...",
+    "options": [
+      "reasonable compared with the amount of exercise",
+      "far greater than expected",
+      "completely unrelated to exercise"
+    ],
+    "answer": 0
+  },
+  {
+    "prompt": "“Doesn’t necessarily mean” is used when something...",
+    "options": [
+      "is not always true",
+      "is definitely true",
+      "can never happen"
+    ],
+    "answer": 0
+  },
+  {
+    "prompt": "If a problem “comes with symptoms such as” chest pain, it...",
+    "options": [
+      "appears together with signs like chest pain",
+      "always disappears immediately",
+      "only affects the legs"
     ],
     "answer": 0
   }
 ];
-
 
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 
