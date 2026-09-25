@@ -397,6 +397,44 @@ const vocab = {
     "level": "B2–C1",
     "uz": "noodatiy nafas qisishi"
   }
+,
+  "rare_illness": {"term":"a rare illness","level":"B1","uz":"kam uchraydigan kasallik"},
+  "developed_brain_damage": {"term":"developed brain damage","level":"B2–C1","uz":"miya shikastlanishi rivojlandi / miya zarar ko‘rdi"},
+  "kidney_failure": {"term":"kidney failure","level":"B2–C1","uz":"buyrak yetishmovchiligi"},
+  "intensive_care": {"term":"intensive care","level":"B2–C1","uz":"intensiv terapiya / reanimatsiya"},
+  "caused_by_infection": {"term":"caused by infection","level":"B1","uz":"infeksiya sababli yuzaga kelgan"},
+  "transmitted_in_a_variety_of_ways": {"term":"transmitted in a variety of ways","level":"B2–C1","uz":"turli yo‘llar bilan yuqishi mumkin"},
+  "contact_with_animals": {"term":"contact with animals","level":"B1","uz":"hayvonlar bilan aloqa"},
+  "shed_light_on": {"term":"shed light on","level":"B2–C1","uz":"...ga oydinlik kiritmoq"},
+  "hygiene_precautions": {"term":"hygiene precautions","level":"B2–C1","uz":"gigiyena ehtiyot choralari"},
+  "infection_risk": {"term":"infection risk","level":"B1","uz":"infeksiya yuqtirish xavfi"},
+  "warning_signs": {"term":"Warning signs","level":"B1","uz":"ogohlantiruvchi belgilar"},
+  "urgent_medical_assessment": {"term":"urgent medical assessment","level":"B2–C1","uz":"shoshilinch tibbiy ko‘rik / baholash"},
+  "as_soon_as_possible": {"term":"as soon as possible","level":"B1","uz":"imkon qadar tezroq"},
+  "leads_to": {"term":"leads to","level":"B1","uz":"...ga olib keladi"},
+  "can_progress_to": {"term":"can progress to","level":"B2–C1","uz":"...gacha rivojlanishi mumkin"},
+  "medical_treatment": {"term":"medical treatment","level":"B1","uz":"tibbiy davolash"},
+  "spread_to_humans": {"term":"spread to humans","level":"B1","uz":"odamlarga yuqmoq / tarqalmoq"},
+  "contaminated_food_and_water": {"term":"contaminated food and water","level":"B2–C1","uz":"ifloslangan oziq-ovqat va suv"},
+  "come_into_contact_with": {"term":"come into contact with","level":"B1","uz":"... bilan aloqa qilmoq / tegmoq"},
+  "not_the_only_way": {"term":"not the only way","level":"B1","uz":"yagona yo‘l emas"},
+  "the_risk_lies_when": {"term":"The risk lies when","level":"B2–C1","uz":"xavf ... bo‘lganda yuzaga keladi"},
+  "particularly_difficult_to_protect": {"term":"particularly difficult to protect","level":"B2–C1","uz":"himoya qilish ayniqsa qiyin"},
+  "recognised_animal_reservoirs": {"term":"recognised animal reservoirs","level":"B2–C1","uz":"kasallik qo‘zg‘atuvchilarining tan olingan hayvon manbalari"},
+  "expose_children_to": {"term":"expose children to","level":"B2–C1","uz":"bolalarni ... ta’siriga duchor qilmoq"},
+  "identified_as_a_risk": {"term":"identified as a risk","level":"B2–C1","uz":"xavf sifatida aniqlangan"},
+  "show_symptoms": {"term":"show symptoms","level":"B1","uz":"alomatlar ko‘rsatmoq"},
+  "provide_children_with": {"term":"provide children with","level":"B1","uz":"bolalarga ... taqdim etmoq"},
+  "appropriately_managed": {"term":"appropriately managed","level":"B2–C1","uz":"tegishli tarzda boshqarilgan"},
+  "readily_accessible": {"term":"readily accessible","level":"B2–C1","uz":"oson foydalanish mumkin bo‘lgan"},
+  "physical_separation": {"term":"physical separation","level":"B2–C1","uz":"jismoniy ajratish"},
+  "need_to_ensure": {"term":"need to ensure","level":"B1","uz":"...ga ishonch hosil qilishi kerak"},
+  "are_supervised": {"term":"are supervised","level":"B1","uz":"nazorat ostida bo‘ladi"},
+  "as_effective_as": {"term":"as effective as","level":"B1","uz":"... kabi samarali"},
+  "favour_venues_with": {"term":"favour venues with","level":"B2–C1","uz":"... mavjud joylarni afzal ko‘rmoq"},
+  "running_water": {"term":"running water","level":"B1","uz":"oqayotgan suv"},
+  "disposable_towels": {"term":"disposable towels","level":"B2–C1","uz":"bir martalik sochiqlar"},
+  "wash_before_eating_or_drinking": {"term":"wash before eating or drinking","level":"B1","uz":"ovqatlanish yoki ichishdan oldin yuvmoq"}
 };
 
 const readingArticles=[
@@ -703,6 +741,345 @@ const readingArticles=[
         ]
       }
     ]
+  },
+  {
+    "id": "petting-zoos-safe",
+    "title": "Are petting zoos safe?",
+    "kicker": "HEALTH & SAFETY",
+    "level": "B2",
+    "minutes": "7 min read",
+    "byline": "Thomas Jeffries · The Conversation · 3 September 2026",
+    "sections": [
+      {
+        "heading": null,
+        "paragraphs": [
+          [
+            {
+              "text": "A three-year-old girl has died from a rare illness after visiting a petting zoo in Victoria.",
+              "uz": "Viktoriyadagi hayvonlarni silab ko‘rish mumkin bo‘lgan hayvonot bog‘iga tashrif buyurgan uch yoshli qiz kam uchraydigan kasallikdan vafot etdi."
+            },
+            {
+              "text": "She had developed brain damage and kidney failure after spending weeks in intensive care.",
+              "uz": "U bir necha hafta intensiv terapiyada yotganidan so‘ng miya shikastlanishi va buyrak yetishmovchiligiga duch keldi."
+            }
+          ],
+          [
+            {
+              "text": "The girl is confirmed to have had haemolytic uraemic syndrome, a rare but serious serious condition, caused by infection with a specific type of Escherichia coli bacteria (or E. coli for short).",
+              "uz": "Qizda gemolitik-uremik sindrom bo‘lgani tasdiqlandi; bu E. coli deb qisqartiriladigan Escherichia coli bakteriyasining muayyan turi bilan infeksiya natijasida yuzaga keladigan kam uchraydigan, ammo jiddiy holat."
+            },
+            {
+              "text": "This can be transmitted in a variety of ways, including after contact with animals on a farm or at a petting zoo.",
+              "uz": "Bu turli yo‘llar bilan yuqishi mumkin, jumladan ferma yoki hayvonlarni silash mumkin bo‘lgan hayvonot bog‘ida hayvonlar bilan aloqa qilgandan keyin."
+            }
+          ],
+          [
+            {
+              "text": "Fortunately, such tragic cases are rare.",
+              "uz": "Yaxshiyamki, bunday fojeali holatlar kam uchraydi."
+            },
+            {
+              "text": "But they do shed light on bacterial infections harboured by some animals and the need to take hygiene precautions when visiting petting zoos.",
+              "uz": "Ammo ular ayrim hayvonlarda mavjud bo‘lishi mumkin bo‘lgan bakterial infeksiyalar va bunday joylarga tashrif buyurganda gigiyena ehtiyot choralarini ko‘rish zarurligiga oydinlik kiritadi."
+            }
+          ],
+          [
+            {
+              "text": "I’m a microbiology lecturer, and I’m planning to visit a petting zoo next weekend with my family.",
+              "uz": "Men mikrobiologiya o‘qituvchisiman va kelasi dam olish kunlari oilam bilan hayvonlarni silash mumkin bo‘lgan hayvonot bog‘iga borishni rejalashtiryapman."
+            },
+            {
+              "text": "Here’s what we know about the infection risk at petting zoos, and what parents can do to help keep their children safe.",
+              "uz": "Quyida bunday hayvonot bog‘laridagi infeksiya xavfi haqida nimalarni bilishimiz va ota-onalar bolalarini xavfsiz saqlash uchun nimalar qilishi mumkinligi bayon qilingan."
+            }
+          ]
+        ]
+      },
+      {
+        "heading": "What is haemolytic uraemic syndrome?",
+        "paragraphs": [
+          [
+            {
+              "text": "Haemolytic uraemic syndrome most commonly results from infection with types of E. coli that produce a specific toxin called the Shiga toxin.",
+              "uz": "Gemolitik-uremik sindrom ko‘pincha Shiga toksini deb ataladigan maxsus toksin ishlab chiqaradigan E. coli turlari bilan infeksiya natijasida yuzaga keladi."
+            },
+            {
+              "text": "Early symptoms of infection are nausea, stomach cramps, vomiting and diarrhoea, which can contain blood.",
+              "uz": "Infeksiyaning dastlabki alomatlari ko‘ngil aynishi, qorin tirishishi, qusish va ba’zan qon aralash bo‘lishi mumkin bo‘lgan ich ketishidir."
+            }
+          ],
+          [
+            {
+              "text": "Warning signs that need urgent medical assessment include bloody diarrhoea, markedly reduced urination, lethargy, pallor (looking pale), unexplained bruising or red-purple spots on the skin.",
+              "uz": "Shoshilinch tibbiy ko‘rikni talab qiladigan ogohlantiruvchi belgilar qatoriga qonli ich ketishi, siydik ajralishining keskin kamayishi, holsizlik, oqarib ketish, sababsiz ko‘karishlar yoki terida qizil-binafsha dog‘lar kiradi."
+            }
+          ],
+          [
+            {
+              "text": "If a doctor suspects someone has haemolytic uraemic syndrome, they will ask about symptoms and examine the person.",
+              "uz": "Agar shifokor kimdadir gemolitik-uremik sindrom bor deb gumon qilsa, alomatlar haqida so‘raydi va bemorni ko‘rikdan o‘tkazadi."
+            },
+            {
+              "text": "Hospitalisation as soon as possible will be necessary.",
+              "uz": "Imkon qadar tezroq shifoxonaga yotqizish zarur bo‘ladi."
+            },
+            {
+              "text": "Blood, stool and sometimes urine tests confirm the diagnosis.",
+              "uz": "Qon, najas va ba’zan siydik tahlillari tashxisni tasdiqlaydi."
+            }
+          ],
+          [
+            {
+              "text": "The Shiga toxin can damage the lining of blood vessels, which leads to circulatory and kidney problems.",
+              "uz": "Shiga toksini qon tomirlari ichki qavatiga zarar yetkazishi mumkin, bu esa qon aylanishi va buyrak bilan bog‘liq muammolarga olib keladi."
+            },
+            {
+              "text": "This can progress to haemolytic uraemic syndrome, leading to kidney failure, high blood pressure, seizures and in some cases death.",
+              "uz": "Bu gemolitik-uremik sindromgacha rivojlanib, buyrak yetishmovchiligi, yuqori qon bosimi, tutqanoq va ayrim hollarda o‘limga olib kelishi mumkin."
+            }
+          ],
+          [
+            {
+              "text": "So emergency medical treatment is essential, in a hospital intensive care unit, with dialysis and blood transfusions often needed.",
+              "uz": "Shuning uchun shifoxonaning intensiv terapiya bo‘limida shoshilinch tibbiy davolash juda muhim bo‘lib, ko‘pincha dializ va qon quyish talab etiladi."
+            },
+            {
+              "text": "The disease is more common in children.",
+              "uz": "Bu kasallik bolalarda ko‘proq uchraydi."
+            }
+          ]
+        ]
+      },
+      {
+        "heading": "How is it spread?",
+        "paragraphs": [
+          [
+            {
+              "text": "These bacteria can can spread to humans by contaminated food and water.",
+              "uz": "Bu bakteriyalar ifloslangan oziq-ovqat va suv orqali odamlarga yuqishi mumkin."
+            },
+            {
+              "text": "Humans can also spread the bacteria to other humans, via faeces, such as when changing nappies.",
+              "uz": "Odamlar ham bakteriyani boshqa odamlarga najas orqali, masalan, taglik almashtirish paytida yuqtirishi mumkin."
+            }
+          ],
+          [
+            {
+              "text": "But the situation most relevant here is the spread via some animals.",
+              "uz": "Ammo bu yerda eng muhim holat — bakteriyaning ayrim hayvonlar orqali tarqalishidir."
+            },
+            {
+              "text": "Bacteria are present on animal fur and wool, so children can come into contact with it when patting or cuddling an animal.",
+              "uz": "Bakteriyalar hayvonlarning juni va yungida bo‘lishi mumkin, shuning uchun bolalar hayvonni silaganda yoki quchoqlaganda ular bilan aloqa qilishi mumkin."
+            },
+            {
+              "text": "But that’s not the only way.",
+              "uz": "Ammo bu yagona yo‘l emas."
+            }
+          ],
+          [
+            {
+              "text": "Bacteria are also present on manure, bedding, soil, feed, enclosure floors and fences.",
+              "uz": "Bakteriyalar go‘ng, to‘shama, tuproq, yem, hayvonlar saqlanadigan joy polida va panjaralarda ham bo‘lishi mumkin."
+            },
+            {
+              "text": "The risk lies when people’s contaminated hands come into contact with their mouth.",
+              "uz": "Xavf odamlarning ifloslangan qo‘llari og‘iz bilan aloqa qilganda yuzaga keladi."
+            }
+          ],
+          [
+            {
+              "text": "Toddlers are particularly difficult to protect because they often put fingers, toys, food and dummies in their mouths and need help to wash their hands thoroughly.",
+              "uz": "Kichik yoshdagi bolalarni himoya qilish ayniqsa qiyin, chunki ular ko‘pincha barmoqlarini, o‘yinchoqlarni, ovqatni va so‘rg‘ichlarni og‘ziga soladi hamda qo‘llarini yaxshilab yuvishda yordamga muhtoj bo‘ladi."
+            }
+          ]
+        ]
+      },
+      {
+        "heading": "Are some animals riskier than others?",
+        "paragraphs": [
+          [
+            {
+              "text": "Cattle and other ruminants, including sheep and goats, are recognised animal reservoirs for Shiga-producing E. coli, as well as some other pathogens.",
+              "uz": "Qoramol va boshqa kavsh qaytaruvchi hayvonlar, jumladan qo‘y va echkilar, Shiga toksini ishlab chiqaruvchi E. coli hamda ayrim boshqa kasallik qo‘zg‘atuvchilarining tan olingan hayvon manbalari hisoblanadi."
+            }
+          ],
+          [
+            {
+              "text": "For example, animal contact can also expose children to Salmonella, Campylobacter and Cryptosporidium, all of which can cause gastroenteritis.",
+              "uz": "Masalan, hayvonlar bilan aloqa bolalarni Salmonella, Campylobacter va Cryptosporidium ta’siriga ham duchor qilishi mumkin; ularning barchasi gastroenteritga sabab bo‘lishi mumkin."
+            }
+          ],
+          [
+            {
+              "text": "While exposure to these can occur on farms, petting zoos and open zoos specifically have been identified as a risk for these microorganisms.",
+              "uz": "Bu mikroorganizmlarga fermalarda ham duch kelish mumkin, ammo ayniqsa hayvonlarni silash mumkin bo‘lgan va ochiq hayvonot bog‘lari xavf sifatida aniqlangan."
+            },
+            {
+              "text": "Animals may not always show symptoms.",
+              "uz": "Hayvonlar har doim ham alomatlar ko‘rsatmasligi mumkin."
+            }
+          ]
+        ]
+      },
+      {
+        "heading": "But petting zoos are great for kids, aren’t they?",
+        "paragraphs": [
+          [
+            {
+              "text": "Petting zoos and farm experiences can provide children with educational experiences involving animals, farming, food production and animal welfare.",
+              "uz": "Hayvonlarni silash mumkin bo‘lgan hayvonot bog‘lari va ferma tajribalari bolalarga hayvonlar, dehqonchilik, oziq-ovqat ishlab chiqarish va hayvonlar farovonligi bilan bog‘liq ta’limiy tajribalarni taqdim etishi mumkin."
+            },
+            {
+              "text": "They’re also such a great family activity and educational resource.",
+              "uz": "Ular oilaviy faoliyat va ta’limiy manba sifatida ham juda foydali."
+            }
+          ],
+          [
+            {
+              "text": "The Australian Veterinary Association supports petting zoos where animal health, welfare, public safety and disease-transmission risks are appropriately managed.",
+              "uz": "Avstraliya veterinariya assotsiatsiyasi hayvonlar salomatligi, farovonligi, jamoat xavfsizligi va kasallik yuqish xavflari tegishli tarzda boshqariladigan hayvonot bog‘larini qo‘llab-quvvatlaydi."
+            }
+          ],
+          [
+            {
+              "text": "Hygiene plans include clear communication about the risks of infection, readily accessible handwashing facilities, and physical separation between animal-contact and food areas.",
+              "uz": "Gigiyena rejalariga infeksiya xavfi haqida aniq ma’lumot berish, qo‘l yuvish uchun oson foydalaniladigan sharoitlar va hayvonlar bilan aloqa qilinadigan joylarni ovqatlanish hududlaridan jismonan ajratish kiradi."
+            }
+          ],
+          [
+            {
+              "text": "Parents need to ensure their children are supervised.",
+              "uz": "Ota-onalar bolalari nazorat ostida ekaniga ishonch hosil qilishi kerak."
+            },
+            {
+              "text": "Most importantly, they need to ensure their children’s hands are washed before coming into contact with anything that might go into a child’s mouth – a dummy, or food, for instance.",
+              "uz": "Eng muhimi, ota-onalar bolaning og‘ziga tushishi mumkin bo‘lgan narsalarga, masalan so‘rg‘ich yoki ovqatga tegishdan oldin bolalarning qo‘llari yuvilganiga ishonch hosil qilishi kerak."
+            },
+            {
+              "text": "Hand sanitiser is not as effective as washing with soap and water for 20 seconds or more.",
+              "uz": "Qo‘l antiseptigi qo‘llarni sovun va suv bilan 20 soniya yoki undan ko‘proq yuvish kabi samarali emas."
+            }
+          ],
+          [
+            {
+              "text": "So when choosing a petting zoo, favour venues with handwashing stations immediately outside animal areas, with running water, soap, disposable towels and signs reminding visitors to wash before eating or drinking.",
+              "uz": "Shuning uchun bunday hayvonot bog‘ini tanlaganda hayvonlar hududidan chiqishda qo‘l yuvish joylari, oqayotgan suv, sovun, bir martalik sochiqlar va tashrif buyuruvchilarga ovqatlanish yoki ichishdan oldin qo‘l yuvishni eslatadigan belgilar mavjud joylarni afzal ko‘ring."
+            }
+          ]
+        ]
+      }
+    ],
+    "exerciseQuestions": [
+      {
+        "prompt": "If a case “sheds light on” a problem, it...",
+        "options": [
+          "helps people understand it better",
+          "completely hides it",
+          "makes it impossible to study"
+        ],
+        "answer": 0
+      },
+      {
+        "prompt": "“Hygiene precautions” are actions taken to...",
+        "options": [
+          "reduce health and infection risks",
+          "make animals grow faster",
+          "replace medical treatment"
+        ],
+        "answer": 0
+      },
+      {
+        "prompt": "If something can be “transmitted in a variety of ways”, it can...",
+        "options": [
+          "spread in several different ways",
+          "only spread through water",
+          "never pass between people"
+        ],
+        "answer": 0
+      },
+      {
+        "prompt": "“Urgent medical assessment” means...",
+        "options": [
+          "a medical check that should happen quickly",
+          "a routine school lesson",
+          "a long holiday from work"
+        ],
+        "answer": 0
+      },
+      {
+        "prompt": "If one problem “leads to” another, it...",
+        "options": [
+          "causes or results in it",
+          "prevents it completely",
+          "has no connection with it"
+        ],
+        "answer": 0
+      },
+      {
+        "prompt": "“Contaminated food and water” contains...",
+        "options": [
+          "something harmful or dirty",
+          "extra vitamins only",
+          "nothing that can affect health"
+        ],
+        "answer": 0
+      },
+      {
+        "prompt": "To “come into contact with” something means to...",
+        "options": [
+          "touch it or be exposed to it",
+          "forget about it",
+          "move far away from it"
+        ],
+        "answer": 0
+      },
+      {
+        "prompt": "If animals “may not always show symptoms”, they...",
+        "options": [
+          "can carry an infection without looking ill",
+          "are always obviously sick",
+          "cannot carry microorganisms"
+        ],
+        "answer": 0
+      },
+      {
+        "prompt": "“Readily accessible” handwashing facilities are...",
+        "options": [
+          "easy to reach and use",
+          "locked and difficult to find",
+          "only available to staff"
+        ],
+        "answer": 0
+      },
+      {
+        "prompt": "“Physical separation” between two areas means...",
+        "options": [
+          "keeping the areas apart",
+          "mixing the areas together",
+          "removing both areas"
+        ],
+        "answer": 0
+      },
+      {
+        "prompt": "If parents “need to ensure” something, they need to...",
+        "options": [
+          "make sure it happens",
+          "ignore it",
+          "guess whether it happened"
+        ],
+        "answer": 0
+      },
+      {
+        "prompt": "If hand sanitiser is “not as effective as” soap and water, it...",
+        "options": [
+          "does not work as well",
+          "works better in every case",
+          "has exactly the same effect"
+        ],
+        "answer": 0
+      }
+    ]
   }
 ];
 let activeArticleIndex=0;
@@ -1002,8 +1379,18 @@ function articleBodyHtml(){
   });
   return out;
 }
+function getActiveExerciseQuestions(){
+  return Array.isArray(activeArticle?.exerciseQuestions)&&activeArticle.exerciseQuestions.length?activeArticle.exerciseQuestions:exerciseQuestions;
+}
+
+function getArticleVocabCount(article){
+  if(!article)return 0;
+  const text=(article.sections||[]).flatMap(section=>(section.paragraphs||[]).flatMap(paragraph=>paragraph.map(sentence=>sentence.text||''))).join(' ').toLowerCase();
+  return vocabEntries.reduce((count,[,item])=>count+(text.includes(item.term.toLowerCase())?1:0),0);
+}
+
 function exercisesHtml(){
-  return exerciseQuestions.map((q,i)=>
+  return getActiveExerciseQuestions().map((q,i)=>
     '<div class="exercise-question" data-question="'+i+'" data-answer="'+q.answer+'">'+
       '<div class="exercise-number">'+(i+1)+'</div>'+
       '<div class="exercise-content"><p>'+esc(q.prompt)+'</p><div class="exercise-options">'+
@@ -1019,7 +1406,7 @@ function articleHtml(){
       '<button class="back-to-reading article-return-button" id="back-to-reading" type="button" aria-label="Back to Reading library"><span class="return-arrow">←</span><span>Back to Reading</span></button>'+
       '<article class="reading-article-shell" id="reading-article-shell">'+
         '<div class="article-topbar">'+
-          '<div><span class="article-kicker">'+esc(activeArticle.kicker)+'</span><h1>'+esc(activeArticle.title)+'</h1><div class="article-byline">'+esc(activeArticle.byline||'')+'</div><div class="article-meta"><span>'+esc(activeArticle.level)+'</span><span>'+esc(activeArticle.minutes)+'</span><span>'+Object.keys(vocab).length+' key items</span></div></div>'+
+          '<div><span class="article-kicker">'+esc(activeArticle.kicker)+'</span><h1>'+esc(activeArticle.title)+'</h1><div class="article-byline">'+esc(activeArticle.byline||'')+'</div><div class="article-meta"><span>'+esc(activeArticle.level)+'</span><span>'+esc(activeArticle.minutes)+'</span><span>'+getArticleVocabCount(activeArticle)+' key items</span></div></div>'+
           '<button class="translation-toggle" id="translation-toggle" type="button" aria-pressed="false"><span class="toggle-track"><i></i></span><span><b>Translation mode</b><small id="translation-mode-label">Off</small></span></button>'+
         '</div>'+
         '<div class="article-guide"><span class="guide-dot b1"></span><b>B1 useful English</b><span class="guide-dot b2"></span><b>B2–C1 vocabulary</b><p>Tap a bold word for its Uzbek translation. Turn on Translation Mode to translate full sentences.</p></div>'+
@@ -1160,7 +1547,7 @@ function renderArticle(root,data,callbacks){
       }
     });
     const score=root.querySelector('#exercise-score');
-    const total=exerciseQuestions.length;
+    const total=getActiveExerciseQuestions().length;
     score.textContent=correct+' / '+total+' correct';
     score.className='exercise-score '+(correct===total?'excellent':correct>=Math.ceil(total*.75)?'good':'keep-going');
     if(answered<total){
