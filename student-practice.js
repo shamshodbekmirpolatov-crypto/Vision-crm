@@ -79,7 +79,29 @@ const article = {
 };
 
 const readingArticles=[article];
+let activeArticleIndex=0;
 let activeArticle=readingArticles[0];
+
+function completionKey(data){
+  const student=data?.student||{};
+  const id=student.id||[student.full_name,student.group,student.grade_or_age].filter(Boolean).join('|')||'student';
+  return 'vision-reading-completed:'+String(id);
+}
+
+function getCompletedArticles(data){
+  try{
+    const saved=JSON.parse(localStorage.getItem(completionKey(data))||'[]');
+    return new Set(Array.isArray(saved)?saved.map(Number):[]);
+  }catch{
+    return new Set();
+  }
+}
+
+function markArticleCompleted(data,index){
+  const completed=getCompletedArticles(data);
+  completed.add(Number(index));
+  try{localStorage.setItem(completionKey(data),JSON.stringify([...completed]));}catch{}
+}
 
 const paragraphBreaks = new Set([2,4,6,8,10]);
 
@@ -180,14 +202,14 @@ function practiceHomeHtml(data){
 
 function libraryHtml(data){
   const student=data?.student||{};
-  const articleRows=readingArticles.map((item,index)=>
-    '<button class="reading-list-row" data-article-index="'+index+'" type="button">'+
-      '<div class="reading-list-number">'+(index+1)+'</div>'+
-      '<div class="reading-list-copy"><strong>Article '+(index+1)+'</strong><span>'+esc(item.title)+'</span></div>'+
-      '<div class="reading-list-meta"><small>'+esc(item.level)+'</small><small>'+esc(item.minutes)+'</small></div>'+
-      '<div class="reading-list-arrow">→</div>'+
-    '</button>'
-  ).join('');
+  const completed=getCompletedArticles(data);
+  const articleRows=readingArticles.map((item,index)=>{
+    const isDone=completed.has(index);
+    return '<button class="reading-list-row'+(isDone?' completed':'')+'" data-article-index="'+index+'" type="button">'+
+      '<strong class="reading-list-label">Article '+(index+1)+'</strong>'+
+      '<div class="reading-list-status'+(isDone?' done':'')+'">'+(isDone?'✓':'→')+'</div>'+
+    '</button>';
+  }).join('');
   const count=readingArticles.length;
   return '<div class="portal practice-view">'+header('practice')+
     '<main class="portal-main practice-main">'+
@@ -280,7 +302,8 @@ function renderLibrary(root,data,callbacks){
   root.querySelectorAll('.reading-list-row').forEach(row=>{
     row.onclick=()=>{
       const index=Number(row.dataset.articleIndex);
-      activeArticle=readingArticles[index]||readingArticles[0];
+      activeArticleIndex=Number.isFinite(index)?index:0;
+      activeArticle=readingArticles[activeArticleIndex]||readingArticles[0];
       renderArticle(root,data,callbacks);
     };
   });
@@ -384,7 +407,11 @@ function renderArticle(root,data,callbacks){
     const score=root.querySelector('#exercise-score');
     score.textContent=correct+' / '+exerciseQuestions.length+' correct';
     score.className='exercise-score '+(correct===exerciseQuestions.length?'excellent':correct>=6?'good':'keep-going');
-    if(answered<exerciseQuestions.length)score.textContent=correct+' / '+exerciseQuestions.length+' correct · '+(exerciseQuestions.length-answered)+' unanswered';
+    if(answered<exerciseQuestions.length){
+      score.textContent=correct+' / '+exerciseQuestions.length+' correct · '+(exerciseQuestions.length-answered)+' unanswered';
+    }else{
+      markArticleCompleted(data,activeArticleIndex);
+    }
   };
 
   root.querySelector('#retry-exercises').onclick=()=>{
