@@ -65,6 +65,24 @@ function signOut(){
   toast('Signed out.');
 }
 
+async function reloadPracticeAssets(){
+  const css=document.querySelector('link[href*="student-practice.css"]');
+  if(css){
+    const clean=css.getAttribute('href').split('?')[0];
+    css.setAttribute('href',clean+'?live='+Date.now());
+  }
+  await new Promise((resolve,reject)=>{
+    const old=document.getElementById('student-practice-live-script');
+    if(old)old.remove();
+    const script=document.createElement('script');
+    script.id='student-practice-live-script';
+    script.src='./student-practice.js?live='+Date.now();
+    script.onload=resolve;
+    script.onerror=reject;
+    document.body.appendChild(script);
+  });
+}
+
 async function refreshPortal(view='dashboard'){
   if(!portalAuth){
     toast('Please sign in again to refresh.');
@@ -93,7 +111,20 @@ async function refreshPortal(view='dashboard'){
     }else{
       portalData=data;
     }
-    if(view==='dashboard')renderPortal();
+    if(view==='dashboard'){
+      renderPortal();
+    }else if(view==='practice'){
+      try{await reloadPracticeAssets();}catch{}
+      if(window.VisionStudentPractice){
+        window.VisionStudentPractice.render({
+          root:app,
+          data:portalData,
+          onDashboard:renderPortal,
+          onRefresh:()=>refreshPortal('practice'),
+          onSignOut:signOut
+        });
+      }
+    }
     toast('Refreshed.');
   }catch{
     toast('Could not refresh right now.');
@@ -156,13 +187,18 @@ function renderPortal(){
   if(refreshBtn)refreshBtn.onclick=()=>refreshPortal('dashboard');
   const practiceTab=document.getElementById('student-practice-tab');
   if(practiceTab&&window.VisionStudentPractice){
-    practiceTab.onclick=()=>window.VisionStudentPractice.render({
-      root:app,
-      data:portalData,
-      onDashboard:renderPortal,
-      onRefresh:()=>refreshPortal('practice'),
-      onSignOut:signOut
-    });
+    practiceTab.onclick=async()=>{
+      try{await reloadPracticeAssets();}catch{}
+      if(window.VisionStudentPractice){
+        window.VisionStudentPractice.render({
+          root:app,
+          data:portalData,
+          onDashboard:renderPortal,
+          onRefresh:()=>refreshPortal('practice'),
+          onSignOut:signOut
+        });
+      }
+    };
   }
 }
 
