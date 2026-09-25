@@ -1,91 +1,16 @@
 (() => {
 'use strict';
 
-const vocab = {
-  focus_on:{term:'focus on',level:'B1',uz:'e’tiborni ...ga qaratmoq'},
-  retain_information:{term:'retain information',level:'B2–C1',uz:'ma’lumotni eslab qolmoq'},
-  consolidate_memories:{term:'consolidate memories',level:'B2–C1',uz:'xotiralarni mustahkamlamoq'},
-  get_enough_sleep:{term:'get enough sleep',level:'B1',uz:'yetarlicha uxlash'},
-  improve:{term:'improve',level:'B1',uz:'yaxshilamoq'},
-  cognitive_performance:{term:'cognitive performance',level:'B2–C1',uz:'aqliy faoliyat samaradorligi'},
-  pay_attention:{term:'pay attention',level:'B1',uz:'diqqat qilmoq'},
-  deal_with:{term:'deal with',level:'B1',uz:'uddalamoq / bilan kurashmoq'},
-  sleep_deprivation:{term:'sleep deprivation',level:'B2–C1',uz:'uyqu yetishmasligi'},
-  interfere_with:{term:'interfere with',level:'B2–C1',uz:'xalaqit bermoq'},
-  mentally_demanding:{term:'mentally demanding',level:'B2–C1',uz:'katta aqliy kuch talab qiladigan'},
-  take_a_break:{term:'take a break',level:'B1',uz:'tanaffus qilmoq'},
-  routine:{term:'routine',level:'B1',uz:'tartib / odatiy rejim'},
-  consistent:{term:'consistent',level:'B2–C1',uz:'muntazam / barqaror'},
-  make_progress:{term:'make progress',level:'B1',uz:'rivojlanmoq / oldinga siljimoq'},
-  long_term:{term:'long term',level:'B2–C1',uz:'uzoq muddat'}
-};
+const vocab = {};
 
-const article = {
-  id:'sleep-learning',
-  title:'Why Sleep Helps You Learn Better',
-  kicker:'LEARNING & HEALTH',
-  level:'B1+–B2',
-  minutes:'5 min read',
-  sentences:[
-    {
-      parts:['Many students ',{v:'focus_on'},' studying for more hours when exams are close.'],
-      uz:'Ko‘p o‘quvchilar imtihonlar yaqinlashganda ko‘proq soat o‘qishga e’tibor qaratadi.'
-    },
-    {
-      parts:['However, working late into the night does not always help them ',{v:'retain_information'},'.'],
-      uz:'Biroq, kechgacha o‘qish ularga ma’lumotni eslab qolishda har doim ham yordam bermaydi.'
-    },
-    {
-      parts:['The brain needs rest to organize what you learn during the day.'],
-      uz:'Miya kun davomida o‘rgangan narsalaringizni tartibga solish uchun dam olishga muhtoj.'
-    },
-    {
-      parts:['During sleep, it begins to ',{v:'consolidate_memories'},', which makes important information easier to remember later.'],
-      uz:'Uyqu paytida miya xotiralarni mustahkamlashni boshlaydi, bu esa muhim ma’lumotni keyinroq eslashni osonlashtiradi.'
-    },
-    {
-      parts:[{v:'get_enough_sleep',cap:true},' can also ',{v:'improve'},' your ',{v:'cognitive_performance'},'.'],
-      uz:'Yetarlicha uxlash aqliy faoliyat samaradorligini ham yaxshilashi mumkin.'
-    },
-    {
-      parts:['Students who sleep well usually find it easier to ',{v:'pay_attention'},' and ',{v:'deal_with'},' difficult tasks in class.'],
-      uz:'Yaxshi uxlaydigan o‘quvchilar odatda darsda diqqat qilish va qiyin vazifalarni uddalashni osonroq deb biladi.'
-    },
-    {
-      parts:['By contrast, ',{v:'sleep_deprivation',cap:true},' can ',{v:'interfere_with'},' concentration, mood, and decision-making.'],
-      uz:'Aksincha, uyqu yetishmasligi diqqat, kayfiyat va qaror qabul qilishga xalaqit berishi mumkin.'
-    },
-    {
-      parts:['This is especially noticeable after ',{v:'mentally_demanding'},' study sessions.'],
-      uz:'Bu ayniqsa katta aqliy kuch talab qiladigan o‘qish mashg‘ulotlaridan keyin seziladi.'
-    },
-    {
-      parts:['Short breaks during the day matter too.'],
-      uz:'Kun davomida qisqa tanaffuslar ham muhim.'
-    },
-    {
-      parts:['When you ',{v:'take_a_break'},', your brain gets a chance to recover before you ',{v:'focus_on'},' the next task.'],
-      uz:'Tanaffus qilganingizda, keyingi vazifaga e’tibor qaratishdan oldin miyangiz tiklanish imkoniyatiga ega bo‘ladi.'
-    },
-    {
-      parts:['A ',{v:'consistent'},' evening ',{v:'routine'},' may help you fall asleep more easily and ',{v:'make_progress'},' over the ',{v:'long_term'},'.'],
-      uz:'Muntazam kechki tartib tezroq uxlashingizga va uzoq muddat davomida rivojlanishingizga yordam berishi mumkin.'
-    },
-    {
-      parts:['The goal is not to study as many hours as possible, but to combine effective study with enough recovery.'],
-      uz:'Maqsad imkon qadar ko‘p soat o‘qish emas, balki samarali o‘qishni yetarli tiklanish bilan birlashtirishdir.'
-    }
-  ]
-};
-
-const readingArticles=[article];
+const readingArticles=[];
 let activeArticleIndex=0;
-let activeArticle=readingArticles[0];
+let activeArticle=null;
 
 function completionKey(data){
   const student=data?.student||{};
   const id=student.id||[student.full_name,student.group,student.grade_or_age].filter(Boolean).join('|')||'student';
-  return 'vision-reading-completed:'+String(id);
+  return 'vision-reading-completed:v2:'+String(id);
 }
 
 function getCompletedArticles(data){
@@ -103,50 +28,9 @@ function markArticleCompleted(data,index){
   try{localStorage.setItem(completionKey(data),JSON.stringify([...completed]));}catch{}
 }
 
-const paragraphBreaks = new Set([2,4,6,8,10]);
+const paragraphBreaks = new Set([]);
+const exerciseQuestions = [];
 
-const exerciseQuestions = [
-  {
-    prompt:'If something is “mentally demanding”, it...',
-    options:['requires a lot of mental effort','is very easy to finish','only uses physical strength'],
-    answer:0
-  },
-  {
-    prompt:'What does “interfere with” mean?',
-    options:['to improve something quickly','to make something harder or disturb it','to remember something clearly'],
-    answer:1
-  },
-  {
-    prompt:'Sleep helps the brain ______ important memories.',
-    options:['take a break','consolidate','deal with'],
-    answer:1
-  },
-  {
-    prompt:'Students who sleep well may find it easier to ______ in class.',
-    options:['pay attention','sleep deprivation','long term'],
-    answer:0
-  },
-  {
-    prompt:'A fixed bedtime can help you build a healthy ______.',
-    options:['routine','cognitive performance','information'],
-    answer:0
-  },
-  {
-    prompt:'To remember knowledge later is to ______ it.',
-    options:['interfere with','retain','take a break'],
-    answer:1
-  },
-  {
-    prompt:'Not getting enough sleep for a period of time is called...',
-    options:['sleep deprivation','consistent routine','mental recovery'],
-    answer:0
-  },
-  {
-    prompt:'Which phrase means “oldinga siljimoq / rivojlanmoq”?',
-    options:['focus on','make progress','pay attention'],
-    answer:1
-  }
-];
 
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 
@@ -217,7 +101,7 @@ function libraryHtml(data){
       '<section class="practice-hero"><div><small>PRACTICE</small><h1>Reading</h1><p>Choose an article to read and practise.</p></div><div class="practice-student">'+esc(student.full_name||'Student')+'</div></section>'+
       '<section class="reading-library">'+
         '<div class="section-title-row"><div><span>READING MATERIALS</span><h2>Articles</h2></div><small>'+count+' '+(count===1?'article':'articles')+'</small></div>'+
-        '<div class="reading-list">'+articleRows+'</div>'+
+        (count?'<div class="reading-list">'+articleRows+'</div>':'<div class="practice-empty-state"><strong>No articles yet.</strong><p>Your reading materials will appear here after they are added.</p></div>')+
       '</section>'+
     '</main></div>';
 }
@@ -236,6 +120,7 @@ function listeningHtml(data){
 }
 
 function articleBodyHtml(){
+  if(!activeArticle)return '';
   let out='';
   let paragraph='';
   activeArticle.sentences.forEach((s,i)=>{
@@ -316,6 +201,7 @@ function renderListening(root,data,callbacks){
 }
 
 function renderArticle(root,data,callbacks){
+  if(!activeArticle){renderLibrary(root,data,callbacks);return;}
   root.innerHTML=articleHtml();
   bindHeader(root,callbacks);
   root.querySelector('#back-to-reading').onclick=()=>renderLibrary(root,data,callbacks);
