@@ -266,6 +266,136 @@ const vocab = {
     "term": "comes with symptoms such as",
     "level": "B2–C1",
     "uz": "... kabi alomatlar bilan birga kelmoq"
+  },
+  "post_workout_fatigue": {
+    "term": "post-workout fatigue",
+    "level": "B1",
+    "uz": "mashqdan keyingi charchoq"
+  },
+  "muscle_weakness": {
+    "term": "muscle weakness",
+    "level": "B1",
+    "uz": "mushak kuchsizligi"
+  },
+  "physical_performance": {
+    "term": "physical performance",
+    "level": "B2–C1",
+    "uz": "jismoniy ko‘rsatkich / jismoniy natija"
+  },
+  "challenging_weights_session": {
+    "term": "challenging weights session",
+    "level": "B2–C1",
+    "uz": "qiyin kuch mashg‘uloti"
+  },
+  "regular_runner": {
+    "term": "a regular runner",
+    "level": "B1",
+    "uz": "muntazam yuguradigan odam"
+  },
+  "lifts_weights": {
+    "term": "lifts weights",
+    "level": "B1",
+    "uz": "og‘irlik ko‘taradi"
+  },
+  "long_or_demanding_workout": {
+    "term": "a long or demanding workout",
+    "level": "B1",
+    "uz": "uzoq yoki katta kuch talab qiladigan mashq"
+  },
+  "energy_stores": {
+    "term": "energy stores",
+    "level": "B2–C1",
+    "uz": "energiya zaxiralari"
+  },
+  "protein_supplements": {
+    "term": "protein supplements",
+    "level": "B2–C1",
+    "uz": "oqsil qo‘shimchalari"
+  },
+  "immediate_recovery": {
+    "term": "immediate recovery",
+    "level": "B2–C1",
+    "uz": "tez / darhol tiklanish"
+  },
+  "long_run": {
+    "term": "a long run",
+    "level": "B1",
+    "uz": "uzoq yugurish"
+  },
+  "intense_workout_session": {
+    "term": "an intense workout session",
+    "level": "B1",
+    "uz": "juda intensiv mashg‘ulot"
+  },
+  "sweated_a_lot": {
+    "term": "sweated a lot",
+    "level": "B1",
+    "uz": "ko‘p terlagan"
+  },
+  "hot_weather": {
+    "term": "hot weather",
+    "level": "B1",
+    "uz": "issiq ob-havo"
+  },
+  "take_naps": {
+    "term": "taking naps",
+    "level": "B1",
+    "uz": "kunduzgi mizg‘ib olish / qisqa uyqu"
+  },
+  "physical_and_mental_performance": {
+    "term": "physical and mental performance",
+    "level": "B2–C1",
+    "uz": "jismoniy va aqliy ko‘rsatkich"
+  },
+  "gentle_exercise": {
+    "term": "gentle exercise",
+    "level": "B1",
+    "uz": "yengil mashq"
+  },
+  "slow_walk": {
+    "term": "a slow walk",
+    "level": "B1",
+    "uz": "sekin yurish"
+  },
+  "demanding_workouts": {
+    "term": "demanding workouts",
+    "level": "B1",
+    "uz": "katta kuch talab qiladigan mashqlar"
+  },
+  "longer_workouts": {
+    "term": "longer workouts",
+    "level": "B1",
+    "uz": "uzoqroq mashqlar"
+  },
+  "hot_conditions": {
+    "term": "hot conditions",
+    "level": "B1",
+    "uz": "issiq sharoit"
+  },
+  "support_your_activity": {
+    "term": "support your activity",
+    "level": "B1",
+    "uz": "faoliyatingizni qo‘llab-quvvatlamoq"
+  },
+  "body_is_prepared_for": {
+    "term": "your body is prepared for",
+    "level": "B1",
+    "uz": "tanangiz tayyor bo‘lgan daraja"
+  },
+  "reduce_how_bad": {
+    "term": "reduce how bad your post-workout fatigue is",
+    "level": "B2–C1",
+    "uz": "mashqdan keyingi charchoq qanchalik kuchli bo‘lishini kamaytirmoq"
+  },
+  "chest_pain": {
+    "term": "chest pain",
+    "level": "B1",
+    "uz": "ko‘krak og‘rig‘i"
+  },
+  "unusual_breathlessness": {
+    "term": "unusual breathlessness",
+    "level": "B2–C1",
+    "uz": "noodatiy nafas qisishi"
   }
 };
 
