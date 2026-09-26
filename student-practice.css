@@ -1022,3 +1022,56 @@
     font-size:12px;
   }
 }
+
+
+/* Male / Female voice selector */
+.article-gender-control{
+  display:grid;
+  gap:3px;
+  min-width:0;
+}
+.article-gender-control>span{
+  color:#7b909e;
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.03em;
+}
+.article-gender-options{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  height:34px;
+  border:1px solid #d7e2e9;
+  border-radius:9px;
+  overflow:hidden;
+  background:#fff;
+}
+.article-gender-options button{
+  border:0;
+  background:transparent;
+  color:#607786;
+  font:inherit;
+  font-size:9px;
+  font-weight:800;
+  cursor:pointer;
+  padding:0 10px;
+  transition:background .14s ease,color .14s ease;
+}
+.article-gender-options button+button{
+  border-left:1px solid #d7e2e9;
+}
+.article-gender-options button.active{
+  background:#eaf4f9;
+  color:#245b7a;
+}
+.article-gender-options button:focus-visible{
+  outline:2px solid #4d8eae;
+  outline-offset:-2px;
+}
+@media(max-width:620px){
+  .article-gender-options{
+    height:40px;
+  }
+  .article-gender-options button{
+    font-size:12px;
+  }
+}
