@@ -1485,6 +1485,177 @@ const vocabDetails = {
   }
 };
 
+const strictSynonyms = {
+  "less_able_to_perform": [
+    "less capable of performing"
+  ],
+  "measurable_drop_in": [
+    "measurable decrease in"
+  ],
+  "unable_to_produce_as_much_force": [
+    "unable to generate as much force"
+  ],
+  "dont_always_match_perfectly": [
+    "don’t always correspond exactly"
+  ],
+  "develop_after_working_out": [
+    "appear after exercise"
+  ],
+  "particularly_associated_with": [
+    "especially linked to"
+  ],
+  "single_cause": [
+    "there is no single cause"
+  ],
+  "rely_on": [
+    "depend on"
+  ],
+  "trigger_muscle_contractions": [
+    "cause muscle contractions"
+  ],
+  "affect_ability_to": [
+    "influence the ability to"
+  ],
+  "produce_force": [
+    "generate force"
+  ],
+  "plays_a_part": [
+    "has a role"
+  ],
+  "demanding_exercise": [
+    "strenuous exercise",
+    "hard exercise"
+  ],
+  "reduce_performance": [
+    "lower performance"
+  ],
+  "accustomed_to_activity": [
+    "aren’t used to the activity"
+  ],
+  "recovery_strategies": [
+    "recovery methods"
+  ],
+  "replace_energy_stores": [
+    "replenish energy stores",
+    "restore energy stores"
+  ],
+  "instant_cure_for": [
+    "quick fix for"
+  ],
+  "reduce_muscle_soreness": [
+    "ease muscle soreness"
+  ],
+  "gradually_building_up": [
+    "increasing gradually",
+    "building up slowly"
+  ],
+  "allowing_time_to_recover": [
+    "giving time to recover"
+  ],
+  "completely_exhausted": [
+    "totally exhausted",
+    "completely worn out"
+  ],
+  "doesnt_necessarily_mean": [
+    "does not always mean"
+  ],
+  "disproportionate_to": [
+    "out of proportion to"
+  ],
+  "improve_with_recovery": [
+    "get better with recovery"
+  ],
+  "comes_with_symptoms": [
+    "is accompanied by symptoms such as"
+  ],
+  "post_workout_fatigue": [
+    "post-exercise fatigue"
+  ],
+  "muscle_weakness": [
+    "weakness in the muscles"
+  ],
+  "intense_workout_session": [
+    "hard workout session"
+  ],
+  "demanding_workouts": [
+    "strenuous workouts",
+    "hard workouts"
+  ],
+  "chest_pain": [
+    "pain in the chest"
+  ],
+  "unusual_breathlessness": [
+    "unusual shortness of breath"
+  ],
+  "rare_illness": [
+    "uncommon illness"
+  ],
+  "kidney_failure": [
+    "renal failure"
+  ],
+  "intensive_care": [
+    "critical care"
+  ],
+  "caused_by_infection": [
+    "resulting from infection"
+  ],
+  "transmitted_in_a_variety_of_ways": [
+    "spread in different ways"
+  ],
+  "shed_light_on": [
+    "clarify",
+    "help explain"
+  ],
+  "hygiene_precautions": [
+    "hygiene measures"
+  ],
+  "infection_risk": [
+    "risk of infection"
+  ],
+  "urgent_medical_assessment": [
+    "urgent medical evaluation"
+  ],
+  "as_soon_as_possible": [
+    "as quickly as possible"
+  ],
+  "leads_to": [
+    "results in"
+  ],
+  "can_progress_to": [
+    "can develop into"
+  ],
+  "spread_to_humans": [
+    "pass to humans"
+  ],
+  "come_into_contact_with": [
+    "have contact with"
+  ],
+  "particularly_difficult_to_protect": [
+    "especially hard to protect"
+  ],
+  "identified_as_a_risk": [
+    "recognised as a risk"
+  ],
+  "show_symptoms": [
+    "display symptoms"
+  ],
+  "appropriately_managed": [
+    "properly managed"
+  ],
+  "readily_accessible": [
+    "easily accessible"
+  ],
+  "need_to_ensure": [
+    "must make sure"
+  ],
+  "favour_venues_with": [
+    "prefer venues with"
+  ],
+  "disposable_towels": [
+    "single-use towels"
+  ]
+};
+
 const readingArticles=[
   {
     "id": "post-workout-fatigue",
@@ -2307,6 +2478,22 @@ const exerciseQuestions = [
 
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 
+function findArticleExample(key){
+  const item=vocab[key];
+  if(!item||!activeArticle)return null;
+  const needle=String(item.term||'').toLowerCase();
+  for(const section of activeArticle.sections||[]){
+    for(const paragraph of section.paragraphs||[]){
+      for(const sentence of paragraph||[]){
+        if(String(sentence.text||'').toLowerCase().includes(needle)){
+          return [sentence.text,sentence.uz||''];
+        }
+      }
+    }
+  }
+  return null;
+}
+
 function vocabExampleHtml(example){
   if(!example||!example[0])return '';
   return '<div class="vocab-example"><p>'+esc(example[0])+'</p><span>'+esc(example[1]||'')+'</span></div>';
@@ -2331,12 +2518,13 @@ function wordHtml(key,displayText){
   const detail=vocabDetails[key]||{ex:['',''],syn:[]};
   const text=displayText||item.term;
   const cls=item.level==='B1'?'b1':'b2';
+  const articleExample=findArticleExample(key);
   const examples=[
-    '<div class="vocab-example vocab-example-context"><p>'+esc(text)+'</p><span>'+esc(item.uz)+'</span></div>',
+    vocabExampleHtml(articleExample),
     vocabExampleHtml(detail.ex)
-  ].join('');
-  const synonyms=(detail.syn||[]).slice(0,2);
-  const synonymHtml=synonyms.length?'<div class="vocab-synonyms"><b>Similar</b><div>'+synonyms.map(s=>'<span>'+esc(s)+'</span>').join('')+'</div></div>':'';
+  ].filter(Boolean).join('');
+  const synonyms=(strictSynonyms[key]||[]).slice(0,2);
+  const synonymHtml=synonyms.length?'<div class="vocab-synonyms"><b>Synonyms</b><div>'+synonyms.map(s=>'<span>'+esc(s)+'</span>').join('')+'</div></div>':'';
   return '<span class="vocab-word '+cls+'" role="button" tabindex="0" data-vocab="'+esc(key)+'">'+
     esc(text)+
     '<span class="vocab-popover" aria-hidden="true">'+
