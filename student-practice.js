@@ -2,7 +2,12 @@
 'use strict';
 window.VisionStudentPractice?.destroy?.();
 let disposeArticle=()=>{};
-function cleanupArticle(){disposeArticle();disposeArticle=()=>{};}
+let cancelArticleAudio=()=>{};
+function cleanupArticle(){
+  disposeArticle();
+  disposeArticle=()=>{};
+  cancelArticleAudio=()=>{};
+}
 
 const vocab = {
   "pleased_with_yourself": {
@@ -2966,16 +2971,25 @@ function vocabExampleHtml(example){
   return '<span class="vocab-example"><span class="vocab-example-en">'+esc(example[0])+'</span><span class="vocab-example-uz">'+esc(example[1]||'')+'</span></span>';
 }
 
+function preferredEnglishVoice(locale){
+  if(!('speechSynthesis' in window))return null;
+  const voices=window.speechSynthesis.getVoices();
+  const target=locale.toLowerCase();
+  return voices.find(v=>String(v.lang||'').toLowerCase()===target)||
+    voices.find(v=>String(v.lang||'').toLowerCase().replace('_','-')===target)||
+    voices.find(v=>String(v.lang||'').toLowerCase().startsWith(target))||
+    null;
+}
+
 function speakVocab(key,accent){
   const item=vocab[key];
   if(!item||!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined')return;
+  cancelArticleAudio();
   const locale=accent==='gb'?'en-GB':'en-US';
   const utterance=new SpeechSynthesisUtterance(item.term);
   utterance.lang=locale;
-  const voices=window.speechSynthesis.getVoices();
-  const exact=voices.find(v=>String(v.lang||'').toLowerCase()===locale.toLowerCase());
-  const regional=voices.find(v=>String(v.lang||'').toLowerCase().startsWith(locale.toLowerCase().slice(0,2))&&String(v.lang||'').toLowerCase().includes(locale.slice(-2).toLowerCase()));
-  if(exact||regional)utterance.voice=exact||regional;
+  const voice=preferredEnglishVoice(locale);
+  if(voice)utterance.voice=voice;
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(utterance);
 }
@@ -3329,6 +3343,21 @@ function articleBodyHtml(){
   });
   return out;
 }
+function articleSpeechSegments(article){
+  if(!article)return [];
+  const segments=[];
+  if(article.title)segments.push(article.title);
+  (article.sections||[]).forEach(section=>{
+    if(section.heading)segments.push(section.heading);
+    (section.paragraphs||[]).forEach(paragraph=>{
+      paragraph.forEach(sentence=>{
+        if(sentence&&sentence.text)segments.push(sentence.text);
+      });
+    });
+  });
+  return segments;
+}
+
 function getActiveExerciseQuestions(){
   return Array.isArray(activeArticle?.exerciseQuestions)&&activeArticle.exerciseQuestions.length?activeArticle.exerciseQuestions:exerciseQuestions;
 }
@@ -3358,6 +3387,14 @@ function articleHtml(){
         '<div class="article-topbar">'+
           '<div><span class="article-kicker">'+esc(activeArticle.kicker)+'</span><h1>'+esc(activeArticle.title)+'</h1><div class="article-byline">'+esc(activeArticle.byline||'')+'</div><div class="article-meta"><span>'+esc(activeArticle.level)+'</span><span>'+esc(activeArticle.minutes)+'</span><span>'+getArticleVocabCount(activeArticle)+' key items</span></div></div>'+
           '<button class="translation-toggle" id="translation-toggle" type="button" aria-pressed="false"><span class="toggle-track"><i></i></span><span><b>Translation mode</b><small id="translation-mode-label">Off</small></span></button>'+
+        '</div>'+
+        '<div class="article-audio-panel" id="article-audio-panel">'+
+          '<div class="article-audio-copy"><span>LISTEN TO THE ARTICLE</span><strong>Choose a pronunciation</strong><small id="article-audio-status">Ready to play</small></div>'+
+          '<div class="article-audio-controls">'+
+            '<button class="article-audio-button" type="button" data-article-accent="gb" aria-pressed="false"><span class="article-audio-flag">🇬🇧</span><span><b>British</b><small class="audio-action-label">Play</small></span><i>▶</i></button>'+
+            '<button class="article-audio-button" type="button" data-article-accent="us" aria-pressed="false"><span class="article-audio-flag">🇺🇸</span><span><b>American</b><small class="audio-action-label">Play</small></span><i>▶</i></button>'+
+            '<button class="article-audio-stop" id="article-audio-stop" type="button" disabled aria-label="Stop article audio">■ <span>Stop</span></button>'+
+          '</div>'+
         '</div>'+
         '<div class="article-guide"><span class="guide-dot b1"></span><b>B1 useful English</b><span class="guide-dot b2"></span><b>B2–C1 vocabulary</b><p>Tap a bold word for its Uzbek meaning, examples, similar words, and British or American pronunciation. Turn on Translation Mode to translate full sentences.</p></div>'+
         highlighterHtml()+
@@ -3421,8 +3458,111 @@ function renderArticle(root,data,callbacks){
   const toggle=root.querySelector('#translation-toggle');
   const label=root.querySelector('#translation-mode-label');
   const articleEvents=new AbortController();
-  disposeArticle=()=>articleEvents.abort();
   const highlighter=bindReadingHighlighter(root,data,articleEvents.signal);
+
+  const articleAudioButtons=[...root.querySelectorAll('.article-audio-button')];
+  const articleAudioStop=root.querySelector('#article-audio-stop');
+  const articleAudioStatus=root.querySelector('#article-audio-status');
+  const articleAudioSegments=articleSpeechSegments(activeArticle);
+  const articleAudioState={
+    accent:null,
+    index:0,
+    paused:false,
+    stopped:true,
+    run:0
+  };
+
+  function updateArticleAudioUi(message){
+    articleAudioButtons.forEach(button=>{
+      const active=button.dataset.articleAccent===articleAudioState.accent&&!articleAudioState.stopped;
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-pressed',String(active));
+      const label=button.querySelector('.audio-action-label');
+      const icon=button.querySelector('i');
+      if(label)label.textContent=active?(articleAudioState.paused?'Resume':'Pause'):'Play';
+      if(icon)icon.textContent=active?(articleAudioState.paused?'▶':'Ⅱ'):'▶';
+    });
+    if(articleAudioStop)articleAudioStop.disabled=articleAudioState.stopped;
+    if(articleAudioStatus&&message)articleAudioStatus.textContent=message;
+  }
+
+  function stopFullArticleAudio(message='Ready to play'){
+    articleAudioState.run++;
+    articleAudioState.stopped=true;
+    articleAudioState.paused=false;
+    articleAudioState.accent=null;
+    articleAudioState.index=0;
+    if('speechSynthesis' in window)window.speechSynthesis.cancel();
+    updateArticleAudioUi(message);
+  }
+
+  function speakArticleSegment(runId){
+    if(articleAudioState.stopped||runId!==articleAudioState.run)return;
+    if(articleAudioState.index>=articleAudioSegments.length){
+      stopFullArticleAudio('Finished');
+      return;
+    }
+    const accent=articleAudioState.accent;
+    const locale=accent==='gb'?'en-GB':'en-US';
+    const utterance=new SpeechSynthesisUtterance(articleAudioSegments[articleAudioState.index]);
+    utterance.lang=locale;
+    const voice=preferredEnglishVoice(locale);
+    if(voice)utterance.voice=voice;
+    utterance.rate=.94;
+    utterance.onend=()=>{
+      if(articleAudioState.stopped||runId!==articleAudioState.run)return;
+      articleAudioState.index++;
+      setTimeout(()=>speakArticleSegment(runId),30);
+    };
+    utterance.onerror=event=>{
+      if(articleAudioState.stopped||runId!==articleAudioState.run)return;
+      if(event.error==='interrupted'||event.error==='canceled')return;
+      stopFullArticleAudio('Audio could not continue');
+    };
+    window.speechSynthesis.speak(utterance);
+  }
+
+  function startArticleAudio(accent){
+    if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined'){
+      updateArticleAudioUi('Audio is not supported on this device');
+      return;
+    }
+    const sameAccent=articleAudioState.accent===accent&&!articleAudioState.stopped;
+    if(sameAccent){
+      if(articleAudioState.paused){
+        window.speechSynthesis.resume();
+        articleAudioState.paused=false;
+        updateArticleAudioUi(accent==='gb'?'Playing British English':'Playing American English');
+      }else{
+        window.speechSynthesis.pause();
+        articleAudioState.paused=true;
+        updateArticleAudioUi('Paused');
+      }
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    articleAudioState.run++;
+    articleAudioState.accent=accent;
+    articleAudioState.index=0;
+    articleAudioState.paused=false;
+    articleAudioState.stopped=false;
+    const runId=articleAudioState.run;
+    updateArticleAudioUi(accent==='gb'?'Playing British English':'Playing American English');
+    setTimeout(()=>speakArticleSegment(runId),40);
+  }
+
+  articleAudioButtons.forEach(button=>{
+    button.addEventListener('click',()=>startArticleAudio(button.dataset.articleAccent),{signal:articleEvents.signal});
+  });
+  if(articleAudioStop){
+    articleAudioStop.addEventListener('click',()=>stopFullArticleAudio('Stopped'),{signal:articleEvents.signal});
+  }
+  cancelArticleAudio=()=>stopFullArticleAudio('Ready to play');
+  disposeArticle=()=>{
+    cancelArticleAudio();
+    articleEvents.abort();
+  };
 
   function closeWords(except){
     root.querySelectorAll('.vocab-word.open').forEach(el=>{
