@@ -1163,11 +1163,11 @@ function readingArticleForm(article={}){
     field('Title','title',article.title||'','','required')+
     selectField('Article level','level_label',[['A1','A1'],['A2','A2'],['B1','B1'],['B2','B2'],['C1','C1'],['IELTS','IELTS']],article.level_label||'B1')+
     readingLevelsField(article.allowed_levels||['all'])+
-    '<div class="field span-2"><label>Text</label><textarea class="textarea" name="article_text" rows="14" required placeholder="Paste the full reading text here...">'+esc(article.article_text||'')+'</textarea><small class="muted">The text is stored in Reading immediately. Kokoro audio is queued automatically after publishing.</small></div>'+
+    '<div class="field span-2"><label>Text</label><textarea class="textarea" name="article_text" rows="14" required placeholder="Paste the full reading text here...">'+esc(article.article_text||'')+'</textarea><small class="muted">After saving, the Reading Agent automatically prepares sentence translations, bold vocabulary cards, examples, synonyms, exercises, and Kokoro audio.</small></div>'+
     selectField('American voice','audio_voice_us',READING_US_VOICES,article.audio_voice_us||'af_heart')+
     selectField('British voice','audio_voice_gb',READING_GB_VOICES,article.audio_voice_gb||'bf_emma')+
     selectField('Audio speed','audio_speed',[['0.8','0.8× — slower'],['0.9','0.9×'],['0.95','0.95× — recommended'],['1','1.0×'],['1.1','1.1×']],String(article.audio_speed??0.95))+
-    '<div class="field"><label>Publishing</label><div class="section-note" style="margin:0"><strong>Publish immediately</strong><br>The article becomes available to matching student levels as soon as it is saved.</div></div>'+
+    '<div class="field"><label>Publishing</label><div class="section-note" style="margin:0"><strong>Automatic preparation</strong><br>The text is saved immediately, but students only receive it after every Reading feature and all Kokoro audio are ready.</div></div>'+
   '</div>';
 }
 async function saveReadingArticle(form,article=null){
@@ -1198,13 +1198,27 @@ function bindReadingActions(articles){
   document.querySelectorAll('[data-action=reading-edit]').forEach(button=>{
     button.addEventListener('click',()=>{
       const article=articles.find(item=>item.id===button.dataset.id);
-      if(article)openModal('Edit reading text',readingArticleForm(article),form=>saveReadingArticle(form,article),'Save & requeue audio');
+      if(article)openModal('Edit reading text',readingArticleForm(article),form=>saveReadingArticle(form,article),'Save & reprocess');
+    });
+  });
+  document.querySelectorAll('[data-action=reading-retry]').forEach(button=>{
+    button.addEventListener('click',async()=>{
+      const article=articles.find(item=>item.id===button.dataset.id);
+      if(!article)return;
+      button.disabled=true;
+      try{
+        const {data,error}=await sb.functions.invoke('reading-enrichment-worker',{body:{action:'requeue',article_id:article.id}});
+        if(error)throw error;
+        if(data?.error)throw new Error(data.error);
+        toast('Reading preparation requeued.');
+        await renderRoute(true);
+      }catch(error){fail(error);}finally{button.disabled=false;}
     });
   });
   document.querySelectorAll('[data-action=reading-delete]').forEach(button=>{
     button.addEventListener('click',async()=>{
       const article=articles.find(item=>item.id===button.dataset.id);
-      if(!article||!confirm('Delete "'+article.title+'"? This will also remove its queued audio jobs.'))return;
+      if(!article||!confirm('Delete "'+article.title+'"? This will also remove its queued Reading and audio jobs.'))return;
       try{
         await query(sb.from('reading_articles').delete().eq('id',article.id));
         toast('Reading text deleted.');
@@ -1217,18 +1231,24 @@ async function readingPage(){
   const articles=await query(sb.from('reading_articles').select('*').order('created_at',{ascending:false}).limit(300));
   const rows=articles.map(article=>{
     const levels=(article.allowed_levels||[]).includes('all')?'All levels':(article.allowed_levels||[]).join(', ');
+    const enrichClass=article.enrichment_status==='ready'?'success':article.enrichment_status==='error'?'danger':'info';
     const audioClass=article.audio_status==='ready'?'success':article.audio_status==='error'?'danger':'info';
+    const ready=article.enrichment_status==='ready'&&article.audio_status==='ready';
+    const actions=actionButton('Edit','reading-edit',article.id)+
+      ((!ready||article.enrichment_status==='error'||article.audio_status==='error')?actionButton('Retry','reading-retry',article.id):'')+
+      actionButton('Delete','reading-delete',article.id,'danger');
     return '<tr>'+
       '<td><strong>'+esc(article.title)+'</strong><div class="muted">'+esc(article.level_label||'')+'</div></td>'+
       '<td>'+esc(levels||'—')+'</td>'+
+      '<td><span class="badge '+enrichClass+'">'+esc(humanize(article.enrichment_status||'pending'))+'</span></td>'+
       '<td><span class="badge '+audioClass+'">'+esc(humanize(article.audio_status||'pending'))+'</span></td>'+
-      '<td>'+fmtDate((article.created_at||'').slice(0,10))+'</td>'+
-      '<td><div class="action-row">'+actionButton('Edit','reading-edit',article.id)+actionButton('Delete','reading-delete',article.id,'danger')+'</div></td>'+
+      '<td><span class="badge '+(ready?'success':'info')+'">'+(ready?'Visible to students':'Preparing')+'</span></td>'+
+      '<td><div class="action-row">'+actions+'</div></td>'+
     '</tr>';
   }).join('');
   setTimeout(()=>bindReadingActions(articles),0);
-  return '<div class="section-note"><strong>Teacher Reading Publisher</strong><br>Publish a text once and it is stored in the student Reading library for the selected course levels. American and British Kokoro jobs are queued automatically.</div>'+
-    tablePage('Reading texts','<button class="btn btn-primary" data-action="reading-new">'+uiIcon('plus')+'Add text</button>',[['Text',''],['Visible to',''],['Audio',''],['Published',''],['','']],rows,'No teacher reading texts yet.');
+  return '<div class="section-note"><strong>Teacher Reading Publisher</strong><br>Add the text once. Before students can see it, the Reading Agent automatically prepares sentence translations, bold vocabulary popups with natural Uzbek meanings, two translated examples, up to two useful synonyms, vocabulary exercises, student highlighting support, and British/American Kokoro audio for both the full text and each bold item.</div>'+
+    tablePage('Reading texts','<button class="btn btn-primary" data-action="reading-new">'+uiIcon('plus')+'Add text</button>',[['Text',''],['Visible to',''],['Reading features',''],['Kokoro audio',''],['Student status',''],['','']],rows,'No teacher reading texts yet.');
 }
 
 async function expensesPage(){
