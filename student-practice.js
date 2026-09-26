@@ -3591,6 +3591,37 @@ function renderArticle(root,data,callbacks){
     gb:{position:0,playing:false,paused:false,gender:'female',rate:.95},
     us:{position:0,playing:false,paused:false,gender:'female',rate:.95}
   };
+  const storedAudio={gb:null,us:null};
+  ['gb','us'].forEach(accent=>{
+    const url=activeArticle?.audioUrls?.[accent];
+    if(!url)return;
+    const audio=new Audio(url);
+    audio.preload='metadata';
+    storedAudio[accent]=audio;
+    audio.addEventListener('loadedmetadata',()=>{
+      const duration=Number.isFinite(audio.duration)?audio.duration:articleAudioTotal;
+      const seek=root.querySelector('[data-article-seek="'+accent+'"]');
+      const total=root.querySelector('[data-total-time="'+accent+'"]');
+      if(seek)seek.max=String(Math.max(1,Math.round(duration)));
+      if(total)total.textContent=formatAudioTime(duration);
+      syncPlayerUi(accent);
+    });
+    audio.addEventListener('timeupdate',()=>{
+      const state=audioPlayers[accent];
+      if(!state||activeAudioAccent!==accent)return;
+      state.position=audio.currentTime||0;
+      syncPlayerUi(accent);
+    });
+    audio.addEventListener('ended',()=>{
+      const state=audioPlayers[accent];
+      if(!state)return;
+      state.position=Number.isFinite(audio.duration)?audio.duration:state.position;
+      state.playing=false;
+      state.paused=false;
+      activeAudioAccent=null;
+      syncPlayerUi(accent);
+    });
+  });
   let activeAudioAccent=null;
   let audioRun=0;
   let progressTimer=null;
@@ -3612,7 +3643,8 @@ function renderArticle(root,data,callbacks){
     const state=audioPlayers[accent];
     const els=playerEls(accent);
     if(!state||!els.row)return;
-    const max=Math.max(1,articleAudioTotal);
+    const fileDuration=storedAudio[accent]&&Number.isFinite(storedAudio[accent].duration)?storedAudio[accent].duration:0;
+    const max=Math.max(1,fileDuration||articleAudioTotal);
     const clamped=Math.max(0,Math.min(max,state.position));
     const percent=Math.max(0,Math.min(100,(clamped/max)*100));
     els.row.classList.toggle('playing',state.playing&&!state.paused);
@@ -3681,6 +3713,16 @@ function renderArticle(root,data,callbacks){
     audioRun++;
     clearProgressTimer();
     if('speechSynthesis' in window)window.speechSynthesis.cancel();
+    ['gb','us'].forEach(accent=>{
+      const file=storedAudio[accent];
+      if(!file)return;
+      if(preservePosition)audioPlayers[accent].position=file.currentTime||audioPlayers[accent].position||0;
+      else{
+        audioPlayers[accent].position=0;
+        try{file.currentTime=0;}catch{}
+      }
+      file.pause();
+    });
     if(activeAudioAccent){
       const state=audioPlayers[activeAudioAccent];
       if(state){
@@ -3694,6 +3736,29 @@ function renderArticle(root,data,callbacks){
   }
 
   function speakArticleFrom(accent,position){
+    const stored=storedAudio[accent];
+    if(stored){
+      const state=audioPlayers[accent];
+      const duration=Number.isFinite(stored.duration)?stored.duration:articleAudioTotal;
+      const target=Math.max(0,Math.min(Math.max(0,duration),Number(position)||0));
+      haltArticleSpeech({preservePosition:true,markPaused:false});
+      state.position=target;
+      state.playing=true;
+      state.paused=false;
+      activeAudioAccent=accent;
+      setOtherPlayersInactive(accent);
+      const generatedRate=Number(activeArticle?.audioSpeed)||0.95;
+      stored.playbackRate=Math.max(.5,Math.min(2,(state.rate||.95)/generatedRate));
+      try{stored.currentTime=target;}catch{}
+      stored.play().catch(()=>{
+        state.playing=false;
+        state.paused=false;
+        activeAudioAccent=null;
+        syncPlayerUi(accent);
+      });
+      syncPlayerUi(accent);
+      return;
+    }
     if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined')return;
     const located=locateArticlePosition(position);
     if(!located){
@@ -3806,28 +3871,41 @@ function renderArticle(root,data,callbacks){
   }
 
   function toggleArticlePlayer(accent){
-    if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined')return;
+    const stored=storedAudio[accent];
+    if(!stored&&(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined'))return;
     const state=audioPlayers[accent];
 
     if(activeAudioAccent===accent&&state.playing&&!state.paused){
-      window.speechSynthesis.pause();
-      clearProgressTimer();
+      if(stored){
+        stored.pause();
+        state.position=stored.currentTime||state.position;
+      }else{
+        window.speechSynthesis.pause();
+        clearProgressTimer();
+      }
       state.paused=true;
       syncPlayerUi(accent);
       return;
     }
 
     if(activeAudioAccent===accent&&state.paused){
-      window.speechSynthesis.resume();
+      if(stored){
+        const generatedRate=Number(activeArticle?.audioSpeed)||0.95;
+        stored.playbackRate=Math.max(.5,Math.min(2,(state.rate||.95)/generatedRate));
+        stored.play().catch(()=>{});
+      }else{
+        window.speechSynthesis.resume();
+        startProgressTimer(accent);
+      }
       state.paused=false;
       state.playing=true;
-      startProgressTimer(accent);
       syncPlayerUi(accent);
       return;
     }
 
     haltArticleSpeech({preservePosition:true,markPaused:false});
-    speakArticleFrom(accent,state.position>=articleAudioTotal-.5?0:state.position);
+    const duration=stored&&Number.isFinite(stored.duration)?stored.duration:articleAudioTotal;
+    speakArticleFrom(accent,state.position>=duration-.5?0:state.position);
   }
 
   articleAudioButtons.forEach(button=>{
@@ -3945,6 +4023,14 @@ function renderArticle(root,data,callbacks){
       return true;
     }).sort((a,b)=>voiceQualityScore(b)-voiceQualityScore(a));
   }
+
+  ['gb','us'].forEach(accent=>{
+    if(!storedAudio[accent])return;
+    root.querySelectorAll('[data-gender-accent="'+accent+'"]').forEach(button=>{
+      button.disabled=true;
+      button.title='This Kokoro voice was selected by the teacher when the text was published.';
+    });
+  });
 
   root.querySelectorAll('[data-gender-accent]').forEach(button=>{
     button.addEventListener('click',()=>{
