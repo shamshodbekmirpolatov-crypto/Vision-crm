@@ -254,6 +254,35 @@
 .article-copy{max-width:860px;margin:0 auto;padding:33px 34px 37px;font-family:Georgia,"Times New Roman",serif;font-size:18px;line-height:1.95;color:#263c4c}
 .article-copy p{margin:0 0 23px}
 .article-copy p:last-child{margin-bottom:0}
+.reading-highlighter{position:sticky;top:68px;z-index:35;padding:12px 27px;background:rgba(248,251,253,.98);border-bottom:1px solid #dce6ed;box-shadow:0 4px 12px rgba(14,50,76,.04);font-family:Inter,ui-sans-serif,system-ui,sans-serif;user-select:none;-webkit-user-select:none}
+.highlight-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.highlight-controls>strong{font-size:14px;color:#294e66;margin-right:4px}
+.highlight-controls button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;border:1px solid #c7d5df;border-radius:9px;background:#fff;color:#27475e;padding:8px 11px;font-size:14px;font-weight:650;cursor:pointer}
+.highlight-controls button:hover:not(:disabled){border-color:#527991;box-shadow:0 2px 7px rgba(14,50,76,.1)}
+.highlight-controls button:focus-visible{outline:3px solid #2476a7;outline-offset:3px}
+.highlight-controls button:disabled{opacity:.55;cursor:default}
+.highlight-swatch{display:block;width:16px;height:16px;border-radius:4px;border:1px solid rgba(25,51,69,.2);flex-shrink:0}
+.highlight-red{background:#f9c9ce}
+.highlight-blue{background:#cce3ff}
+.highlight-yellow{background:#ffeda0}
+.highlight-green{background:#c7edcf}
+.highlight-help,.highlight-status{font-size:12px;line-height:1.5;color:#5b7384;margin:7px 0 0}
+.highlight-status{margin-top:2px;color:#456579}
+.reading-highlight{color:inherit;padding:0;border-radius:3px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.article-sentence,.article-sentence *{user-select:text;-webkit-user-select:text}
+.article-sentence .vocab-popover,.article-sentence .vocab-popover *{user-select:none;-webkit-user-select:none}
+@media(max-width:760px){
+  .reading-highlighter{top:64px;padding:10px 16px}
+  .highlight-controls{gap:6px}
+  .highlight-controls>strong{width:100%}
+  .highlight-controls button{min-height:44px;padding:8px;font-size:13px;gap:5px}
+  .highlight-swatch{width:13px;height:13px}
+}
+@media(max-width:380px){
+  .reading-highlighter{padding:10px}
+  .highlight-controls{gap:5px}
+  .highlight-controls button{padding:7px 6px}
+}
 .article-sentence{border-radius:4px;transition:background .12s ease,box-shadow .12s ease}
 .translation-on .article-sentence{cursor:pointer}
 .translation-on .article-sentence:hover{background:#fff1d8;box-shadow:0 0 0 3px #fff1d8}

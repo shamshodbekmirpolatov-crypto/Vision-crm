@@ -1,5 +1,8 @@
 (() => {
 'use strict';
+window.VisionStudentPractice?.destroy?.();
+let disposeArticle=()=>{};
+function cleanupArticle(){disposeArticle();disposeArticle=()=>{};}
 
 const vocab = {
   "pleased_with_yourself": {
@@ -1085,10 +1088,13 @@ const readingArticles=[
 let activeArticleIndex=0;
 let activeArticle=null;
 
-function completionKey(data){
+function readingStudentId(data){
   const student=data?.student||{};
-  const id=student.id||[student.full_name,student.group,student.grade_or_age].filter(Boolean).join('|')||'student';
-  return 'vision-reading-completed:v3:'+String(id);
+  return String(student.id||[student.full_name,student.group,student.grade_or_age].filter(Boolean).join('|')||'student');
+}
+
+function completionKey(data){
+  return 'vision-reading-completed:v3:'+readingStudentId(data);
 }
 
 function getCompletedArticles(data){
@@ -1300,6 +1306,187 @@ function sentenceHtml(sentence,index){
   return '<span class="article-sentence" data-sentence="'+index+'" tabindex="0">'+highlightText(sentence.text)+'</span>'+
          '<span class="sentence-translation" data-translation="'+index+'">'+esc(sentence.uz)+'</span> ';
 }
+
+const readingHighlightColors=['red','blue','yellow','green'];
+
+function highlighterHtml(){
+  return '<div class="reading-highlighter" id="reading-highlighter" aria-label="Text highlighting">'+
+    '<div class="highlight-controls" role="group" aria-label="Highlight selected text">'+
+      '<strong>Highlight</strong>'+
+      readingHighlightColors.map(color=>'<button class="highlight-color" type="button" data-highlight="'+color+'" aria-label="Highlight '+color+'" disabled><span class="highlight-swatch highlight-'+color+'" aria-hidden="true"></span>'+color[0].toUpperCase()+color.slice(1)+'</button>').join('')+
+      '<button class="highlight-remove" type="button" data-highlight="remove" disabled>Remove</button>'+
+    '</div>'+
+    '<p class="highlight-help">Select text, then choose a colour. Select highlighted text to remove or recolour it.</p>'+
+    '<p class="highlight-status" id="highlight-status" role="status" aria-live="polite">Highlights are saved on this device.</p>'+
+  '</div>';
+}
+
+function bindReadingHighlighter(root,data,signal){
+  const copy=root.querySelector('#article-copy');
+  const toolbar=root.querySelector('#reading-highlighter');
+  const status=root.querySelector('#highlight-status');
+  const buttons=[...toolbar.querySelectorAll('[data-highlight]')];
+  const sentences=[...copy.querySelectorAll('.article-sentence')];
+  const key='vision-reading-highlights:v1:'+encodeURIComponent(readingStudentId(data))+':'+activeArticle.id;
+  let selected=[];
+  let toolbarPointer=false;
+
+  // Vocabulary popovers contain extra text; never count it as part of the article.
+  function textNodes(sentence){
+    const walker=document.createTreeWalker(sentence,NodeFilter.SHOW_TEXT,{
+      acceptNode:node=>node.parentElement.closest('.vocab-popover')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT
+    });
+    const nodes=[];
+    while(walker.nextNode())nodes.push(walker.currentNode);
+    return nodes;
+  }
+  const originals=sentences.map(sentence=>textNodes(sentence).map(node=>node.data).join(''));
+  let highlights=[];
+  try{
+    const saved=JSON.parse(localStorage.getItem(key)||'[]');
+    if(Array.isArray(saved))highlights=saved.filter(item=>item&&
+      Number.isInteger(item.sentence)&&typeof originals[item.sentence]==='string'&&
+      item.text===originals[item.sentence]&&readingHighlightColors.includes(item.color)&&
+      Number.isInteger(item.start)&&Number.isInteger(item.end)&&
+      item.start>=0&&item.end>item.start&&item.end<=item.text.length
+    ).sort((a,b)=>a.sentence-b.sentence||a.start-b.start).reduce((valid,item)=>{
+      const last=valid[valid.length-1];
+      if(!last||item.sentence!==last.sentence||item.start>=last.end)valid.push(item);
+      return valid;
+    },[]);
+  }catch{}
+
+  function paint(){
+    sentences.forEach((sentence,index)=>{
+      sentence.querySelectorAll('mark.reading-highlight').forEach(mark=>mark.replaceWith(...mark.childNodes));
+      sentence.normalize();
+      const ranges=highlights.filter(item=>item.sentence===index);
+      let offset=0;
+      textNodes(sentence).forEach(node=>{
+        const text=node.data;
+        const start=offset;
+        offset+=text.length;
+        const matches=ranges.filter(item=>item.start<offset&&item.end>start);
+        if(!matches.length)return;
+        const fragment=document.createDocumentFragment();
+        let cursor=0;
+        matches.forEach(item=>{
+          const from=Math.max(0,item.start-start);
+          const to=Math.min(text.length,item.end-start);
+          fragment.append(document.createTextNode(text.slice(cursor,from)));
+          const mark=document.createElement('mark');
+          mark.className='reading-highlight highlight-'+item.color;
+          mark.dataset.highlightColor=item.color;
+          mark.textContent=text.slice(from,to);
+          fragment.append(mark);
+          cursor=to;
+        });
+        fragment.append(document.createTextNode(text.slice(cursor)));
+        node.replaceWith(fragment);
+      });
+    });
+  }
+
+  function readSelection(){
+    const selection=window.getSelection();
+    if(!selection||selection.isCollapsed||!selection.rangeCount)return [];
+    const range=selection.getRangeAt(0);
+    if(!copy.contains(range.startContainer)||!copy.contains(range.endContainer))return [];
+    const parts=[];
+    sentences.forEach((sentence,index)=>{
+      let offset=0,from=null,to=null;
+      textNodes(sentence).forEach(node=>{
+        const length=node.data.length;
+        if(length&&range.intersectsNode(node)){
+          const start=range.startContainer===node?range.startOffset:0;
+          const end=range.endContainer===node?range.endOffset:length;
+          if(end>start){
+            if(from===null)from=offset+start;
+            to=offset+end;
+          }
+        }
+        offset+=length;
+      });
+      if(from!==null&&originals[index].slice(from,to).trim()){
+        parts.push({sentence:index,text:originals[index],start:from,end:to});
+      }
+    });
+    return parts;
+  }
+
+  function updateButtons(){buttons.forEach(button=>button.disabled=!selected.length);}
+  function captureSelection(){
+    if(!copy.isConnected)return;
+    const parts=readSelection();
+    if(parts.length){
+      selected=parts;
+      copy.querySelectorAll('.vocab-word.open').forEach(word=>word.classList.remove('open'));
+    }else if(!toolbarPointer&&!toolbar.contains(document.activeElement))selected=[];
+    updateButtons();
+  }
+
+  function changeRange(part,color){
+    const next=[];
+    highlights.forEach(item=>{
+      if(item.sentence!==part.sentence||item.end<=part.start||item.start>=part.end){next.push(item);return;}
+      if(item.start<part.start)next.push({...item,end:part.start});
+      if(item.end>part.end)next.push({...item,start:part.end});
+    });
+    if(color!=='remove')next.push({...part,color});
+    highlights=next.sort((a,b)=>a.sentence-b.sentence||a.start-b.start).reduce((merged,item)=>{
+      const last=merged[merged.length-1];
+      if(last&&last.sentence===item.sentence&&last.color===item.color&&last.end===item.start)last.end=item.end;
+      else merged.push(item);
+      return merged;
+    },[]);
+  }
+
+  document.addEventListener('selectionchange',captureSelection,{signal});
+  document.addEventListener('pointerdown',event=>{
+    if(toolbar.contains(event.target))return;
+    toolbarPointer=false;
+    selected=[];
+    updateButtons();
+  },{signal,capture:true});
+  copy.addEventListener('pointerup',captureSelection,{signal});
+  copy.addEventListener('keyup',captureSelection,{signal});
+  toolbar.addEventListener('pointerdown',event=>{
+    if(!event.target.closest('[data-highlight]'))return;
+    captureSelection();
+    toolbarPointer=true;
+    // Preserve the native selection when clicking; touch uses the captured offsets.
+    if(event.pointerType==='mouse')event.preventDefault();
+  },{signal});
+  toolbar.addEventListener('pointercancel',()=>{toolbarPointer=false;captureSelection();},{signal});
+  toolbar.addEventListener('click',event=>{
+    const button=event.target.closest('[data-highlight]');
+    if(!button||!selected.length)return;
+    const color=button.dataset.highlight;
+    selected.forEach(part=>changeRange(part,color));
+    paint();
+    window.getSelection()?.removeAllRanges();
+    selected=[];
+    toolbarPointer=false;
+    updateButtons();
+    try{
+      if(highlights.length)localStorage.setItem(key,JSON.stringify(highlights));
+      else localStorage.removeItem(key);
+      status.textContent=color==='remove'?'Highlight removed. Changes saved on this device.':color[0].toUpperCase()+color.slice(1)+' highlight saved on this device.';
+    }catch{
+      status.textContent='Your changes are visible, but this browser could not save them.';
+    }
+  },{signal});
+  document.addEventListener('keydown',event=>{
+    if(event.key!=='Escape')return;
+    selected=[];
+    toolbarPointer=false;
+    window.getSelection()?.removeAllRanges();
+    updateButtons();
+  },{signal});
+  paint();
+  return {hasSelection:()=>selected.length>0||readSelection().length>0};
+}
+
 function header(active){
   return '<header class="portal-header"><div class="portal-header-inner">'+
     '<div class="portal-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision Student Progress</strong><span>VISION LEARNING CENTRE</span></div></div>'+
@@ -1410,6 +1597,7 @@ function articleHtml(){
           '<button class="translation-toggle" id="translation-toggle" type="button" aria-pressed="false"><span class="toggle-track"><i></i></span><span><b>Translation mode</b><small id="translation-mode-label">Off</small></span></button>'+
         '</div>'+
         '<div class="article-guide"><span class="guide-dot b1"></span><b>B1 useful English</b><span class="guide-dot b2"></span><b>B2–C1 vocabulary</b><p>Tap a bold word for its Uzbek translation. Turn on Translation Mode to translate full sentences.</p></div>'+
+        highlighterHtml()+
         '<div class="article-copy" id="article-copy">'+articleBodyHtml()+'</div>'+
       '</article>'+
       '<section class="vocab-practice-section">'+
@@ -1424,12 +1612,13 @@ function bindHeader(root,callbacks){
   const dash=root.querySelector('#practice-dashboard-tab');
   const refresh=root.querySelector('#practice-refresh');
   const signout=root.querySelector('#practice-signout');
-  if(dash)dash.onclick=()=>callbacks.onDashboard&&callbacks.onDashboard();
+  if(dash)dash.onclick=()=>{cleanupArticle();callbacks.onDashboard&&callbacks.onDashboard();};
   if(refresh)refresh.onclick=()=>callbacks.onRefresh&&callbacks.onRefresh();
-  if(signout)signout.onclick=()=>callbacks.onSignOut&&callbacks.onSignOut();
+  if(signout)signout.onclick=()=>{cleanupArticle();callbacks.onSignOut&&callbacks.onSignOut();};
 }
 
 function renderHome(root,data,callbacks){
+  cleanupArticle();
   root.innerHTML=practiceHomeHtml(data);
   bindHeader(root,callbacks);
   root.querySelector('#open-reading-library').onclick=()=>renderLibrary(root,data,callbacks);
@@ -1437,6 +1626,7 @@ function renderHome(root,data,callbacks){
 }
 
 function renderLibrary(root,data,callbacks){
+  cleanupArticle();
   root.innerHTML=libraryHtml(data);
   bindHeader(root,callbacks);
   root.querySelector('#back-to-practice').onclick=()=>renderHome(root,data,callbacks);
@@ -1451,12 +1641,14 @@ function renderLibrary(root,data,callbacks){
 }
 
 function renderListening(root,data,callbacks){
+  cleanupArticle();
   root.innerHTML=listeningHtml(data);
   bindHeader(root,callbacks);
   root.querySelector('#back-to-practice').onclick=()=>renderHome(root,data,callbacks);
 }
 
 function renderArticle(root,data,callbacks){
+  cleanupArticle();
   if(!activeArticle){renderLibrary(root,data,callbacks);return;}
   root.innerHTML=articleHtml();
   bindHeader(root,callbacks);
@@ -1465,12 +1657,16 @@ function renderArticle(root,data,callbacks){
   const shell=root.querySelector('#reading-article-shell');
   const toggle=root.querySelector('#translation-toggle');
   const label=root.querySelector('#translation-mode-label');
+  const articleEvents=new AbortController();
+  disposeArticle=()=>articleEvents.abort();
+  const highlighter=bindReadingHighlighter(root,data,articleEvents.signal);
 
   function closeWords(except){
     root.querySelectorAll('.vocab-word.open').forEach(el=>{if(el!==except)el.classList.remove('open');});
   }
 
   root.querySelector('#article-copy').addEventListener('click',e=>{
+    if(highlighter.hasSelection())return;
     const word=e.target.closest('.vocab-word');
     if(word){
       e.stopPropagation();
@@ -1499,9 +1695,8 @@ function renderArticle(root,data,callbacks){
   });
 
   document.addEventListener('click',function outsideClose(e){
-    if(!root.isConnected){document.removeEventListener('click',outsideClose);return;}
     if(!e.target.closest('.vocab-word'))closeWords();
-  });
+  },{signal:articleEvents.signal});
 
   toggle.onclick=()=>{
     const on=!shell.classList.contains('translation-on');
@@ -1575,5 +1770,5 @@ function render({root,data,onDashboard,onRefresh,onSignOut}){
   renderHome(root,data,{onDashboard,onRefresh,onSignOut});
 }
 
-window.VisionStudentPractice={render};
+window.VisionStudentPractice={render,destroy:cleanupArticle};
 })();
