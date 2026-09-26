@@ -3745,20 +3745,27 @@ function renderArticle(root,data,callbacks){
     const accent=seek.dataset.articleSeek;
     const state=audioPlayers[accent];
     let resumeAfterSeek=false;
+    let seeking=false;
 
     function beginSeeking(){
+      if(seeking)return;
+      seeking=true;
       resumeAfterSeek=activeAudioAccent===accent&&state.playing&&!state.paused;
+
       haltArticleSpeech({preservePosition:true,markPaused:true});
       state.playing=false;
       state.paused=true;
       syncPlayerUi(accent);
     }
 
+    // Pointer events already cover mouse, touch and pen on modern browsers.
+    // Using mousedown/touchstart as well caused duplicate seek cycles.
     seek.addEventListener('pointerdown',beginSeeking,{signal:articleEvents.signal});
-    seek.addEventListener('mousedown',beginSeeking,{signal:articleEvents.signal});
-    seek.addEventListener('touchstart',beginSeeking,{signal:articleEvents.signal,passive:true});
 
     seek.addEventListener('input',()=>{
+      // Keyboard seeking may fire input without pointerdown.
+      if(!seeking)beginSeeking();
+
       const target=Math.max(0,Math.min(articleAudioTotal,Number(seek.value)||0));
       state.position=target;
       state.playing=false;
@@ -3767,23 +3774,29 @@ function renderArticle(root,data,callbacks){
     },{signal:articleEvents.signal});
 
     function finishSeeking(){
+      if(!seeking)return;
+
       const target=Math.max(0,Math.min(articleAudioTotal,Number(seek.value)||0));
-      haltArticleSpeech({preservePosition:true,markPaused:true});
+      const shouldResume=resumeAfterSeek;
+
+      // The current speech was already cancelled when seeking began.
+      // Do not cancel again here after playback has restarted.
       state.position=target;
       state.playing=false;
       state.paused=true;
+
+      seeking=false;
+      resumeAfterSeek=false;
       syncPlayerUi(accent);
 
-      if(resumeAfterSeek){
+      if(shouldResume){
         state.paused=false;
         speakArticleFrom(accent,target);
       }
-      resumeAfterSeek=false;
     }
 
+    // Range inputs emit change once the user releases the knob / finishes the click.
     seek.addEventListener('change',finishSeeking,{signal:articleEvents.signal});
-    seek.addEventListener('pointerup',finishSeeking,{signal:articleEvents.signal});
-    seek.addEventListener('touchend',finishSeeking,{signal:articleEvents.signal});
   });
 
   function voicesForAccent(accent){
