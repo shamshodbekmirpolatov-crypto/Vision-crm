@@ -2128,7 +2128,7 @@ const vocabExtraExamples = {
   ]
 };
 
-const readingArticles=[
+const builtInReadingArticles=[
   {
     "id": "post-workout-fatigue",
     "title": "What is post-workout fatigue – and can you prevent it?",
@@ -2772,7 +2772,8 @@ const readingArticles=[
       }
     ]
   }
-];
+ ];
+let readingArticles=builtInReadingArticles.slice();
 let activeArticleIndex=0;
 let activeArticle=null;
 
@@ -3309,6 +3310,47 @@ function practiceHomeHtml(data){
     '</main></div>';
 }
 
+function splitTeacherArticleSentences(text){
+  const matches=String(text||'').match(/[^.!?]+(?:[.!?]+|$)/g)||[];
+  return matches.map(part=>part.trim()).filter(Boolean).map(sentence=>({text:sentence,uz:''}));
+}
+
+function teacherArticleSections(text){
+  const blocks=String(text||'').split(/\n\s*\n/).map(block=>block.trim()).filter(Boolean);
+  const paragraphs=(blocks.length?blocks:[String(text||'').trim()]).filter(Boolean).map(block=>{
+    const sentences=splitTeacherArticleSentences(block);
+    return sentences.length?sentences:[{text:block,uz:''}];
+  });
+  return [{heading:'',paragraphs}];
+}
+
+function portalArticleToReading(item){
+  const storedSections=item?.content_json&&Array.isArray(item.content_json.sections)?item.content_json.sections:null;
+  const sections=storedSections&&storedSections.length?storedSections:teacherArticleSections(item?.article_text||'');
+  const words=String(item?.article_text||'').trim().split(/\s+/).filter(Boolean).length;
+  const minutes=Math.max(1,Math.ceil(words/180));
+  return {
+    id:'db-'+String(item?.id||''),
+    source:'teacher',
+    databaseId:item?.id||null,
+    kicker:item?.kicker||'READING',
+    title:item?.title||'Reading text',
+    byline:item?.byline||'Vision Learning Centre',
+    level:item?.level_label||'Reading',
+    minutes:minutes+' min read',
+    sections,
+    exerciseQuestions:Array.isArray(item?.exercise_questions)?item.exercise_questions:[],
+    audioStatus:item?.audio_status||'pending',
+    audioUrls:{us:item?.audio_us_url||'',gb:item?.audio_gb_url||''},
+    audioSpeed:Number(item?.audio_speed)||0.95
+  };
+}
+
+function syncReadingArticles(data){
+  const remote=Array.isArray(data?.reading_articles)?data.reading_articles.map(portalArticleToReading):[];
+  readingArticles=[...builtInReadingArticles,...remote];
+}
+
 function libraryHtml(data){
   const student=data?.student||{};
   const completed=getCompletedArticles(data);
@@ -3413,7 +3455,7 @@ function formatAudioTime(value){
 }
 
 function getActiveExerciseQuestions(){
-  return Array.isArray(activeArticle?.exerciseQuestions)&&activeArticle.exerciseQuestions.length?activeArticle.exerciseQuestions:exerciseQuestions;
+  return Array.isArray(activeArticle?.exerciseQuestions)?activeArticle.exerciseQuestions:exerciseQuestions;
 }
 
 function getArticleVocabCount(article){
@@ -3434,6 +3476,7 @@ function exercisesHtml(){
 }
 
 function articleHtml(){
+  const hasExercises=getActiveExerciseQuestions().length>0;
   return '<div class="portal practice-view">'+header('practice')+
     '<main class="portal-main practice-main">'+
       '<button class="back-to-reading article-return-button" id="back-to-reading" type="button" aria-label="Back to Reading library"><span class="return-arrow">←</span><span>Back to Reading</span></button>'+
@@ -3481,11 +3524,11 @@ function articleHtml(){
         highlighterHtml()+
         '<div class="article-copy" id="article-copy">'+articleBodyHtml()+'</div>'+
       '</article>'+
-      '<section class="vocab-practice-section">'+
+      (hasExercises?'<section class="vocab-practice-section">'+
         '<div class="practice-section-head"><div><span>AFTER READING</span><h2>Vocabulary practice</h2><p>Choose the best answer. You can change an answer before checking your score.</p></div><div class="exercise-score" id="exercise-score">Not checked</div></div>'+
         '<div class="exercise-list" id="exercise-list">'+exercisesHtml()+'</div>'+
         '<div class="exercise-actions"><button class="check-answers" id="check-answers" type="button">Check answers</button><button class="retry-exercises" id="retry-exercises" type="button">Try again</button></div>'+
-      '</section>'+
+      '</section>':'')+
     '</main></div>';
 }
 
@@ -4067,7 +4110,8 @@ function renderArticle(root,data,callbacks){
     });
   });
 
-  root.querySelector('#check-answers').onclick=()=>{
+  const checkAnswersButton=root.querySelector('#check-answers');
+  if(checkAnswersButton)checkAnswersButton.onclick=()=>{
     let correct=0;
     let answered=0;
     root.querySelectorAll('.exercise-question').forEach(q=>{
@@ -4102,7 +4146,8 @@ function renderArticle(root,data,callbacks){
     }
   };
 
-  root.querySelector('#retry-exercises').onclick=()=>{
+  const retryExercisesButton=root.querySelector('#retry-exercises');
+  if(retryExercisesButton)retryExercisesButton.onclick=()=>{
     root.querySelectorAll('.exercise-question').forEach(q=>{
       q.classList.remove('correct','wrong');
       q.querySelectorAll('.exercise-options button').forEach(b=>b.classList.remove('selected','correct-option','wrong-option'));
@@ -4114,6 +4159,7 @@ function renderArticle(root,data,callbacks){
 }
 
 function render({root,data,onDashboard,onRefresh,onSignOut}){
+  syncReadingArticles(data);
   renderHome(root,data,{onDashboard,onRefresh,onSignOut});
 }
 
