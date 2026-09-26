@@ -1656,6 +1656,473 @@ const strictSynonyms = {
   ]
 };
 
+const vocabExtraExamples = {
+  "pleased_with_yourself": [
+    "You can be pleased with yourself for keeping your promise.",
+    "Va’dangizda turganingiz uchun o‘zingizdan mamnun bo‘lishingiz mumkin."
+  ],
+  "feel_low_on_energy": [
+    "She often feels low on energy in the late afternoon.",
+    "U tushdan keyin kechroq paytda ko‘pincha o‘zini holsiz his qiladi."
+  ],
+  "less_able_to_perform": [
+    "People are less able to perform well when they are extremely tired.",
+    "Odamlar juda charchaganda avvalgidek yaxshi natija ko‘rsata olmaydi."
+  ],
+  "depend_on_the_type_of_workout": [
+    "How sore you feel can depend on the type of workout you choose.",
+    "Qanchalik og‘riq sezishingiz tanlagan mashq turingizga bog‘liq bo‘lishi mumkin."
+  ],
+  "accustomed_body": [
+    "You may recover faster when your body is accustomed to the activity.",
+    "Tanangiz faoliyatga odatlangan bo‘lsa, tezroq tiklanishingiz mumkin."
+  ],
+  "help_your_body_recover": [
+    "A nutritious meal can help your body recover after a long run.",
+    "To‘yimli ovqat uzoq yugurishdan keyin tanangizning tiklanishiga yordam beradi."
+  ],
+  "perceived_fatigue": [
+    "Perceived fatigue may increase when you are stressed or worried.",
+    "Stress yoki xavotir paytida subyektiv seziladigan charchoq kuchayishi mumkin."
+  ],
+  "performance_fatigability": [
+    "Researchers measured performance fatigability after the cycling test.",
+    "Tadqiqotchilar velosiped testidan keyin jismoniy ko‘rsatkichning charchoq sabab pasayishini o‘lchadi."
+  ],
+  "measurable_drop_in": [
+    "There was a measurable drop in speed near the end of the race.",
+    "Poyganing oxiriga yaqin tezlikda o‘lchash mumkin bo‘lgan pasayish kuzatildi."
+  ],
+  "unable_to_produce_as_much_force": [
+    "Tired muscles may be unable to produce as much force as fresh muscles.",
+    "Charchagan mushaklar dam olgan mushaklardek ko‘p kuch hosil qila olmasligi mumkin."
+  ],
+  "dont_always_match_perfectly": [
+    "Our feelings and the actual results don’t always match perfectly.",
+    "His-tuyg‘ularimiz va haqiqiy natijalar har doim ham to‘liq mos kelmaydi."
+  ],
+  "perception_of_tiredness": [
+    "A good mood can sometimes change your perception of tiredness.",
+    "Yaxshi kayfiyat ba’zan charchoqni qanday sezishingizni o‘zgartirishi mumkin."
+  ],
+  "develop_after_working_out": [
+    "A mild ache may develop after working out for the first time in weeks.",
+    "Bir necha haftadan keyin ilk bor mashq qilganda yengil og‘riq paydo bo‘lishi mumkin."
+  ],
+  "unfamiliar_exercise": [
+    "Try an unfamiliar exercise with a lighter weight at first.",
+    "Odatlanilmagan mashqni avval yengilroq og‘irlik bilan sinab ko‘ring."
+  ],
+  "been_a_while_since": [
+    "It’s been a while since we last visited our grandparents.",
+    "Bobo-buvimizni oxirgi marta ko‘rganimizga ancha vaqt bo‘ldi."
+  ],
+  "particularly_associated_with": [
+    "This problem is particularly associated with very hot weather.",
+    "Bu muammo ayniqsa juda issiq ob-havo bilan bog‘liq."
+  ],
+  "single_cause": [
+    "There isn’t one single cause of poor sleep.",
+    "Yomon uyquning faqat bitta sababi yo‘q."
+  ],
+  "depending_on_what_exercise": [
+    "You may need more water depending on what exercise you’ve done.",
+    "Qaysi mashqni qilganingizga qarab sizga ko‘proq suv kerak bo‘lishi mumkin."
+  ],
+  "rely_on": [
+    "Many people rely on public transport to get to work.",
+    "Ko‘p odamlar ishga borish uchun jamoat transportiga tayanadi."
+  ],
+  "trigger_muscle_contractions": [
+    "Electrical signals from nerves can trigger muscle contractions.",
+    "Asablardan keladigan elektr signallari mushak qisqarishlarini qo‘zg‘atishi mumkin."
+  ],
+  "affect_ability_to": [
+    "Lack of sleep can affect your ability to concentrate.",
+    "Uyqu yetishmasligi diqqatni jamlash qobiliyatingizga ta’sir qilishi mumkin."
+  ],
+  "produce_force": [
+    "Your legs need to produce force when you jump.",
+    "Sakraganingizda oyoqlaringiz kuch hosil qilishi kerak."
+  ],
+  "plays_a_part": [
+    "Diet also plays a part in your overall health.",
+    "Ovqatlanish ham umumiy sog‘lig‘ingizda rol o‘ynaydi."
+  ],
+  "temporarily_reduce_ability": [
+    "A serious lack of sleep can temporarily reduce your ability to focus.",
+    "Jiddiy uyqusizlik diqqatni jamlash qobiliyatingizni vaqtincha kamaytirishi mumkin."
+  ],
+  "contributing_to": [
+    "Heavy traffic is contributing to air pollution in the city.",
+    "Kuchli tirbandlik shahardagi havo ifloslanishiga hissa qo‘shmoqda."
+  ],
+  "demanding_exercise": [
+    "Have a proper meal after demanding exercise.",
+    "Katta kuch talab qiladigan mashqdan keyin to‘g‘ri ovqatlaning."
+  ],
+  "contribute_to_fatigue": [
+    "Long working hours can contribute to fatigue.",
+    "Uzoq ish soatlari charchoqqa sabab bo‘lishga hissa qo‘shishi mumkin."
+  ],
+  "reduce_performance": [
+    "Dehydration can reduce performance in hot conditions.",
+    "Suvsizlanish issiq sharoitda jismoniy ko‘rsatkichni pasaytirishi mumkin."
+  ],
+  "accustomed_to_activity": [
+    "After a few weeks, your body becomes more accustomed to the activity.",
+    "Bir necha haftadan keyin tanangiz bu faoliyatga ko‘proq odatlanadi."
+  ],
+  "try_something_unfamiliar": [
+    "Travelling is a good chance to try something unfamiliar.",
+    "Sayohat odatlanilmagan narsani sinab ko‘rish uchun yaxshi imkoniyat."
+  ],
+  "less_muscle_damage_and_soreness": [
+    "A gradual training plan may lead to less muscle damage and soreness.",
+    "Mashg‘ulotni asta-sekin oshirish rejasi kamroq mushak shikastlanishi va og‘rig‘iga olib kelishi mumkin."
+  ],
+  "preservation_of_physical_performance": [
+    "Rest is important for the preservation of physical performance during a long competition.",
+    "Uzoq musobaqa davomida jismoniy ko‘rsatkichni saqlab qolish uchun dam olish muhim."
+  ],
+  "recovery_strategies": [
+    "Different athletes prefer different recovery strategies.",
+    "Turli sportchilar turli tiklanish usullarini afzal ko‘radi."
+  ],
+  "replace_energy_stores": [
+    "Eating carbohydrates after training can help replace energy stores.",
+    "Mashg‘ulotdan keyin uglevod iste’mol qilish energiya zaxiralarini qayta to‘ldirishga yordam beradi."
+  ],
+  "adapt_and_recover_from": [
+    "Give your body enough time to adapt and recover from a new routine.",
+    "Tanangizga yangi tartibga moslashish va undan tiklanish uchun yetarli vaqt bering."
+  ],
+  "instant_cure_for": [
+    "There is no instant cure for poor fitness.",
+    "Jismoniy tayyorgarlik pastligi uchun darhol yechim yo‘q."
+  ],
+  "produced_mixed_results": [
+    "The new treatment has produced mixed results so far.",
+    "Yangi davolash usuli hozirgacha turlicha natijalar berdi."
+  ],
+  "consume_some_electrolytes": [
+    "You can consume some electrolytes after exercising for a long time in the heat.",
+    "Issiqda uzoq vaqt mashq qilgandan keyin elektrolitlarni iste’mol qilishingiz mumkin."
+  ],
+  "opportunity_to_recover": [
+    "A quiet weekend gave her an opportunity to recover.",
+    "Tinch dam olish kunlari unga tiklanish imkoniyatini berdi."
+  ],
+  "benefit_aspects_of": [
+    "Regular exercise may benefit aspects of mental health.",
+    "Muntazam mashq ruhiy salomatlikning ayrim jihatlariga foyda berishi mumkin."
+  ],
+  "alternate_recovery_techniques": [
+    "The coach introduced alternate recovery techniques to the team.",
+    "Murabbiy jamoaga muqobil tiklanish usullarini tanishtirdi."
+  ],
+  "reduce_muscle_soreness": [
+    "A gentle walk may reduce muscle soreness the next day.",
+    "Yengil yurish ertasi kuni mushak og‘rig‘ini kamaytirishi mumkin."
+  ],
+  "strongest_effects_on": [
+    "Daily habits often have the strongest effects on long-term health.",
+    "Kundalik odatlar ko‘pincha uzoq muddatli salomatlikka eng kuchli ta’sir ko‘rsatadi."
+  ],
+  "manageable_level": [
+    "Keep your weekly workload at a manageable level.",
+    "Haftalik ish yuklamangizni uddalash mumkin bo‘lgan darajada saqlang."
+  ],
+  "gradually_building_up": [
+    "Gradually building up your running distance can help prevent injury.",
+    "Yugurish masofasini asta-sekin oshirib borish jarohatning oldini olishga yordam beradi."
+  ],
+  "well_hydrated_before_workouts": [
+    "Athletes should be well hydrated before workouts in summer.",
+    "Sportchilar yozda mashqdan oldin yetarlicha suyuqlik ichgan bo‘lishi kerak."
+  ],
+  "allowing_time_to_recover": [
+    "Allowing time to recover can improve your next training session.",
+    "Tiklanishga vaqt berish keyingi mashg‘ulotingizni yaxshilashi mumkin."
+  ],
+  "completely_exhausted": [
+    "He felt completely exhausted after working all night.",
+    "U tun bo‘yi ishlagandan keyin butunlay holdan toygan edi."
+  ],
+  "doesnt_necessarily_mean": [
+    "A high price doesn’t necessarily mean better quality.",
+    "Yuqori narx har doim ham sifat yaxshiroq degani emas."
+  ],
+  "in_proportion_to": [
+    "The amount of rest should be in proportion to the effort you make.",
+    "Dam olish miqdori qilgan harakatingizga mutanosib bo‘lishi kerak."
+  ],
+  "disproportionate_to": [
+    "The cost seems disproportionate to the quality of the product.",
+    "Narx mahsulot sifatiga nisbatan nomutanosibdek tuyuladi."
+  ],
+  "improve_with_recovery": [
+    "Your energy levels should improve with recovery.",
+    "Quvvat darajangiz tiklanish bilan yaxshilanishi kerak."
+  ],
+  "comes_with_symptoms": [
+    "See a doctor if the illness comes with symptoms such as a high fever.",
+    "Kasallik yuqori isitma kabi alomatlar bilan birga kelsa, shifokorga murojaat qiling."
+  ],
+  "post_workout_fatigue": [
+    "Post-workout fatigue usually becomes less noticeable after proper rest.",
+    "Mashqdan keyingi charchoq odatda yaxshi dam olgandan keyin kamroq seziladi."
+  ],
+  "muscle_weakness": [
+    "Muscle weakness may make it difficult to climb stairs.",
+    "Mushak kuchsizligi zinadan chiqishni qiyinlashtirishi mumkin."
+  ],
+  "physical_performance": [
+    "Regular training can improve physical performance over time.",
+    "Muntazam mashq vaqt o‘tishi bilan jismoniy ko‘rsatkichni yaxshilashi mumkin."
+  ],
+  "challenging_weights_session": [
+    "Take a rest day after a challenging weights session if you need one.",
+    "Agar kerak bo‘lsa, qiyin kuch mashg‘ulotidan keyin bir kun dam oling."
+  ],
+  "regular_runner": [
+    "A regular runner may find five kilometres quite easy.",
+    "Muntazam yuguradigan odam uchun besh kilometr ancha oson bo‘lishi mumkin."
+  ],
+  "lifts_weights": [
+    "My brother lifts weights at the gym after work.",
+    "Akam ishdan keyin sport zalida og‘irlik ko‘taradi."
+  ],
+  "long_or_demanding_workout": [
+    "Plan enough recovery time after a long or demanding workout.",
+    "Uzoq yoki katta kuch talab qiladigan mashqdan keyin yetarli tiklanish vaqtini rejalashtiring."
+  ],
+  "energy_stores": [
+    "Your energy stores can become low during a very long workout.",
+    "Juda uzoq mashq paytida energiya zaxiralaringiz kamayishi mumkin."
+  ],
+  "protein_supplements": [
+    "Some people use protein supplements after training.",
+    "Ba’zi odamlar mashg‘ulotdan keyin oqsil qo‘shimchalaridan foydalanadi."
+  ],
+  "immediate_recovery": [
+    "A cool drink can support immediate recovery after exercise in the heat.",
+    "Salqin ichimlik issiqda mashqdan keyingi tez tiklanishga yordam berishi mumkin."
+  ],
+  "long_run": [
+    "She listens to podcasts during a long run.",
+    "U uzoq yugurish paytida podkast tinglaydi."
+  ],
+  "intense_workout_session": [
+    "Drink enough water before an intense workout session.",
+    "Juda intensiv mashg‘ulotdan oldin yetarli suv iching."
+  ],
+  "sweated_a_lot": [
+    "I sweated a lot during the football match.",
+    "Men futbol o‘yini paytida ko‘p terladim."
+  ],
+  "hot_weather": [
+    "We avoid exercising outside at midday in hot weather.",
+    "Issiq ob-havoda tush payti tashqarida mashq qilishdan saqlanamiz."
+  ],
+  "take_naps": [
+    "I sometimes take naps when I feel very tired in the afternoon.",
+    "Tushdan keyin juda charchaganimda ba’zan qisqa uyqu qilaman."
+  ],
+  "physical_and_mental_performance": [
+    "A balanced routine can support physical and mental performance.",
+    "Muvozanatli tartib jismoniy va aqliy ko‘rsatkichni qo‘llab-quvvatlashi mumkin."
+  ],
+  "gentle_exercise": [
+    "Gentle exercise is often easier on tired muscles.",
+    "Yengil mashq charchagan mushaklarga ko‘pincha yengilroq tushadi."
+  ],
+  "slow_walk": [
+    "We took a slow walk around the park after dinner.",
+    "Kechki ovqatdan keyin bog‘da sekin sayr qildik."
+  ],
+  "demanding_workouts": [
+    "Give yourself enough rest between demanding workouts.",
+    "Katta kuch talab qiladigan mashqlar orasida o‘zingizga yetarli dam bering."
+  ],
+  "longer_workouts": [
+    "Longer workouts are not always better workouts.",
+    "Uzoqroq mashqlar har doim ham yaxshiroq mashqlar degani emas."
+  ],
+  "hot_conditions": [
+    "Workers need regular breaks in hot conditions.",
+    "Ishchilar issiq sharoitda muntazam tanaffus qilishi kerak."
+  ],
+  "support_your_activity": [
+    "Choose meals that give you enough energy to support your activity.",
+    "Faoliyatingizni qo‘llab-quvvatlash uchun yetarli quvvat beradigan ovqatlarni tanlang."
+  ],
+  "body_is_prepared_for": [
+    "Increase the distance only when your body is prepared for it.",
+    "Masofani faqat tanangiz bunga tayyor bo‘lganda oshiring."
+  ],
+  "reduce_how_bad": [
+    "Rest and hydration can reduce how bad your post-workout fatigue is.",
+    "Dam olish va yetarli suyuqlik ichish mashqdan keyingi charchoq qanchalik kuchli bo‘lishini kamaytirishi mumkin."
+  ],
+  "chest_pain": [
+    "He went to the hospital because of sudden chest pain.",
+    "U to‘satdan paydo bo‘lgan ko‘krak og‘rig‘i sabab kasalxonaga bordi."
+  ],
+  "unusual_breathlessness": [
+    "Tell a doctor if you experience unusual breathlessness during normal activities.",
+    "Oddiy faoliyat paytida noodatiy nafas qisishi bo‘lsa, shifokorga ayting."
+  ],
+  "rare_illness": [
+    "The doctors were able to identify the rare illness quickly.",
+    "Shifokorlar kam uchraydigan kasallikni tezda aniqlay oldi."
+  ],
+  "developed_brain_damage": [
+    "The report said that the patient developed brain damage after the accident.",
+    "Hisobotda bemor baxtsiz hodisadan keyin miya shikastlanishiga uchragani aytilgan."
+  ],
+  "kidney_failure": [
+    "Kidney failure requires medical treatment and careful monitoring.",
+    "Buyrak yetishmovchiligi tibbiy davolash va ehtiyotkor kuzatuvni talab qiladi."
+  ],
+  "intensive_care": [
+    "She remained in intensive care for several days.",
+    "U bir necha kun intensiv terapiyada qoldi."
+  ],
+  "caused_by_infection": [
+    "The swelling was caused by infection.",
+    "Shish infeksiya sababli yuzaga kelgan edi."
+  ],
+  "transmitted_in_a_variety_of_ways": [
+    "Viruses can be transmitted in a variety of ways.",
+    "Viruslar turli yo‘llar bilan yuqishi mumkin."
+  ],
+  "contact_with_animals": [
+    "Children should wash their hands after contact with animals.",
+    "Bolalar hayvonlar bilan aloqadan keyin qo‘llarini yuvishi kerak."
+  ],
+  "shed_light_on": [
+    "The interview may shed light on what happened that evening.",
+    "Suhbat o‘sha oqshom nima bo‘lganiga oydinlik kiritishi mumkin."
+  ],
+  "hygiene_precautions": [
+    "Restaurants must follow basic hygiene precautions.",
+    "Restoranlar asosiy gigiyena ehtiyot choralariga rioya qilishi kerak."
+  ],
+  "infection_risk": [
+    "Washing your hands regularly can lower infection risk.",
+    "Qo‘llarni muntazam yuvish infeksiya yuqtirish xavfini kamaytirishi mumkin."
+  ],
+  "warning_signs": [
+    "Learn the warning signs before the condition becomes serious.",
+    "Holat jiddiylashishidan oldin ogohlantiruvchi belgilarni bilib oling."
+  ],
+  "urgent_medical_assessment": [
+    "The child was sent for urgent medical assessment.",
+    "Bola shoshilinch tibbiy ko‘rikka yuborildi."
+  ],
+  "as_soon_as_possible": [
+    "Please send me the document as soon as possible.",
+    "Iltimos, hujjatni imkon qadar tezroq menga yuboring."
+  ],
+  "leads_to": [
+    "Too little sleep often leads to poor concentration.",
+    "Juda kam uxlash ko‘pincha diqqatning pasayishiga olib keladi."
+  ],
+  "can_progress_to": [
+    "A small problem can progress to something more serious if ignored.",
+    "Kichik muammo e’tiborsiz qoldirilsa, yanada jiddiy holatgacha rivojlanishi mumkin."
+  ],
+  "medical_treatment": [
+    "He recovered well after receiving medical treatment.",
+    "U tibbiy davolashdan keyin yaxshi tiklandi."
+  ],
+  "spread_to_humans": [
+    "Certain diseases can spread to humans from animals.",
+    "Ayrim kasalliklar hayvonlardan odamlarga yuqishi mumkin."
+  ],
+  "contaminated_food_and_water": [
+    "Travellers should be careful with contaminated food and water.",
+    "Sayohatchilar ifloslangan oziq-ovqat va suvdan ehtiyot bo‘lishi kerak."
+  ],
+  "come_into_contact_with": [
+    "You may come into contact with many different people at a large event.",
+    "Katta tadbirda ko‘plab turli odamlar bilan aloqa qilishingiz mumkin."
+  ],
+  "not_the_only_way": [
+    "Driving is not the only way to get around the city.",
+    "Mashina haydash shahar bo‘ylab yurishning yagona yo‘li emas."
+  ],
+  "the_risk_lies_when": [
+    "The risk lies when people ignore basic safety rules.",
+    "Xavf odamlar asosiy xavfsizlik qoidalarini e’tiborsiz qoldirganda yuzaga keladi."
+  ],
+  "particularly_difficult_to_protect": [
+    "Personal information can be particularly difficult to protect online.",
+    "Shaxsiy ma’lumotlarni internetda himoya qilish ayniqsa qiyin bo‘lishi mumkin."
+  ],
+  "recognised_animal_reservoirs": [
+    "Scientists study recognised animal reservoirs to understand how diseases spread.",
+    "Olimlar kasalliklar qanday tarqalishini tushunish uchun tan olingan hayvon manbalarini o‘rganadi."
+  ],
+  "expose_children_to": [
+    "Parents should avoid exposing children to cigarette smoke.",
+    "Ota-onalar bolalarni sigaret tutuni ta’siriga duchor qilishdan saqlanishi kerak."
+  ],
+  "identified_as_a_risk": [
+    "Poor ventilation was identified as a risk in the report.",
+    "Yomon shamollatish hisobotda xavf sifatida aniqlangan."
+  ],
+  "show_symptoms": [
+    "Some people can carry an infection without showing symptoms.",
+    "Ba’zi odamlar alomatlar ko‘rsatmasdan infeksiyani tashib yurishi mumkin."
+  ],
+  "provide_children_with": [
+    "Schools should provide children with a safe place to learn.",
+    "Maktablar bolalarga o‘qish uchun xavfsiz joy taqdim etishi kerak."
+  ],
+  "appropriately_managed": [
+    "The situation can be controlled if it is appropriately managed.",
+    "Vaziyat tegishli tarzda boshqarilsa, uni nazorat qilish mumkin."
+  ],
+  "readily_accessible": [
+    "Clean drinking water should be readily accessible to everyone.",
+    "Toza ichimlik suvidan hamma oson foydalanishi mumkin bo‘lishi kerak."
+  ],
+  "physical_separation": [
+    "Physical separation can reduce contact between different groups.",
+    "Jismoniy ajratish turli guruhlar o‘rtasidagi aloqani kamaytirishi mumkin."
+  ],
+  "need_to_ensure": [
+    "Managers need to ensure that the building is safe.",
+    "Rahbarlar bino xavfsizligiga ishonch hosil qilishi kerak."
+  ],
+  "are_supervised": [
+    "Children are supervised during the swimming lesson.",
+    "Bolalar suzish darsi paytida nazorat ostida bo‘ladi."
+  ],
+  "as_effective_as": [
+    "Online lessons can be as effective as classroom lessons in some situations.",
+    "Ba’zi holatlarda onlayn darslar sinfdagi darslar kabi samarali bo‘lishi mumkin."
+  ],
+  "favour_venues_with": [
+    "We favour venues with plenty of natural light.",
+    "Biz tabiiy yorug‘lik ko‘p bo‘lgan joylarni afzal ko‘ramiz."
+  ],
+  "running_water": [
+    "The village now has clean running water.",
+    "Qishloqda endi toza oqayotgan suv bor."
+  ],
+  "disposable_towels": [
+    "Disposable towels are available beside the sink.",
+    "Rakvina yonida bir martalik sochiqlar bor."
+  ],
+  "wash_before_eating_or_drinking": [
+    "Always wash before eating or drinking after gardening.",
+    "Bog‘da ishlagandan keyin ovqatlanish yoki ichishdan oldin doimo qo‘llaringizni yuving."
+  ]
+};
+
 const readingArticles=[
   {
     "id": "post-workout-fatigue",
@@ -2518,10 +2985,9 @@ function wordHtml(key,displayText){
   const detail=vocabDetails[key]||{ex:['',''],syn:[]};
   const text=displayText||item.term;
   const cls=item.level==='B1'?'b1':'b2';
-  const articleExample=findArticleExample(key);
   const examples=[
-    vocabExampleHtml(articleExample),
-    vocabExampleHtml(detail.ex)
+    vocabExampleHtml(detail.ex),
+    vocabExampleHtml(vocabExtraExamples[key])
   ].filter(Boolean).join('');
   const synonyms=(strictSynonyms[key]||[]).slice(0,2);
   const synonymHtml=synonyms.length?'<span class="vocab-synonyms"><b>Synonyms</b><span class="vocab-synonym-list">'+synonyms.map(s=>'<span class="vocab-synonym">'+esc(s)+'</span>').join('')+'</span></span>':'';
