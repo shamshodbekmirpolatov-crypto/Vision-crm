@@ -819,7 +819,7 @@ function groupForm(g={},staff=[]){
   const dayChecks='<div class="field span-2"><label>Teaching days</label><div class="weekday-checks">'+days.map(d=>'<label class="inline-check weekday-check"><input type="checkbox" name="meeting_days" value="'+d+'" '+(selected.has(d)?'checked':'')+'> '+d+'</label>').join('')+'</div></div>';
   return '<div class="form-cols">'+
     field('Group name','name',g.name||'','','required')+
-    field('Level','level',g.level||'')+
+    selectField('Level','level',[['','Not set'],['Beginner','Beginner'],['Elementary','Elementary'],['Pre-Intermediate','Pre-Intermediate'],['CEFR','CEFR'],['Intermediate','Intermediate'],['Pre-IELTS','Pre-IELTS'],['IELTS','IELTS'],['General English / Mixed Level','General English / Mixed Level']],g.level||'')+
     dayChecks+
     field('Start time','start_time',g.start_time?String(g.start_time).slice(0,5):'','time','required')+
     field('End time','end_time',g.end_time?String(g.end_time).slice(0,5):'','time','required')+
