@@ -370,3 +370,138 @@
   .vocab-popover{max-width:185px;min-width:145px}
   .vocab-practice-section{padding:16px}
 }
+
+
+/* Rich vocabulary cards: meaning, UK/US audio, examples and carefully limited synonyms */
+.vocab-popover{
+  width:340px;
+  max-width:min(340px,calc(100vw - 28px));
+  min-width:280px;
+  padding:14px;
+  border:1px solid #dbe6ec;
+  background:#fff;
+  color:#203f54;
+  border-radius:16px;
+  box-shadow:0 18px 46px rgba(5,37,59,.22);
+  line-height:1.35;
+}
+.vocab-popover:after{
+  background:#fff;
+  border-right:1px solid #dbe6ec;
+  border-bottom:1px solid #dbe6ec;
+}
+.vocab-card-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.vocab-popover .vocab-card-head small{
+  display:inline-flex;
+  color:#44748f;
+  background:#edf5f9;
+  border-radius:999px;
+  padding:4px 7px;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.06em;
+}
+.vocab-popover .vocab-card-head strong{
+  display:block;
+  color:#163c55;
+  font-size:15px;
+  line-height:1.25;
+  margin:0;
+  flex:1;
+}
+.vocab-meaning{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:8px;
+  align-items:start;
+  margin-top:10px;
+  padding:9px 10px;
+  border-radius:10px;
+  background:#f5f8fa;
+}
+.vocab-meaning b,.vocab-examples>b,.vocab-synonyms>b{
+  color:#6b8291;
+  font-size:9px;
+  line-height:1.4;
+  text-transform:uppercase;
+  letter-spacing:.07em;
+}
+.vocab-popover .vocab-meaning em{
+  display:block;
+  color:#25495f;
+  font-size:12px;
+  line-height:1.45;
+  font-style:normal;
+}
+.vocab-pronunciation{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+  margin-top:10px;
+}
+.vocab-audio{
+  border:1px solid #cbdde7;
+  background:#f8fbfd;
+  color:#285d7b;
+  border-radius:10px;
+  padding:9px 8px;
+  min-height:38px;
+  font:inherit;
+  font-size:11px;
+  font-weight:800;
+  cursor:pointer;
+  transition:background .12s ease,border-color .12s ease,transform .12s ease;
+}
+.vocab-audio:hover,.vocab-audio:focus-visible{
+  background:#eaf5fb;
+  border-color:#90b7cc;
+  outline:none;
+  transform:translateY(-1px);
+}
+.vocab-examples{margin-top:11px}
+.vocab-example{
+  margin-top:6px;
+  padding:8px 9px;
+  border:1px solid #e3eaee;
+  border-radius:10px;
+  background:#fff;
+}
+.vocab-example-context{background:#fbfcfd}
+.vocab-example p{
+  margin:0;
+  color:#24475d;
+  font-size:11px;
+  line-height:1.45;
+  font-weight:700;
+}
+.vocab-example span{
+  display:block;
+  margin-top:3px;
+  color:#708390;
+  font-size:10px;
+  line-height:1.45;
+  font-weight:500;
+}
+.vocab-synonyms{margin-top:11px}
+.vocab-synonyms>div{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.vocab-synonyms span{
+  display:inline-flex;
+  align-items:center;
+  min-height:26px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#edf3f7;
+  color:#315b72;
+  font-size:10px;
+  font-weight:750;
+}
+@media(max-width:520px){
+  .vocab-popover{
+    width:calc(100vw - 28px);
+    min-width:0;
+    max-width:calc(100vw - 28px);
+    padding:12px;
+  }
+  .vocab-pronunciation{grid-template-columns:1fr}
+  .vocab-audio{min-height:42px;font-size:12px}
+}
