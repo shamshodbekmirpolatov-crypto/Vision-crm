@@ -2496,7 +2496,7 @@ function findArticleExample(key){
 
 function vocabExampleHtml(example){
   if(!example||!example[0])return '';
-  return '<div class="vocab-example"><p>'+esc(example[0])+'</p><span>'+esc(example[1]||'')+'</span></div>';
+  return '<span class="vocab-example"><span class="vocab-example-en">'+esc(example[0])+'</span><span class="vocab-example-uz">'+esc(example[1]||'')+'</span></span>';
 }
 
 function speakVocab(key,accent){
@@ -2524,17 +2524,17 @@ function wordHtml(key,displayText){
     vocabExampleHtml(detail.ex)
   ].filter(Boolean).join('');
   const synonyms=(strictSynonyms[key]||[]).slice(0,2);
-  const synonymHtml=synonyms.length?'<div class="vocab-synonyms"><b>Synonyms</b><div>'+synonyms.map(s=>'<span>'+esc(s)+'</span>').join('')+'</div></div>':'';
-  return '<span class="vocab-word '+cls+'" role="button" tabindex="0" data-vocab="'+esc(key)+'">'+
+  const synonymHtml=synonyms.length?'<span class="vocab-synonyms"><b>Synonyms</b><span class="vocab-synonym-list">'+synonyms.map(s=>'<span class="vocab-synonym">'+esc(s)+'</span>').join('')+'</span></span>':'';
+  return '<span class="vocab-word '+cls+'" role="button" tabindex="0" data-vocab="'+esc(key)+'" aria-expanded="false">'+
     esc(text)+
     '<span class="vocab-popover" aria-hidden="true">'+
-      '<div class="vocab-card-head"><small>'+esc(item.level)+'</small><strong>'+esc(item.term)+'</strong></div>'+
-      '<div class="vocab-meaning"><b>Uzbek</b><em>'+esc(item.uz)+'</em></div>'+
-      '<div class="vocab-pronunciation" aria-label="Pronunciation">'+
+      '<span class="vocab-card-head"><small>'+esc(item.level)+'</small><strong>'+esc(item.term)+'</strong></span>'+
+      '<span class="vocab-meaning"><b>Uzbek</b><em>'+esc(item.uz)+'</em></span>'+
+      '<span class="vocab-pronunciation" aria-label="Pronunciation">'+
         '<button class="vocab-audio" type="button" data-accent="gb" data-vocab="'+esc(key)+'" aria-label="Hear British pronunciation">🇬🇧 <span>British</span> 🔊</button>'+
         '<button class="vocab-audio" type="button" data-accent="us" data-vocab="'+esc(key)+'" aria-label="Hear American pronunciation">🇺🇸 <span>American</span> 🔊</button>'+
-      '</div>'+
-      '<div class="vocab-examples"><b>Examples</b>'+examples+'</div>'+
+      '</span>'+
+      '<span class="vocab-examples"><b>Examples</b>'+examples+'</span>'+
       synonymHtml+
     '</span>'+
   '</span>';
@@ -2959,7 +2959,13 @@ function renderArticle(root,data,callbacks){
   const highlighter=bindReadingHighlighter(root,data,articleEvents.signal);
 
   function closeWords(except){
-    root.querySelectorAll('.vocab-word.open').forEach(el=>{if(el!==except)el.classList.remove('open');});
+    root.querySelectorAll('.vocab-word.open').forEach(el=>{
+      if(el===except)return;
+      el.classList.remove('open');
+      el.setAttribute('aria-expanded','false');
+      const popover=el.querySelector('.vocab-popover');
+      if(popover)popover.setAttribute('aria-hidden','true');
+    });
   }
 
   root.querySelector('#article-copy').addEventListener('click',e=>{
@@ -2980,7 +2986,11 @@ function renderArticle(root,data,callbacks){
       e.stopPropagation();
       const wasOpen=word.classList.contains('open');
       closeWords(word);
-      word.classList.toggle('open',!wasOpen);
+      const shouldOpen=!wasOpen;
+      word.classList.toggle('open',shouldOpen);
+      word.setAttribute('aria-expanded',String(shouldOpen));
+      const popover=word.querySelector('.vocab-popover');
+      if(popover)popover.setAttribute('aria-hidden',String(!shouldOpen));
       return;
     }
     const sentence=e.target.closest('.article-sentence');
