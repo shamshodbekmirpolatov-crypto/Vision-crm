@@ -2973,12 +2973,26 @@ function vocabExampleHtml(example){
 
 function preferredEnglishVoice(locale){
   if(!('speechSynthesis' in window))return null;
-  const voices=window.speechSynthesis.getVoices();
   const target=locale.toLowerCase();
-  return voices.find(v=>String(v.lang||'').toLowerCase()===target)||
-    voices.find(v=>String(v.lang||'').toLowerCase().replace('_','-')===target)||
-    voices.find(v=>String(v.lang||'').toLowerCase().startsWith(target))||
-    null;
+  const voices=window.speechSynthesis.getVoices().filter(v=>{
+    const lang=String(v.lang||'').toLowerCase().replace('_','-');
+    return lang===target||lang.startsWith(target);
+  });
+  function score(v){
+    const name=String(v.name||'').toLowerCase();
+    let s=0;
+    if(name.includes('natural'))s+=20;
+    if(name.includes('neural'))s+=18;
+    if(name.includes('enhanced'))s+=14;
+    if(name.includes('premium'))s+=12;
+    if(name.includes('online'))s+=8;
+    if(name.includes('google'))s+=7;
+    if(name.includes('microsoft'))s+=7;
+    if(v.default)s+=2;
+    return s;
+  }
+  voices.sort((a,b)=>score(b)-score(a));
+  return voices[0]||null;
 }
 
 function speakVocab(key,accent){
@@ -3343,19 +3357,30 @@ function articleBodyHtml(){
   });
   return out;
 }
-function articleSpeechSegments(article){
+function articleSpeechItems(article){
   if(!article)return [];
-  const segments=[];
-  if(article.title)segments.push(article.title);
+  const items=[];
+  if(article.title)items.push({text:article.title,kind:'title',pauseAfter:.55});
   (article.sections||[]).forEach(section=>{
-    if(section.heading)segments.push(section.heading);
+    if(section.heading)items.push({text:section.heading,kind:'heading',pauseAfter:.42});
     (section.paragraphs||[]).forEach(paragraph=>{
-      paragraph.forEach(sentence=>{
-        if(sentence&&sentence.text)segments.push(sentence.text);
+      paragraph.forEach((sentence,index)=>{
+        if(sentence&&sentence.text){
+          items.push({
+            text:sentence.text,
+            kind:'sentence',
+            paragraphEnd:index===paragraph.length-1,
+            pauseAfter:index===paragraph.length-1?.36:.16
+          });
+        }
       });
     });
   });
-  return segments;
+  return items;
+}
+
+function articleSpeechSegments(article){
+  return articleSpeechItems(article).map(item=>item.text);
 }
 
 function estimateSpeechSegmentSeconds(text){
@@ -3365,9 +3390,11 @@ function estimateSpeechSegmentSeconds(text){
 
 function articleAudioTimeline(article){
   let cursor=0;
-  return articleSpeechSegments(article).map((text,index)=>{
-    const duration=estimateSpeechSegmentSeconds(text);
-    const item={text,index,start:cursor,end:cursor+duration,duration};
+  return articleSpeechItems(article).map((speechItem,index)=>{
+    const speechDuration=estimateSpeechSegmentSeconds(speechItem.text);
+    const pauseAfter=Number(speechItem.pauseAfter)||0;
+    const duration=speechDuration+pauseAfter;
+    const item={...speechItem,index,start:cursor,end:cursor+duration,duration,speechDuration,pauseAfter};
     cursor+=duration;
     return item;
   });
@@ -3674,7 +3701,25 @@ function renderArticle(root,data,callbacks){
       utterance.lang=locale;
       const voice=voiceForGender(accent,state.gender)||preferredEnglishVoice(locale);
       if(voice)utterance.voice=voice;
-      utterance.rate=state.rate||.95;
+
+      const baseRate=state.rate||.95;
+      const isQuestion=/\?\s*$/.test(spoken);
+      const isExclamation=/!\s*$/.test(spoken);
+      const isShort=spoken.trim().split(/\s+/).length<=6;
+      const kind=segment.kind||'sentence';
+
+      let deliveryRate=baseRate;
+      if(kind==='title')deliveryRate*=.88;
+      else if(kind==='heading')deliveryRate*=.91;
+      else if(isQuestion)deliveryRate*=.96;
+      else if(isExclamation)deliveryRate*=.98;
+      else if(isShort)deliveryRate*=.97;
+
+      utterance.rate=Math.max(.72,Math.min(1.35,deliveryRate));
+      const genderPitch=state.gender==='male'?.92:1.04;
+      const expressionPitch=isQuestion?.05:isExclamation?.03:0;
+      utterance.pitch=Math.max(.82,Math.min(1.18,genderPitch+expressionPitch));
+      utterance.volume=1;
 
       utterance.onboundary=event=>{
         if(runId!==audioRun||activeAudioAccent!==accent||state.paused)return;
@@ -3689,9 +3734,16 @@ function renderArticle(root,data,callbacks){
 
       utterance.onend=()=>{
         if(runId!==audioRun||activeAudioAccent!==accent||state.paused)return;
-        state.position=segment.end;
+        state.position=Math.max(segment.start,segment.end-(segment.pauseAfter||0));
         syncPlayerUi(accent);
-        speakSegment(segmentIndex+1,0);
+
+        const pauseMs=Math.max(70,Math.round((segment.pauseAfter||.14)*1000));
+        setTimeout(()=>{
+          if(runId!==audioRun||activeAudioAccent!==accent||state.paused)return;
+          state.position=segment.end;
+          syncPlayerUi(accent);
+          speakSegment(segmentIndex+1,0);
+        },pauseMs);
       };
 
       utterance.onerror=event=>{
@@ -3806,12 +3858,33 @@ function renderArticle(root,data,callbacks){
     return '';
   }
 
+  function voiceQualityScore(voice){
+    const name=String(voice?.name||'').toLowerCase();
+    let score=0;
+    if(name.includes('natural'))score+=20;
+    if(name.includes('neural'))score+=18;
+    if(name.includes('enhanced'))score+=14;
+    if(name.includes('premium'))score+=12;
+    if(name.includes('online'))score+=8;
+    if(name.includes('google'))score+=7;
+    if(name.includes('microsoft'))score+=7;
+    if(name.includes('apple'))score+=5;
+    if(name.includes('compact'))score-=4;
+    return score;
+  }
+
   function voiceForGender(accent,gender){
     const voices=voicesForAccent(accent);
-    const exact=voices.find(v=>inferredVoiceGender(v)===gender);
-    if(exact)return exact;
-    if(gender==='female')return voices[0]||null;
-    return voices[1]||voices[0]||null;
+    if(!voices.length)return null;
+    const scored=voices.map((voice,index)=>{
+      const inferred=inferredVoiceGender(voice);
+      let score=voiceQualityScore(voice);
+      if(inferred===gender)score+=30;
+      else if(inferred)score-=12;
+      if(voice.default)score+=2;
+      return {voice,score,index};
+    }).sort((a,b)=>b.score-a.score||a.index-b.index);
+    return scored[0]?.voice||voices[0]||null;
   }
 
   function voicesForAccent(accent){
@@ -3827,7 +3900,7 @@ function renderArticle(root,data,callbacks){
       if(seen.has(key))return false;
       seen.add(key);
       return true;
-    });
+    }).sort((a,b)=>voiceQualityScore(b)-voiceQualityScore(a));
   }
 
   root.querySelectorAll('[data-gender-accent]').forEach(button=>{
