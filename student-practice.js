@@ -3743,22 +3743,36 @@ function renderArticle(root,data,callbacks){
 
   root.querySelectorAll('.article-audio-seek').forEach(seek=>{
     const accent=seek.dataset.articleSeek;
-    const updatePreview=()=>{
-      const state=audioPlayers[accent];
-      state.position=Math.max(0,Math.min(articleAudioTotal,Number(seek.value)||0));
+    const state=audioPlayers[accent];
+
+    function stopForSeeking(){
+      // Seeking should behave like a real player: stop the current speech first,
+      // then let the student choose the exact point before pressing Play again.
+      haltArticleSpeech({preservePosition:true,markPaused:true});
+      state.playing=false;
+      state.paused=true;
       syncPlayerUi(accent);
-    };
-    seek.addEventListener('input',updatePreview,{signal:articleEvents.signal});
-    seek.addEventListener('change',()=>{
-      const state=audioPlayers[accent];
+    }
+
+    seek.addEventListener('pointerdown',stopForSeeking,{signal:articleEvents.signal});
+    seek.addEventListener('mousedown',stopForSeeking,{signal:articleEvents.signal});
+    seek.addEventListener('touchstart',stopForSeeking,{signal:articleEvents.signal,passive:true});
+
+    seek.addEventListener('input',()=>{
       const target=Math.max(0,Math.min(articleAudioTotal,Number(seek.value)||0));
-      const wasActive=activeAudioAccent===accent;
-      const shouldContinue=wasActive&&state.playing&&!state.paused;
-      haltArticleSpeech({preservePosition:true,markPaused:false});
       state.position=target;
-      state.paused=false;
+      state.playing=false;
+      state.paused=true;
       syncPlayerUi(accent);
-      if(shouldContinue)speakArticleFrom(accent,target);
+    },{signal:articleEvents.signal});
+
+    seek.addEventListener('change',()=>{
+      const target=Math.max(0,Math.min(articleAudioTotal,Number(seek.value)||0));
+      haltArticleSpeech({preservePosition:true,markPaused:true});
+      state.position=target;
+      state.playing=false;
+      state.paused=true;
+      syncPlayerUi(accent);
     },{signal:articleEvents.signal});
   });
 
@@ -3849,13 +3863,11 @@ function renderArticle(root,data,callbacks){
       const state=audioPlayers[accent];
       const delta=Number(button.dataset.skip)||0;
       const target=Math.max(0,Math.min(articleAudioTotal,state.position+delta));
-      const wasPlaying=activeAudioAccent===accent&&state.playing&&!state.paused;
-      const wasPaused=activeAudioAccent===accent&&state.paused;
-      haltArticleSpeech({preservePosition:true,markPaused:false});
+      haltArticleSpeech({preservePosition:true,markPaused:true});
       state.position=target;
-      state.paused=wasPaused;
+      state.playing=false;
+      state.paused=true;
       syncPlayerUi(accent);
-      if(wasPlaying)speakArticleFrom(accent,target);
     },{signal:articleEvents.signal});
   });
 
