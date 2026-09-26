@@ -3417,7 +3417,7 @@ function articleHtml(){
         '</div>'+
         '<section class="article-audio-panel" id="article-audio-panel" aria-label="Article audio">'+
           '<div class="article-audio-heading">'+
-            '<div><span class="article-audio-eyebrow">LISTEN WHILE YOU READ</span><strong>Full article audio</strong><small>Choose an accent. Pause, resume, or drag the timeline to any point.</small></div>'+
+            '<div><span class="article-audio-eyebrow">LISTEN WHILE YOU READ</span><strong>Full article audio</strong><small>Choose an accent and voice, change speed, or jump to any point in the article.</small></div>'+
           '</div>'+
           '<div class="article-player-list">'+
             '<div class="article-player-row" data-audio-player="gb">'+
@@ -3426,6 +3426,12 @@ function articleHtml(){
               '<div class="article-player-track">'+
                 '<input class="article-audio-seek" data-article-seek="gb" type="range" min="0" max="'+Math.max(1,Math.round(articleAudioDurationSeconds(activeArticle)))+'" step="1" value="0" aria-label="British article playback position">'+
                 '<div class="article-player-time"><span data-current-time="gb">0:00</span><span data-total-time="gb">'+formatAudioTime(articleAudioDurationSeconds(activeArticle))+'</span></div>'+
+                '<div class="article-player-tools">'+
+                  '<button class="article-skip-button" type="button" data-skip-accent="gb" data-skip="-10" aria-label="Go back 10 seconds">↶ 10s</button>'+
+                  '<label class="article-tool-select"><span>Voice</span><select data-voice-select="gb" aria-label="British voice"><option value="">Default British voice</option></select></label>'+
+                  '<label class="article-tool-select article-speed-select"><span>Speed</span><select data-rate-select="gb" aria-label="British playback speed"><option value="0.8">0.8×</option><option value="0.95" selected>0.95×</option><option value="1">1.0×</option><option value="1.15">1.15×</option><option value="1.3">1.3×</option></select></label>'+
+                  '<button class="article-skip-button" type="button" data-skip-accent="gb" data-skip="10" aria-label="Go forward 10 seconds">10s ↷</button>'+
+                '</div>'+
               '</div>'+
             '</div>'+
             '<div class="article-player-row" data-audio-player="us">'+
@@ -3434,6 +3440,12 @@ function articleHtml(){
               '<div class="article-player-track">'+
                 '<input class="article-audio-seek" data-article-seek="us" type="range" min="0" max="'+Math.max(1,Math.round(articleAudioDurationSeconds(activeArticle)))+'" step="1" value="0" aria-label="American article playback position">'+
                 '<div class="article-player-time"><span data-current-time="us">0:00</span><span data-total-time="us">'+formatAudioTime(articleAudioDurationSeconds(activeArticle))+'</span></div>'+
+                '<div class="article-player-tools">'+
+                  '<button class="article-skip-button" type="button" data-skip-accent="us" data-skip="-10" aria-label="Go back 10 seconds">↶ 10s</button>'+
+                  '<label class="article-tool-select"><span>Voice</span><select data-voice-select="us" aria-label="American voice"><option value="">Default American voice</option></select></label>'+
+                  '<label class="article-tool-select article-speed-select"><span>Speed</span><select data-rate-select="us" aria-label="American playback speed"><option value="0.8">0.8×</option><option value="0.95" selected>0.95×</option><option value="1">1.0×</option><option value="1.15">1.15×</option><option value="1.3">1.3×</option></select></label>'+
+                  '<button class="article-skip-button" type="button" data-skip-accent="us" data-skip="10" aria-label="Go forward 10 seconds">10s ↷</button>'+
+                '</div>'+
               '</div>'+
             '</div>'+
           '</div>'+
@@ -3506,8 +3518,8 @@ function renderArticle(root,data,callbacks){
   const articleAudioTimelineData=articleAudioTimeline(activeArticle);
   const articleAudioTotal=articleAudioTimelineData.length?articleAudioTimelineData[articleAudioTimelineData.length-1].end:0;
   const audioPlayers={
-    gb:{position:0,playing:false,paused:false},
-    us:{position:0,playing:false,paused:false}
+    gb:{position:0,playing:false,paused:false,voiceURI:'',rate:.95},
+    us:{position:0,playing:false,paused:false,voiceURI:'',rate:.95}
   };
   let activeAudioAccent=null;
   let audioRun=0;
@@ -3567,7 +3579,8 @@ function renderArticle(root,data,callbacks){
       const state=audioPlayers[accent];
       if(!state||!state.playing||state.paused||activeAudioAccent!==accent)return;
       const elapsed=(performance.now()-timerStartedAt)/1000;
-      state.position=Math.min(articleAudioTotal,timerStartPosition+elapsed);
+      const speedFactor=(state.rate||.95)/.95;
+      state.position=Math.min(articleAudioTotal,timerStartPosition+elapsed*speedFactor);
       syncPlayerUi(accent);
     },200);
   }
@@ -3659,9 +3672,11 @@ function renderArticle(root,data,callbacks){
       const locale=accent==='gb'?'en-GB':'en-US';
       const utterance=new SpeechSynthesisUtterance(spoken);
       utterance.lang=locale;
-      const voice=preferredEnglishVoice(locale);
+      const availableVoices=window.speechSynthesis.getVoices();
+      const selectedVoice=state.voiceURI?availableVoices.find(v=>v.voiceURI===state.voiceURI):null;
+      const voice=selectedVoice||preferredEnglishVoice(locale);
       if(voice)utterance.voice=voice;
-      utterance.rate=.94;
+      utterance.rate=state.rate||.95;
 
       utterance.onboundary=event=>{
         if(runId!==audioRun||activeAudioAccent!==accent||state.paused)return;
@@ -3744,6 +3759,103 @@ function renderArticle(root,data,callbacks){
       state.paused=false;
       syncPlayerUi(accent);
       if(shouldContinue)speakArticleFrom(accent,target);
+    },{signal:articleEvents.signal});
+  });
+
+  function voicesForAccent(accent){
+    if(!('speechSynthesis' in window))return [];
+    const locale=(accent==='gb'?'en-GB':'en-US').toLowerCase();
+    const regional=window.speechSynthesis.getVoices().filter(v=>{
+      const lang=String(v.lang||'').toLowerCase().replace('_','-');
+      return lang===locale||lang.startsWith(locale);
+    });
+    const seen=new Set();
+    return regional.filter(v=>{
+      const key=v.voiceURI||v.name;
+      if(seen.has(key))return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  function populateVoiceSelects(){
+    ['gb','us'].forEach(accent=>{
+      const select=root.querySelector('[data-voice-select="'+accent+'"]');
+      if(!select)return;
+      const previous=audioPlayers[accent].voiceURI||select.value||'';
+      const voices=voicesForAccent(accent);
+      const defaultLabel=accent==='gb'?'Default British voice':'Default American voice';
+      select.innerHTML='<option value="">'+defaultLabel+'</option>'+
+        voices.map(v=>'<option value="'+esc(v.voiceURI||v.name)+'">'+esc(v.name)+'</option>').join('');
+      const valid=voices.some(v=>(v.voiceURI||v.name)===previous);
+      select.value=valid?previous:'';
+      audioPlayers[accent].voiceURI=select.value;
+      select.disabled=voices.length===0;
+      if(voices.length===0)select.title='This device has no additional '+(accent==='gb'?'British':'American')+' voices installed.';
+    });
+  }
+
+  populateVoiceSelects();
+  if('speechSynthesis' in window){
+    window.speechSynthesis.addEventListener?.('voiceschanged',populateVoiceSelects,{signal:articleEvents.signal});
+  }
+
+  root.querySelectorAll('[data-voice-select]').forEach(select=>{
+    select.addEventListener('change',()=>{
+      const accent=select.dataset.voiceSelect;
+      const state=audioPlayers[accent];
+      const wasPlaying=activeAudioAccent===accent&&state.playing&&!state.paused;
+      const wasPaused=activeAudioAccent===accent&&state.paused;
+      const position=state.position;
+      state.voiceURI=select.value;
+      if(wasPlaying){
+        haltArticleSpeech({preservePosition:true,markPaused:false});
+        state.position=position;
+        speakArticleFrom(accent,position);
+      }else if(wasPaused){
+        haltArticleSpeech({preservePosition:true,markPaused:false});
+        state.position=position;
+        state.paused=true;
+        syncPlayerUi(accent);
+      }
+    },{signal:articleEvents.signal});
+  });
+
+  root.querySelectorAll('[data-rate-select]').forEach(select=>{
+    select.addEventListener('change',()=>{
+      const accent=select.dataset.rateSelect;
+      const state=audioPlayers[accent];
+      const nextRate=Math.max(.7,Math.min(1.5,Number(select.value)||.95));
+      const wasPlaying=activeAudioAccent===accent&&state.playing&&!state.paused;
+      const wasPaused=activeAudioAccent===accent&&state.paused;
+      const position=state.position;
+      state.rate=nextRate;
+      if(wasPlaying){
+        haltArticleSpeech({preservePosition:true,markPaused:false});
+        state.position=position;
+        speakArticleFrom(accent,position);
+      }else if(wasPaused){
+        haltArticleSpeech({preservePosition:true,markPaused:false});
+        state.position=position;
+        state.paused=true;
+        syncPlayerUi(accent);
+      }
+    },{signal:articleEvents.signal});
+  });
+
+  root.querySelectorAll('[data-skip-accent]').forEach(button=>{
+    button.addEventListener('click',()=>{
+      const accent=button.dataset.skipAccent;
+      const state=audioPlayers[accent];
+      const delta=Number(button.dataset.skip)||0;
+      const target=Math.max(0,Math.min(articleAudioTotal,state.position+delta));
+      const wasPlaying=activeAudioAccent===accent&&state.playing&&!state.paused;
+      const wasPaused=activeAudioAccent===accent&&state.paused;
+      haltArticleSpeech({preservePosition:true,markPaused:false});
+      state.position=target;
+      state.paused=wasPaused;
+      syncPlayerUi(accent);
+      if(wasPlaying)speakArticleFrom(accent,target);
     },{signal:articleEvents.signal});
   });
 
