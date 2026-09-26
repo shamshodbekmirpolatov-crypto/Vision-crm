@@ -2951,8 +2951,20 @@ const exerciseQuestions = [
 
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 
+function activeVocabMap(){
+  if(activeArticle?.source==='teacher'){
+    return activeArticle.vocabItems&&typeof activeArticle.vocabItems==='object'?activeArticle.vocabItems:{};
+  }
+  return vocab;
+}
+
+function vocabItemFor(key){
+  const articleItem=activeArticle?.vocabItems?.[key];
+  return articleItem||vocab[key]||null;
+}
+
 function findArticleExample(key){
-  const item=vocab[key];
+  const item=vocabItemFor(key);
   if(!item||!activeArticle)return null;
   const needle=String(item.term||'').toLowerCase();
   for(const section of activeArticle.sections||[]){
@@ -2997,9 +3009,25 @@ function preferredEnglishVoice(locale){
 }
 
 function speakVocab(key,accent){
-  const item=vocab[key];
-  if(!item||!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined')return;
+  const item=vocabItemFor(key);
+  if(!item)return;
   cancelArticleAudio();
+
+  const storedUrl=item.audio?.[accent];
+  if(storedUrl){
+    try{
+      if(window.__visionVocabAudio){
+        window.__visionVocabAudio.pause();
+        window.__visionVocabAudio.currentTime=0;
+      }
+      const audio=new Audio(storedUrl);
+      window.__visionVocabAudio=audio;
+      audio.play().catch(()=>{});
+      return;
+    }catch{}
+  }
+
+  if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined')return;
   const locale=accent==='gb'?'en-GB':'en-US';
   const utterance=new SpeechSynthesisUtterance(item.term);
   utterance.lang=locale;
@@ -3010,21 +3038,27 @@ function speakVocab(key,accent){
 }
 
 function wordHtml(key,displayText){
-  const item=vocab[key];
-  const detail=vocabDetails[key]||{ex:['',''],syn:[]};
+  const item=vocabItemFor(key);
+  if(!item)return esc(displayText||'');
+  const teacherItem=activeArticle?.source==='teacher'&&activeArticle?.vocabItems?.[key];
+  const detail=teacherItem
+    ? {ex:Array.isArray(item.examples)?item.examples[0]:['',''],syn:Array.isArray(item.synonyms)?item.synonyms:[]}
+    : (vocabDetails[key]||{ex:['',''],syn:[]});
   const text=displayText||item.term;
-  const cls=item.level==='B1'?'b1':'b2';
-  const examples=[
-    vocabExampleHtml(detail.ex),
-    vocabExampleHtml(vocabExtraExamples[key])
-  ].filter(Boolean).join('');
-  const synonyms=(strictSynonyms[key]||[]).slice(0,2);
+  const cls=String(item.level||'').toUpperCase().startsWith('B1')?'b1':'b2';
+  const examples=teacherItem
+    ? (Array.isArray(item.examples)?item.examples.slice(0,2).map(vocabExampleHtml).filter(Boolean).join(''):'')
+    : [
+        vocabExampleHtml(detail.ex),
+        vocabExampleHtml(vocabExtraExamples[key])
+      ].filter(Boolean).join('');
+  const synonyms=(teacherItem?(item.synonyms||[]):(strictSynonyms[key]||[])).slice(0,2);
   const synonymHtml=synonyms.length?'<span class="vocab-synonyms"><b>Synonyms</b><span class="vocab-synonym-list">'+synonyms.map(s=>'<span class="vocab-synonym">'+esc(s)+'</span>').join('')+'</span></span>':'';
   return '<span class="vocab-word '+cls+'" role="button" tabindex="0" data-vocab="'+esc(key)+'" aria-expanded="false">'+
     esc(text)+
     '<span class="vocab-popover" aria-hidden="true">'+
-      '<span class="vocab-card-head"><small>'+esc(item.level)+'</small><strong>'+esc(item.term)+'</strong></span>'+
-      '<span class="vocab-meaning"><b>Uzbek</b><em>'+esc(item.uz)+'</em></span>'+
+      '<span class="vocab-card-head"><small>'+esc(item.level||'Useful English')+'</small><strong>'+esc(item.term)+'</strong></span>'+
+      '<span class="vocab-meaning"><b>Uzbek</b><em>'+esc(item.uz||'')+'</em></span>'+
       '<span class="vocab-pronunciation" aria-label="Pronunciation">'+
         '<button class="vocab-audio" type="button" data-accent="gb" data-vocab="'+esc(key)+'" aria-label="Hear British pronunciation">🇬🇧 <span>British</span> 🔊</button>'+
         '<button class="vocab-audio" type="button" data-accent="us" data-vocab="'+esc(key)+'" aria-label="Hear American pronunciation">🇺🇸 <span>American</span> 🔊</button>'+
@@ -3035,11 +3069,18 @@ function wordHtml(key,displayText){
   '</span>';
 }
 
-const vocabEntries=Object.entries(vocab).sort((a,b)=>b[1].term.length-a[1].term.length);
+const builtInVocabEntries=Object.entries(vocab).sort((a,b)=>b[1].term.length-a[1].term.length);
+
+function activeVocabEntries(){
+  if(activeArticle?.source==='teacher'){
+    return Object.entries(activeVocabMap()).filter(([,item])=>item&&item.term).sort((a,b)=>String(b[1].term).length-String(a[1].term).length);
+  }
+  return builtInVocabEntries;
+}
 
 function highlightText(text){
   let pieces=[{text:String(text),html:false}];
-  for(const [key,item] of vocabEntries){
+  for(const [key,item] of activeVocabEntries()){
     const next=[];
     const needle=item.term.toLowerCase();
     for(const piece of pieces){
@@ -3339,7 +3380,9 @@ function portalArticleToReading(item){
     level:item?.level_label||'Reading',
     minutes:minutes+' min read',
     sections,
+    vocabItems:item?.vocab_json&&typeof item.vocab_json==='object'&&!Array.isArray(item.vocab_json)?item.vocab_json:{},
     exerciseQuestions:Array.isArray(item?.exercise_questions)?item.exercise_questions:[],
+    enrichmentStatus:item?.enrichment_status||'ready',
     audioStatus:item?.audio_status||'pending',
     audioUrls:{us:item?.audio_us_url||'',gb:item?.audio_gb_url||''},
     audioSpeed:Number(item?.audio_speed)||0.95
@@ -3460,8 +3503,9 @@ function getActiveExerciseQuestions(){
 
 function getArticleVocabCount(article){
   if(!article)return 0;
+  if(article.source==='teacher')return Object.keys(article.vocabItems||{}).length;
   const text=(article.sections||[]).flatMap(section=>(section.paragraphs||[]).flatMap(paragraph=>paragraph.map(sentence=>sentence.text||''))).join(' ').toLowerCase();
-  return vocabEntries.reduce((count,[,item])=>count+(text.includes(item.term.toLowerCase())?1:0),0);
+  return builtInVocabEntries.reduce((count,[,item])=>count+(text.includes(item.term.toLowerCase())?1:0),0);
 }
 
 function exercisesHtml(){
