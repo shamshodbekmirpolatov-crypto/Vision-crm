@@ -259,6 +259,8 @@
 .highlight-controls>strong{font-size:14px;color:#294e66;margin-right:4px}
 .highlight-controls button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;border:1px solid #c7d5df;border-radius:9px;background:#fff;color:#27475e;padding:8px 11px;font-size:14px;font-weight:650;cursor:pointer}
 .highlight-controls button:hover:not(:disabled){border-color:#527991;box-shadow:0 2px 7px rgba(14,50,76,.1)}
+.highlight-controls button.active{border-color:#2f688a;box-shadow:0 0 0 3px rgba(47,104,138,.16),0 3px 9px rgba(14,50,76,.1);transform:translateY(-1px)}
+.highlight-controls button.active .highlight-swatch{box-shadow:0 0 0 2px #fff,0 0 0 4px rgba(47,104,138,.22)}
 .highlight-controls button:focus-visible{outline:3px solid #2476a7;outline-offset:3px}
 .highlight-controls button:disabled{opacity:.55;cursor:default}
 .highlight-swatch{display:block;width:16px;height:16px;border-radius:4px;border:1px solid rgba(25,51,69,.2);flex-shrink:0}
