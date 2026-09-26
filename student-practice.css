@@ -505,3 +505,66 @@
   .vocab-pronunciation{grid-template-columns:1fr}
   .vocab-audio{min-height:42px;font-size:12px}
 }
+
+/* Vocabulary popovers are strictly click-to-open. Keep hidden content out of article flow. */
+.vocab-word > .vocab-popover{
+  display:none !important;
+}
+.vocab-word.open > .vocab-popover{
+  display:block !important;
+}
+.vocab-card-head,
+.vocab-meaning,
+.vocab-pronunciation,
+.vocab-examples,
+.vocab-example,
+.vocab-example-en,
+.vocab-example-uz,
+.vocab-synonyms,
+.vocab-synonym-list{
+  box-sizing:border-box;
+}
+.vocab-card-head,
+.vocab-meaning,
+.vocab-pronunciation,
+.vocab-examples,
+.vocab-example,
+.vocab-example-en,
+.vocab-example-uz,
+.vocab-synonyms{
+  display:block;
+}
+.vocab-card-head{display:flex}
+.vocab-meaning{display:grid}
+.vocab-pronunciation{display:grid}
+.vocab-example-en{
+  margin:0;
+  color:#24475d;
+  font-size:11px;
+  line-height:1.45;
+  font-weight:700;
+}
+.vocab-example-uz{
+  margin-top:3px;
+  color:#708390;
+  font-size:10px;
+  line-height:1.45;
+  font-weight:500;
+}
+.vocab-synonym-list{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-top:6px;
+}
+.vocab-synonym{
+  display:inline-flex;
+  align-items:center;
+  min-height:26px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#edf3f7;
+  color:#315b72;
+  font-size:10px;
+  font-weight:750;
+}
