@@ -3428,7 +3428,7 @@ function articleHtml(){
                 '<div class="article-player-time"><span data-current-time="gb">0:00</span><span data-total-time="gb">'+formatAudioTime(articleAudioDurationSeconds(activeArticle))+'</span></div>'+
                 '<div class="article-player-tools">'+
                   '<button class="article-skip-button" type="button" data-skip-accent="gb" data-skip="-10" aria-label="Go back 10 seconds">↶ 10s</button>'+
-                  '<label class="article-tool-select"><span>Voice</span><select data-voice-select="gb" aria-label="British voice"><option value="">Default British voice</option></select></label>'+
+                  '<div class="article-gender-control" role="group" aria-label="British voice gender"><span>Voice</span><div class="article-gender-options"><button type="button" data-gender-accent="gb" data-gender="female" class="active" aria-pressed="true">Female</button><button type="button" data-gender-accent="gb" data-gender="male" aria-pressed="false">Male</button></div></div>'+
                   '<label class="article-tool-select article-speed-select"><span>Speed</span><select data-rate-select="gb" aria-label="British playback speed"><option value="0.8">0.8×</option><option value="0.95" selected>0.95×</option><option value="1">1.0×</option><option value="1.15">1.15×</option><option value="1.3">1.3×</option></select></label>'+
                   '<button class="article-skip-button" type="button" data-skip-accent="gb" data-skip="10" aria-label="Go forward 10 seconds">10s ↷</button>'+
                 '</div>'+
@@ -3442,7 +3442,7 @@ function articleHtml(){
                 '<div class="article-player-time"><span data-current-time="us">0:00</span><span data-total-time="us">'+formatAudioTime(articleAudioDurationSeconds(activeArticle))+'</span></div>'+
                 '<div class="article-player-tools">'+
                   '<button class="article-skip-button" type="button" data-skip-accent="us" data-skip="-10" aria-label="Go back 10 seconds">↶ 10s</button>'+
-                  '<label class="article-tool-select"><span>Voice</span><select data-voice-select="us" aria-label="American voice"><option value="">Default American voice</option></select></label>'+
+                  '<div class="article-gender-control" role="group" aria-label="American voice gender"><span>Voice</span><div class="article-gender-options"><button type="button" data-gender-accent="us" data-gender="female" class="active" aria-pressed="true">Female</button><button type="button" data-gender-accent="us" data-gender="male" aria-pressed="false">Male</button></div></div>'+
                   '<label class="article-tool-select article-speed-select"><span>Speed</span><select data-rate-select="us" aria-label="American playback speed"><option value="0.8">0.8×</option><option value="0.95" selected>0.95×</option><option value="1">1.0×</option><option value="1.15">1.15×</option><option value="1.3">1.3×</option></select></label>'+
                   '<button class="article-skip-button" type="button" data-skip-accent="us" data-skip="10" aria-label="Go forward 10 seconds">10s ↷</button>'+
                 '</div>'+
@@ -3518,8 +3518,8 @@ function renderArticle(root,data,callbacks){
   const articleAudioTimelineData=articleAudioTimeline(activeArticle);
   const articleAudioTotal=articleAudioTimelineData.length?articleAudioTimelineData[articleAudioTimelineData.length-1].end:0;
   const audioPlayers={
-    gb:{position:0,playing:false,paused:false,voiceURI:'',rate:.95},
-    us:{position:0,playing:false,paused:false,voiceURI:'',rate:.95}
+    gb:{position:0,playing:false,paused:false,gender:'female',rate:.95},
+    us:{position:0,playing:false,paused:false,gender:'female',rate:.95}
   };
   let activeAudioAccent=null;
   let audioRun=0;
@@ -3672,9 +3672,7 @@ function renderArticle(root,data,callbacks){
       const locale=accent==='gb'?'en-GB':'en-US';
       const utterance=new SpeechSynthesisUtterance(spoken);
       utterance.lang=locale;
-      const availableVoices=window.speechSynthesis.getVoices();
-      const selectedVoice=state.voiceURI?availableVoices.find(v=>v.voiceURI===state.voiceURI):null;
-      const voice=selectedVoice||preferredEnglishVoice(locale);
+      const voice=voiceForGender(accent,state.gender)||preferredEnglishVoice(locale);
       if(voice)utterance.voice=voice;
       utterance.rate=state.rate||.95;
 
@@ -3799,6 +3797,23 @@ function renderArticle(root,data,callbacks){
     seek.addEventListener('change',finishSeeking,{signal:articleEvents.signal});
   });
 
+  function inferredVoiceGender(voice){
+    const name=String(voice?.name||'').toLowerCase();
+    const femaleHints=['female','woman','zira','jenny','aria','samantha','victoria','karen','moira','tessa','veena','susan','hazel','sonia','kate','serena','ava','allison','salli','joanna','kendra','kimberly'];
+    const maleHints=['male','man','david','mark','guy','alex','daniel','george','ryan','fred','tom','aaron','matthew','joey','justin','brian','arthur'];
+    if(femaleHints.some(h=>name.includes(h)))return 'female';
+    if(maleHints.some(h=>name.includes(h)))return 'male';
+    return '';
+  }
+
+  function voiceForGender(accent,gender){
+    const voices=voicesForAccent(accent);
+    const exact=voices.find(v=>inferredVoiceGender(v)===gender);
+    if(exact)return exact;
+    if(gender==='female')return voices[0]||null;
+    return voices[1]||voices[0]||null;
+  }
+
   function voicesForAccent(accent){
     if(!('speechSynthesis' in window))return [];
     const locale=(accent==='gb'?'en-GB':'en-US').toLowerCase();
@@ -3815,36 +3830,24 @@ function renderArticle(root,data,callbacks){
     });
   }
 
-  function populateVoiceSelects(){
-    ['gb','us'].forEach(accent=>{
-      const select=root.querySelector('[data-voice-select="'+accent+'"]');
-      if(!select)return;
-      const previous=audioPlayers[accent].voiceURI||select.value||'';
-      const voices=voicesForAccent(accent);
-      const defaultLabel=accent==='gb'?'Default British voice':'Default American voice';
-      select.innerHTML='<option value="">'+defaultLabel+'</option>'+
-        voices.map(v=>'<option value="'+esc(v.voiceURI||v.name)+'">'+esc(v.name)+'</option>').join('');
-      const valid=voices.some(v=>(v.voiceURI||v.name)===previous);
-      select.value=valid?previous:'';
-      audioPlayers[accent].voiceURI=select.value;
-      select.disabled=voices.length===0;
-      if(voices.length===0)select.title='This device has no additional '+(accent==='gb'?'British':'American')+' voices installed.';
-    });
-  }
-
-  populateVoiceSelects();
-  if('speechSynthesis' in window){
-    window.speechSynthesis.addEventListener?.('voiceschanged',populateVoiceSelects,{signal:articleEvents.signal});
-  }
-
-  root.querySelectorAll('[data-voice-select]').forEach(select=>{
-    select.addEventListener('change',()=>{
-      const accent=select.dataset.voiceSelect;
+  root.querySelectorAll('[data-gender-accent]').forEach(button=>{
+    button.addEventListener('click',()=>{
+      const accent=button.dataset.genderAccent;
+      const gender=button.dataset.gender;
       const state=audioPlayers[accent];
+      if(!state||!['female','male'].includes(gender))return;
+
       const wasPlaying=activeAudioAccent===accent&&state.playing&&!state.paused;
       const wasPaused=activeAudioAccent===accent&&state.paused;
       const position=state.position;
-      state.voiceURI=select.value;
+      state.gender=gender;
+
+      root.querySelectorAll('[data-gender-accent="'+accent+'"]').forEach(choice=>{
+        const selected=choice.dataset.gender===gender;
+        choice.classList.toggle('active',selected);
+        choice.setAttribute('aria-pressed',String(selected));
+      });
+
       if(wasPlaying){
         haltArticleSpeech({preservePosition:true,markPaused:false});
         state.position=position;
