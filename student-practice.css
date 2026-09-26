@@ -568,3 +568,35 @@
   font-size:10px;
   font-weight:750;
 }
+
+
+/* Force vocabulary cards to open BELOW the tapped bold word */
+.vocab-word{
+  position:relative;
+  overflow:visible;
+}
+.vocab-word.open{
+  z-index:80;
+}
+.vocab-word > .vocab-popover{
+  top:calc(100% + 12px) !important;
+  bottom:auto !important;
+  left:50% !important;
+  transform:translateX(-50%) !important;
+  transform-origin:top center;
+}
+.vocab-word > .vocab-popover:after{
+  top:-6px !important;
+  bottom:auto !important;
+  left:50%;
+  transform:translateX(-50%) rotate(45deg);
+  background:#fff;
+  border-left:1px solid #dbe6ec;
+  border-top:1px solid #dbe6ec;
+  border-right:0;
+  border-bottom:0;
+}
+@keyframes wordPop{
+  from{opacity:0;transform:translate(-50%,-3px) scale(.98)}
+  to{opacity:1;transform:translate(-50%,0) scale(1)}
+}
