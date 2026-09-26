@@ -1311,13 +1311,13 @@ const readingHighlightColors=['red','blue','yellow','green'];
 
 function highlighterHtml(){
   return '<div class="reading-highlighter" id="reading-highlighter" aria-label="Text highlighting">'+
-    '<div class="highlight-controls" role="group" aria-label="Highlight selected text">'+
+    '<div class="highlight-controls" role="group" aria-label="Choose a highlighter colour">'+
       '<strong>Highlight</strong>'+
-      readingHighlightColors.map(color=>'<button class="highlight-color" type="button" data-highlight="'+color+'" aria-label="Highlight '+color+'" disabled><span class="highlight-swatch highlight-'+color+'" aria-hidden="true"></span>'+color[0].toUpperCase()+color.slice(1)+'</button>').join('')+
-      '<button class="highlight-remove" type="button" data-highlight="remove" disabled>Remove</button>'+
+      readingHighlightColors.map(color=>'<button class="highlight-color" type="button" data-highlight="'+color+'" aria-label="Use '+color+' highlighter" aria-pressed="false"><span class="highlight-swatch highlight-'+color+'" aria-hidden="true"></span>'+color[0].toUpperCase()+color.slice(1)+'</button>').join('')+
+      '<button class="highlight-remove" type="button" data-highlight="remove" aria-label="Use highlight eraser" aria-pressed="false">Remove</button>'+
     '</div>'+
-    '<p class="highlight-help">Select text, then choose a colour. Select highlighted text to remove or recolour it.</p>'+
-    '<p class="highlight-status" id="highlight-status" role="status" aria-live="polite">Highlights are saved on this device.</p>'+
+    '<p class="highlight-help">Choose a colour first, then select text. That colour stays active so you can highlight as many parts as you want. Choose another colour to switch, or tap the active tool again to turn it off.</p>'+
+    '<p class="highlight-status" id="highlight-status" role="status" aria-live="polite">Choose a colour to start highlighting. Highlights are saved on this device.</p>'+
   '</div>';
 }
 
@@ -1329,7 +1329,7 @@ function bindReadingHighlighter(root,data,signal){
   const sentences=[...copy.querySelectorAll('.article-sentence')];
   const key='vision-reading-highlights:v1:'+encodeURIComponent(readingStudentId(data))+':'+activeArticle.id;
   let selected=[];
-  let toolbarPointer=false;
+  let activeTool=null;
 
   // Vocabulary popovers contain extra text; never count it as part of the article.
   function textNodes(sentence){
@@ -1340,6 +1340,7 @@ function bindReadingHighlighter(root,data,signal){
     while(walker.nextNode())nodes.push(walker.currentNode);
     return nodes;
   }
+
   const originals=sentences.map(sentence=>textNodes(sentence).map(node=>node.data).join(''));
   let highlights=[];
   try{
@@ -1414,15 +1415,15 @@ function bindReadingHighlighter(root,data,signal){
     return parts;
   }
 
-  function updateButtons(){buttons.forEach(button=>button.disabled=!selected.length);}
   function captureSelection(){
     if(!copy.isConnected)return;
     const parts=readSelection();
     if(parts.length){
       selected=parts;
       copy.querySelectorAll('.vocab-word.open').forEach(word=>word.classList.remove('open'));
-    }else if(!toolbarPointer&&!toolbar.contains(document.activeElement))selected=[];
-    updateButtons();
+    }else{
+      selected=[];
+    }
   }
 
   function changeRange(part,color){
@@ -1441,49 +1442,77 @@ function bindReadingHighlighter(root,data,signal){
     },[]);
   }
 
-  document.addEventListener('selectionchange',captureSelection,{signal});
-  document.addEventListener('pointerdown',event=>{
-    if(toolbar.contains(event.target))return;
-    toolbarPointer=false;
-    selected=[];
-    updateButtons();
-  },{signal,capture:true});
-  copy.addEventListener('pointerup',captureSelection,{signal});
-  copy.addEventListener('keyup',captureSelection,{signal});
-  toolbar.addEventListener('pointerdown',event=>{
-    if(!event.target.closest('[data-highlight]'))return;
-    captureSelection();
-    toolbarPointer=true;
-    // Preserve the native selection when clicking; touch uses the captured offsets.
-    if(event.pointerType==='mouse')event.preventDefault();
-  },{signal});
-  toolbar.addEventListener('pointercancel',()=>{toolbarPointer=false;captureSelection();},{signal});
-  toolbar.addEventListener('click',event=>{
-    const button=event.target.closest('[data-highlight]');
-    if(!button||!selected.length)return;
-    const color=button.dataset.highlight;
-    selected.forEach(part=>changeRange(part,color));
-    paint();
-    window.getSelection()?.removeAllRanges();
-    selected=[];
-    toolbarPointer=false;
-    updateButtons();
+  function persist(){
     try{
       if(highlights.length)localStorage.setItem(key,JSON.stringify(highlights));
       else localStorage.removeItem(key);
-      status.textContent=color==='remove'?'Highlight removed. Changes saved on this device.':color[0].toUpperCase()+color.slice(1)+' highlight saved on this device.';
+      return true;
     }catch{
       status.textContent='Your changes are visible, but this browser could not save them.';
+      return false;
+    }
+  }
+
+  function updateToolState(){
+    buttons.forEach(button=>{
+      const isActive=button.dataset.highlight===activeTool;
+      button.classList.toggle('active',isActive);
+      button.setAttribute('aria-pressed',isActive?'true':'false');
+    });
+  }
+
+  function toolName(tool){
+    return tool==='remove'?'Eraser':tool[0].toUpperCase()+tool.slice(1)+' highlighter';
+  }
+
+  function applyActiveSelection(){
+    if(!activeTool)return;
+    captureSelection();
+    if(!selected.length)return;
+    const tool=activeTool;
+    selected.forEach(part=>changeRange(part,tool));
+    paint();
+    window.getSelection()?.removeAllRanges();
+    selected=[];
+    if(persist()){
+      status.textContent=tool==='remove'
+        ?'Highlight removed. Eraser is still active.'
+        :tool[0].toUpperCase()+tool.slice(1)+' highlight saved. '+tool[0].toUpperCase()+tool.slice(1)+' is still active.';
+    }
+  }
+
+  toolbar.addEventListener('click',event=>{
+    const button=event.target.closest('[data-highlight]');
+    if(!button)return;
+    const tool=button.dataset.highlight;
+    activeTool=activeTool===tool?null:tool;
+    updateToolState();
+    if(activeTool){
+      status.textContent=toolName(activeTool)+' is active. Select as many parts of the text as you want.';
+    }else{
+      status.textContent='Highlighter is off. Choose a colour whenever you want to continue.';
     }
   },{signal});
+
+  copy.addEventListener('pointerup',()=>{
+    if(!activeTool)return;
+    // Let the browser finish its native text selection first, including touch handles.
+    setTimeout(applyActiveSelection,0);
+  },{signal});
+
+  copy.addEventListener('keyup',event=>{
+    if(!activeTool)return;
+    if(event.key==='Shift'||event.shiftKey)setTimeout(applyActiveSelection,0);
+  },{signal});
+
   document.addEventListener('keydown',event=>{
     if(event.key!=='Escape')return;
     selected=[];
-    toolbarPointer=false;
     window.getSelection()?.removeAllRanges();
-    updateButtons();
   },{signal});
+
   paint();
+  updateToolState();
   return {hasSelection:()=>selected.length>0||readSelection().length>0};
 }
 
