@@ -3744,19 +3744,19 @@ function renderArticle(root,data,callbacks){
   root.querySelectorAll('.article-audio-seek').forEach(seek=>{
     const accent=seek.dataset.articleSeek;
     const state=audioPlayers[accent];
+    let resumeAfterSeek=false;
 
-    function stopForSeeking(){
-      // Seeking should behave like a real player: stop the current speech first,
-      // then let the student choose the exact point before pressing Play again.
+    function beginSeeking(){
+      resumeAfterSeek=activeAudioAccent===accent&&state.playing&&!state.paused;
       haltArticleSpeech({preservePosition:true,markPaused:true});
       state.playing=false;
       state.paused=true;
       syncPlayerUi(accent);
     }
 
-    seek.addEventListener('pointerdown',stopForSeeking,{signal:articleEvents.signal});
-    seek.addEventListener('mousedown',stopForSeeking,{signal:articleEvents.signal});
-    seek.addEventListener('touchstart',stopForSeeking,{signal:articleEvents.signal,passive:true});
+    seek.addEventListener('pointerdown',beginSeeking,{signal:articleEvents.signal});
+    seek.addEventListener('mousedown',beginSeeking,{signal:articleEvents.signal});
+    seek.addEventListener('touchstart',beginSeeking,{signal:articleEvents.signal,passive:true});
 
     seek.addEventListener('input',()=>{
       const target=Math.max(0,Math.min(articleAudioTotal,Number(seek.value)||0));
@@ -3766,14 +3766,24 @@ function renderArticle(root,data,callbacks){
       syncPlayerUi(accent);
     },{signal:articleEvents.signal});
 
-    seek.addEventListener('change',()=>{
+    function finishSeeking(){
       const target=Math.max(0,Math.min(articleAudioTotal,Number(seek.value)||0));
       haltArticleSpeech({preservePosition:true,markPaused:true});
       state.position=target;
       state.playing=false;
       state.paused=true;
       syncPlayerUi(accent);
-    },{signal:articleEvents.signal});
+
+      if(resumeAfterSeek){
+        state.paused=false;
+        speakArticleFrom(accent,target);
+      }
+      resumeAfterSeek=false;
+    }
+
+    seek.addEventListener('change',finishSeeking,{signal:articleEvents.signal});
+    seek.addEventListener('pointerup',finishSeeking,{signal:articleEvents.signal});
+    seek.addEventListener('touchend',finishSeeking,{signal:articleEvents.signal});
   });
 
   function voicesForAccent(accent){
@@ -3863,11 +3873,18 @@ function renderArticle(root,data,callbacks){
       const state=audioPlayers[accent];
       const delta=Number(button.dataset.skip)||0;
       const target=Math.max(0,Math.min(articleAudioTotal,state.position+delta));
+      const shouldResume=activeAudioAccent===accent&&state.playing&&!state.paused;
+
       haltArticleSpeech({preservePosition:true,markPaused:true});
       state.position=target;
       state.playing=false;
       state.paused=true;
       syncPlayerUi(accent);
+
+      if(shouldResume){
+        state.paused=false;
+        speakArticleFrom(accent,target);
+      }
     },{signal:articleEvents.signal});
   });
 
