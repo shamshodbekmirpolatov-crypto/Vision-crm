@@ -45,6 +45,7 @@ const NAV = [
   { id:'groups', label:'Groups', icon:'▦', roles:['owner','admin','teacher','cashier'], group:'Students' },
   { id:'attendance', label:'Attendance', icon:'✓', roles:['owner','admin','teacher'], group:'Teaching' },
   { id:'academic', label:'Academic Records', icon:'✎', roles:['owner','admin','teacher'], group:'Teaching' },
+  { id:'reading', label:'Reading Library', icon:'▤', roles:['owner','admin','teacher'], group:'Teaching' },
   { id:'payments', label:'Payments', icon:'₸', roles:['owner','admin','cashier'], group:'Finance' },
   { id:'expenses', label:'Expenses', icon:'↘', roles:['owner','admin'], group:'Finance' },
   { id:'staff', label:'Staff & Payroll', icon:'♙', roles:['owner','admin'], group:'Management' },
@@ -60,6 +61,7 @@ const PAGE_META = {
   groups:['Groups','Classes, schedules, teachers and fees'],
   attendance:['Attendance','Record lesson attendance quickly'],
   academic:['Academic Records','Scores, progress and teacher notes'],
+  reading:['Reading Library','Publish level-based texts and queue Kokoro audio'],
   payments:['Payments','Monthly student fee collection'],
   expenses:['Expenses','Operating costs and centre spending'],
   staff:['Staff & Payroll','Team records and salary payments'],
@@ -1126,6 +1128,109 @@ async function academicPage(){
   return tablePage('Academic progress','<button class="btn btn-primary" data-action="academic-new">'+uiIcon('plus')+'Add record</button>',[['Date',''],['Student',''],['Type',''],['Topic',''],['Score',''],['Teacher note','']],rows,'No academic records yet.');
 }
 
+
+const READING_TARGET_LEVELS=['Elementary','Pre-Intermediate','CEFR','Intermediate','Pre-IELTS','IELTS'];
+const READING_US_VOICES=[
+  ['af_heart','Heart — American female'],
+  ['af_bella','Bella — American female'],
+  ['af_sarah','Sarah — American female'],
+  ['af_nova','Nova — American female'],
+  ['af_sky','Sky — American female'],
+  ['am_michael','Michael — American male'],
+  ['am_adam','Adam — American male']
+];
+const READING_GB_VOICES=[
+  ['bf_emma','Emma — British female'],
+  ['bf_isabella','Isabella — British female'],
+  ['bm_george','George — British male']
+];
+
+function readingLevelsField(selected=['all']){
+  const values=Array.isArray(selected)&&selected.length?selected:['all'];
+  const has=value=>values.includes(value);
+  const option=(value,label)=>'<label class="inline-check" style="padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel)"><input type="checkbox" name="reading_level" value="'+esc(value)+'" '+(has(value)?'checked':'')+'> '+esc(label)+'</label>';
+  return '<div class="field span-2"><label>Who can see this text?</label><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px">'+
+    option('all','All levels')+READING_TARGET_LEVELS.map(level=>option(level,level)).join('')+
+    '</div><small class="muted">Choose one or more course levels. Students only receive texts allowed for their group level.</small></div>';
+}
+function selectedReadingLevels(form){
+  const chosen=[...form.querySelectorAll('input[name="reading_level"]:checked')].map(input=>input.value);
+  if(chosen.includes('all'))return ['all'];
+  return chosen;
+}
+function readingArticleForm(article={}){
+  return '<div class="form-cols">'+
+    field('Title','title',article.title||'','','required')+
+    selectField('Article level','level_label',[['A1','A1'],['A2','A2'],['B1','B1'],['B2','B2'],['C1','C1'],['IELTS','IELTS']],article.level_label||'B1')+
+    readingLevelsField(article.allowed_levels||['all'])+
+    '<div class="field span-2"><label>Text</label><textarea class="textarea" name="article_text" rows="14" required placeholder="Paste the full reading text here...">'+esc(article.article_text||'')+'</textarea><small class="muted">The text is stored in Reading immediately. Kokoro audio is queued automatically after publishing.</small></div>'+
+    selectField('American voice','audio_voice_us',READING_US_VOICES,article.audio_voice_us||'af_heart')+
+    selectField('British voice','audio_voice_gb',READING_GB_VOICES,article.audio_voice_gb||'bf_emma')+
+    selectField('Audio speed','audio_speed',[['0.8','0.8× — slower'],['0.9','0.9×'],['0.95','0.95× — recommended'],['1','1.0×'],['1.1','1.1×']],String(article.audio_speed??0.95))+
+    '<div class="field"><label>Publishing</label><div class="section-note" style="margin:0"><strong>Publish immediately</strong><br>The article becomes available to matching student levels as soon as it is saved.</div></div>'+
+  '</div>';
+}
+async function saveReadingArticle(form,article=null){
+  const levels=selectedReadingLevels(form);
+  if(!levels.length)throw new Error('Choose at least one student level.');
+  const payload={
+    title:val(form,'title'),
+    level_label:val(form,'level_label')||null,
+    allowed_levels:levels,
+    article_text:val(form,'article_text'),
+    byline:'Vision Learning Centre',
+    status:'published',
+    audio_voice_us:val(form,'audio_voice_us')||'af_heart',
+    audio_voice_gb:val(form,'audio_voice_gb')||'bf_emma',
+    audio_speed:Number(val(form,'audio_speed')||0.95),
+    updated_at:new Date().toISOString()
+  };
+  if(article){
+    await query(sb.from('reading_articles').update(payload).eq('id',article.id));
+  }else{
+    await query(sb.from('reading_articles').insert({...payload,created_by:state.session.user.id}));
+  }
+}
+function bindReadingActions(articles){
+  document.querySelector('[data-action=reading-new]')?.addEventListener('click',()=>{
+    openModal('Publish reading text',readingArticleForm(),form=>saveReadingArticle(form,null),'Publish');
+  });
+  document.querySelectorAll('[data-action=reading-edit]').forEach(button=>{
+    button.addEventListener('click',()=>{
+      const article=articles.find(item=>item.id===button.dataset.id);
+      if(article)openModal('Edit reading text',readingArticleForm(article),form=>saveReadingArticle(form,article),'Save & requeue audio');
+    });
+  });
+  document.querySelectorAll('[data-action=reading-delete]').forEach(button=>{
+    button.addEventListener('click',async()=>{
+      const article=articles.find(item=>item.id===button.dataset.id);
+      if(!article||!confirm('Delete "'+article.title+'"? This will also remove its queued audio jobs.'))return;
+      try{
+        await query(sb.from('reading_articles').delete().eq('id',article.id));
+        toast('Reading text deleted.');
+        await renderRoute(true);
+      }catch(error){fail(error);}
+    });
+  });
+}
+async function readingPage(){
+  const articles=await query(sb.from('reading_articles').select('*').order('created_at',{ascending:false}).limit(300));
+  const rows=articles.map(article=>{
+    const levels=(article.allowed_levels||[]).includes('all')?'All levels':(article.allowed_levels||[]).join(', ');
+    const audioClass=article.audio_status==='ready'?'success':article.audio_status==='error'?'danger':'info';
+    return '<tr>'+
+      '<td><strong>'+esc(article.title)+'</strong><div class="muted">'+esc(article.level_label||'')+'</div></td>'+
+      '<td>'+esc(levels||'—')+'</td>'+
+      '<td><span class="badge '+audioClass+'">'+esc(humanize(article.audio_status||'pending'))+'</span></td>'+
+      '<td>'+fmtDate((article.created_at||'').slice(0,10))+'</td>'+
+      '<td><div class="action-row">'+actionButton('Edit','reading-edit',article.id)+actionButton('Delete','reading-delete',article.id,'danger')+'</div></td>'+
+    '</tr>';
+  }).join('');
+  setTimeout(()=>bindReadingActions(articles),0);
+  return '<div class="section-note"><strong>Teacher Reading Publisher</strong><br>Publish a text once and it is stored in the student Reading library for the selected course levels. American and British Kokoro jobs are queued automatically.</div>'+
+    tablePage('Reading texts','<button class="btn btn-primary" data-action="reading-new">'+uiIcon('plus')+'Add text</button>',[['Text',''],['Visible to',''],['Audio',''],['Published',''],['','']],rows,'No teacher reading texts yet.');
+}
+
 async function expensesPage(){
   const expenses=await query(sb.from('expenses').select('*').order('expense_date',{ascending:false}).limit(500));
   const rows=expenses.map(e=>'<tr><td>'+fmtDate(e.expense_date)+'</td><td>'+esc(e.category)+'</td><td>'+esc(e.description||'—')+'</td><td class="num">'+fmtMoney(e.amount)+'</td><td>'+esc(humanize(e.method))+'</td></tr>').join('');
@@ -1356,6 +1461,7 @@ async function routeContent(routeName){
     case 'groups': return await groupsPage();
     case 'attendance': return await attendancePage();
     case 'academic': return await academicPage();
+    case 'reading': return await readingPage();
     case 'payments': return await paymentsPage();
     case 'expenses': return await expensesPage();
     case 'staff': return await staffPage();
