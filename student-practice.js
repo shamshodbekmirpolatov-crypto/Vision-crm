@@ -3045,7 +3045,8 @@ function wordHtml(key,displayText){
     ? {ex:Array.isArray(item.examples)?item.examples[0]:['',''],syn:Array.isArray(item.synonyms)?item.synonyms:[]}
     : (vocabDetails[key]||{ex:['',''],syn:[]});
   const text=displayText||item.term;
-  const cls=String(item.level||'').toUpperCase().startsWith('B1')?'b1':'b2';
+  const itemLevel=String(item.level||'').toUpperCase();
+  const cls=/^(A1|A2|B1)/.test(itemLevel)?'b1':'b2';
   const examples=teacherItem
     ? (Array.isArray(item.examples)?item.examples.slice(0,2).map(vocabExampleHtml).filter(Boolean).join(''):'')
     : [
