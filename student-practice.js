@@ -440,6 +440,1051 @@ const vocab = {
   "wash_before_eating_or_drinking": {"term":"wash before eating or drinking","level":"B1","uz":"ovqatlanish yoki ichishdan oldin yuvmoq"}
 };
 
+const vocabDetails = {
+  "pleased_with_yourself": {
+    "ex": [
+      "You should be pleased with yourself after finishing the project.",
+      "Loyihani tugatganingizdan keyin o‘zingizdan mamnun bo‘lishingiz kerak."
+    ],
+    "syn": [
+      "proud of yourself",
+      "satisfied with yourself"
+    ]
+  },
+  "feel_low_on_energy": {
+    "ex": [
+      "I feel low on energy when I do not sleep well.",
+      "Yaxshi uxlamasam, o‘zimni holsiz his qilaman."
+    ],
+    "syn": [
+      "feel tired",
+      "feel drained"
+    ]
+  },
+  "less_able_to_perform": {
+    "ex": [
+      "After a poor night’s sleep, athletes are less able to perform at their best.",
+      "Yomon uyqudan keyin sportchilar avvalgidek yaxshi natija ko‘rsata olmaydi."
+    ],
+    "syn": [
+      "less capable of performing"
+    ]
+  },
+  "depend_on_the_type_of_workout": {
+    "ex": [
+      "Recovery time can depend on the type of workout you do.",
+      "Tiklanish vaqti qiladigan mashq turiga bog‘liq bo‘lishi mumkin."
+    ],
+    "syn": [
+      "vary with the type of workout"
+    ]
+  },
+  "accustomed_body": {
+    "ex": [
+      "The soreness depends on how accustomed your body is to the exercise.",
+      "Og‘riq tanangiz mashqqa qanchalik odatlanganiga bog‘liq."
+    ],
+    "syn": []
+  },
+  "help_your_body_recover": {
+    "ex": [
+      "Good sleep can help your body recover after exercise.",
+      "Yaxshi uyqu mashqdan keyin tanangizning tiklanishiga yordam beradi."
+    ],
+    "syn": [
+      "help you recover"
+    ]
+  },
+  "perceived_fatigue": {
+    "ex": [
+      "Perceived fatigue can be high even when your muscles still have strength.",
+      "Subyektiv seziladigan charchoq mushaklaringizda hali kuch bo‘lsa ham yuqori bo‘lishi mumkin."
+    ],
+    "syn": [
+      "felt fatigue"
+    ]
+  },
+  "performance_fatigability": {
+    "ex": [
+      "Performance fatigability can reduce how much force a muscle produces.",
+      "Jismoniy ko‘rsatkichning charchoq sabab pasayishi mushak hosil qiladigan kuchni kamaytirishi mumkin."
+    ],
+    "syn": []
+  },
+  "measurable_drop_in": {
+    "ex": [
+      "The test showed a measurable drop in muscle strength.",
+      "Test mushak kuchida o‘lchash mumkin bo‘lgan pasayishni ko‘rsatdi."
+    ],
+    "syn": [
+      "measurable decrease in"
+    ]
+  },
+  "unable_to_produce_as_much_force": {
+    "ex": [
+      "After the final set, the muscle was unable to produce as much force.",
+      "Oxirgi setdan keyin mushak avvalgidek ko‘p kuch hosil qila olmadi."
+    ],
+    "syn": [
+      "unable to generate as much force"
+    ]
+  },
+  "dont_always_match_perfectly": {
+    "ex": [
+      "How tired you feel and how well you perform don’t always match perfectly.",
+      "Qanchalik charchaganingiz va qanchalik yaxshi natija ko‘rsatishingiz har doim ham to‘liq mos kelmaydi."
+    ],
+    "syn": [
+      "don’t always correspond exactly"
+    ]
+  },
+  "perception_of_tiredness": {
+    "ex": [
+      "Stress can change our perception of tiredness.",
+      "Stress charchoqni qanday sezishimizni o‘zgartirishi mumkin."
+    ],
+    "syn": [
+      "sense of tiredness"
+    ]
+  },
+  "develop_after_working_out": {
+    "ex": [
+      "Muscle soreness can develop after working out.",
+      "Mushak og‘rig‘i mashqdan keyin paydo bo‘lishi mumkin."
+    ],
+    "syn": [
+      "appear after exercise"
+    ]
+  },
+  "unfamiliar_exercise": {
+    "ex": [
+      "An unfamiliar exercise can make your muscles sore the next day.",
+      "Odatlanilmagan mashq ertasi kuni mushaklaringizni og‘ritishi mumkin."
+    ],
+    "syn": [
+      "a new exercise"
+    ]
+  },
+  "been_a_while_since": {
+    "ex": [
+      "It’s been a while since I last went running.",
+      "Oxirgi marta yugurganimga ancha vaqt bo‘ldi."
+    ],
+    "syn": [
+      "it has been some time since"
+    ]
+  },
+  "particularly_associated_with": {
+    "ex": [
+      "This type of soreness is particularly associated with unfamiliar exercise.",
+      "Bu turdagi og‘riq ayniqsa odatlanilmagan mashq bilan bog‘liq."
+    ],
+    "syn": [
+      "especially linked to"
+    ]
+  },
+  "single_cause": {
+    "ex": [
+      "There isn’t one single cause of tiredness after exercise.",
+      "Mashqdan keyingi charchoqning faqat bitta sababi yo‘q."
+    ],
+    "syn": [
+      "there is no single cause"
+    ]
+  },
+  "depending_on_what_exercise": {
+    "ex": [
+      "Your muscles may feel different depending on what exercise you’ve done.",
+      "Qaysi mashqni qilganingizga qarab mushaklaringiz turlicha his qilishi mumkin."
+    ],
+    "syn": [
+      "depending on the exercise"
+    ]
+  },
+  "rely_on": {
+    "ex": [
+      "Long workouts rely on energy stored in the body.",
+      "Uzoq mashqlar tanada saqlangan energiyaga tayanadi."
+    ],
+    "syn": [
+      "depend on"
+    ]
+  },
+  "trigger_muscle_contractions": {
+    "ex": [
+      "Nerve signals trigger muscle contractions when you move.",
+      "Harakat qilganingizda asab signallari mushak qisqarishlarini qo‘zg‘atadi."
+    ],
+    "syn": [
+      "cause muscle contractions"
+    ]
+  },
+  "affect_ability_to": {
+    "ex": [
+      "Fatigue can affect the muscle’s ability to produce force.",
+      "Charchoq mushakning kuch hosil qilish qobiliyatiga ta’sir qilishi mumkin."
+    ],
+    "syn": [
+      "influence the ability to"
+    ]
+  },
+  "produce_force": {
+    "ex": [
+      "Strong muscles can produce force quickly.",
+      "Kuchli mushaklar tezda kuch hosil qila oladi."
+    ],
+    "syn": [
+      "generate force"
+    ]
+  },
+  "plays_a_part": {
+    "ex": [
+      "Sleep plays a part in muscle recovery.",
+      "Uyqu mushaklarning tiklanishida rol o‘ynaydi."
+    ],
+    "syn": [
+      "has a role"
+    ]
+  },
+  "temporarily_reduce_ability": {
+    "ex": [
+      "Hard exercise can temporarily reduce the nervous system’s ability to activate muscles.",
+      "Og‘ir mashq asab tizimining mushaklarni faollashtirish qobiliyatini vaqtincha kamaytirishi mumkin."
+    ],
+    "syn": [
+      "temporarily limit the ability"
+    ]
+  },
+  "contributing_to": {
+    "ex": [
+      "Poor sleep may be contributing to your tiredness.",
+      "Yomon uyqu charchashingizga sabab bo‘lishga hissa qo‘shayotgan bo‘lishi mumkin."
+    ],
+    "syn": [
+      "adding to"
+    ]
+  },
+  "demanding_exercise": {
+    "ex": [
+      "Demanding exercise usually requires more recovery time.",
+      "Katta kuch talab qiladigan mashq odatda ko‘proq tiklanish vaqtini talab qiladi."
+    ],
+    "syn": [
+      "strenuous exercise",
+      "hard exercise"
+    ]
+  },
+  "contribute_to_fatigue": {
+    "ex": [
+      "Heat and dehydration can contribute to fatigue.",
+      "Issiq va suvsizlanish charchoqqa sabab bo‘lishga hissa qo‘shishi mumkin."
+    ],
+    "syn": [
+      "add to fatigue"
+    ]
+  },
+  "reduce_performance": {
+    "ex": [
+      "Lack of sleep can reduce performance during training.",
+      "Uyqu yetishmasligi mashg‘ulot paytida jismoniy ko‘rsatkichni pasaytirishi mumkin."
+    ],
+    "syn": [
+      "lower performance"
+    ]
+  },
+  "accustomed_to_activity": {
+    "ex": [
+      "Beginners aren’t accustomed to the activity yet.",
+      "Yangi boshlovchilar hali bu faoliyatga odatlanmagan."
+    ],
+    "syn": [
+      "aren’t used to the activity"
+    ]
+  },
+  "try_something_unfamiliar": {
+    "ex": [
+      "Start slowly when you try something unfamiliar.",
+      "Odatlanilmagan narsani sinab ko‘rganingizda sekin boshlang."
+    ],
+    "syn": [
+      "try something new"
+    ]
+  },
+  "less_muscle_damage_and_soreness": {
+    "ex": [
+      "Regular training can lead to less muscle damage and soreness.",
+      "Muntazam mashq kamroq mushak shikastlanishi va og‘rig‘iga olib kelishi mumkin."
+    ],
+    "syn": []
+  },
+  "preservation_of_physical_performance": {
+    "ex": [
+      "Good recovery supports better preservation of physical performance.",
+      "Yaxshi tiklanish jismoniy ko‘rsatkichning yaxshiroq saqlanib qolishiga yordam beradi."
+    ],
+    "syn": []
+  },
+  "recovery_strategies": {
+    "ex": [
+      "Sleep and hydration are simple recovery strategies.",
+      "Uyqu va yetarli suyuqlik ichish oddiy tiklanish usullaridir."
+    ],
+    "syn": [
+      "recovery methods"
+    ]
+  },
+  "replace_energy_stores": {
+    "ex": [
+      "A balanced meal can help replace the energy stores used during exercise.",
+      "Muvozanatli ovqat mashq paytida ishlatilgan energiya zaxiralarini qayta to‘ldirishga yordam beradi."
+    ],
+    "syn": [
+      "restore energy stores",
+      "replenish energy stores"
+    ]
+  },
+  "adapt_and_recover_from": {
+    "ex": [
+      "Your body needs time to adapt and recover from harder training.",
+      "Tanangiz qiyinroq mashqqa moslashish va undan tiklanish uchun vaqtga muhtoj."
+    ],
+    "syn": [
+      "adjust to and recover from"
+    ]
+  },
+  "instant_cure_for": {
+    "ex": [
+      "There is no instant cure for normal post-workout fatigue.",
+      "Oddiy mashqdan keyingi charchoq uchun darhol yechim yo‘q."
+    ],
+    "syn": [
+      "quick fix for"
+    ]
+  },
+  "produced_mixed_results": {
+    "ex": [
+      "Studies on this method have produced mixed results.",
+      "Bu usul bo‘yicha tadqiqotlar turlicha natijalar berdi."
+    ],
+    "syn": [
+      "shown mixed results"
+    ]
+  },
+  "consume_some_electrolytes": {
+    "ex": [
+      "After heavy sweating, you may need to consume some electrolytes.",
+      "Ko‘p terlaganingizdan keyin elektrolitlarni iste’mol qilishingiz kerak bo‘lishi mumkin."
+    ],
+    "syn": [
+      "take in some electrolytes"
+    ]
+  },
+  "opportunity_to_recover": {
+    "ex": [
+      "A rest day gives your body a further opportunity to recover.",
+      "Dam olish kuni tanangizga yanada tiklanish imkoniyatini beradi."
+    ],
+    "syn": [
+      "more time to recover"
+    ]
+  },
+  "benefit_aspects_of": {
+    "ex": [
+      "A short nap may benefit aspects of mental performance.",
+      "Qisqa uyqu aqliy ko‘rsatkichning ayrim jihatlariga foyda berishi mumkin."
+    ],
+    "syn": [
+      "help aspects of"
+    ]
+  },
+  "alternate_recovery_techniques": {
+    "ex": [
+      "Some athletes use alternate recovery techniques after hard sessions.",
+      "Ba’zi sportchilar og‘ir mashg‘ulotlardan keyin muqobil tiklanish usullaridan foydalanadi."
+    ],
+    "syn": [
+      "alternative recovery methods"
+    ]
+  },
+  "reduce_muscle_soreness": {
+    "ex": [
+      "Light movement may help reduce muscle soreness.",
+      "Yengil harakat mushak og‘rig‘ini kamaytirishga yordam berishi mumkin."
+    ],
+    "syn": [
+      "ease muscle soreness"
+    ]
+  },
+  "strongest_effects_on": {
+    "ex": [
+      "Sleep has one of the strongest effects on recovery.",
+      "Uyqu tiklanishga eng kuchli ta’sirlardan birini ko‘rsatadi."
+    ],
+    "syn": [
+      "greatest effects on"
+    ]
+  },
+  "manageable_level": {
+    "ex": [
+      "Keep the intensity at a manageable level when you return to training.",
+      "Mashg‘ulotga qaytganda intensivlikni uddalash mumkin bo‘lgan darajada saqlang."
+    ],
+    "syn": [
+      "at a reasonable level"
+    ]
+  },
+  "gradually_building_up": {
+    "ex": [
+      "Gradually building up your training can reduce excessive soreness.",
+      "Mashg‘ulotni asta-sekin oshirib borish kuchli og‘riqni kamaytirishi mumkin."
+    ],
+    "syn": [
+      "increasing gradually",
+      "building up slowly"
+    ]
+  },
+  "well_hydrated_before_workouts": {
+    "ex": [
+      "Try to be well hydrated before workouts in hot weather.",
+      "Issiq ob-havoda mashqdan oldin yetarlicha suyuqlik ichgan bo‘lishga harakat qiling."
+    ],
+    "syn": [
+      "properly hydrated before workouts"
+    ]
+  },
+  "allowing_time_to_recover": {
+    "ex": [
+      "Allowing time to recover is part of a good training plan.",
+      "Tiklanishga vaqt berish yaxshi mashg‘ulot rejasining bir qismidir."
+    ],
+    "syn": [
+      "giving time to recover"
+    ]
+  },
+  "completely_exhausted": {
+    "ex": [
+      "You should not feel completely exhausted after every workout.",
+      "Har bir mashqdan keyin butunlay holdan toygan bo‘lishingiz shart emas."
+    ],
+    "syn": [
+      "totally exhausted",
+      "completely worn out"
+    ]
+  },
+  "doesnt_necessarily_mean": {
+    "ex": [
+      "Feeling sore doesn’t necessarily mean the workout was better.",
+      "Og‘riq sezish har doim ham mashq yaxshiroq bo‘lgan degani emas."
+    ],
+    "syn": [
+      "does not always mean"
+    ]
+  },
+  "in_proportion_to": {
+    "ex": [
+      "Your recovery time should be in proportion to how hard you trained.",
+      "Tiklanish vaqtingiz qanchalik qattiq mashq qilganingizga mutanosib bo‘lishi kerak."
+    ],
+    "syn": [
+      "proportional to"
+    ]
+  },
+  "disproportionate_to": {
+    "ex": [
+      "The tiredness seems disproportionate to the amount of exercise you did.",
+      "Charchoq qilgan mashqingiz miqdoriga nisbatan nomutanosibdek tuyuladi."
+    ],
+    "syn": [
+      "out of proportion to"
+    ]
+  },
+  "improve_with_recovery": {
+    "ex": [
+      "Normal fatigue should improve with recovery.",
+      "Oddiy charchoq tiklanish bilan yaxshilanishi kerak."
+    ],
+    "syn": [
+      "get better with recovery"
+    ]
+  },
+  "comes_with_symptoms": {
+    "ex": [
+      "Seek help if fatigue comes with symptoms such as chest pain.",
+      "Agar charchoq ko‘krak og‘rig‘i kabi alomatlar bilan birga kelsa, yordam so‘rang."
+    ],
+    "syn": [
+      "is accompanied by symptoms such as"
+    ]
+  },
+  "post_workout_fatigue": {
+    "ex": [
+      "Post-workout fatigue is common after a very hard session.",
+      "Juda og‘ir mashg‘ulotdan keyin mashqdan keyingi charchoq odatiy hol."
+    ],
+    "syn": [
+      "post-exercise fatigue"
+    ]
+  },
+  "muscle_weakness": {
+    "ex": [
+      "Muscle weakness can make simple movements feel harder.",
+      "Mushak kuchsizligi oddiy harakatlarni ham qiyinlashtirishi mumkin."
+    ],
+    "syn": [
+      "weakness in the muscles"
+    ]
+  },
+  "physical_performance": {
+    "ex": [
+      "Good sleep can improve physical performance.",
+      "Yaxshi uyqu jismoniy ko‘rsatkichni yaxshilashi mumkin."
+    ],
+    "syn": [
+      "physical ability"
+    ]
+  },
+  "challenging_weights_session": {
+    "ex": [
+      "He felt tired after a challenging weights session.",
+      "U qiyin kuch mashg‘ulotidan keyin charchadi."
+    ],
+    "syn": [
+      "hard weights session"
+    ]
+  },
+  "regular_runner": {
+    "ex": [
+      "A regular runner usually adapts to long runs more easily.",
+      "Muntazam yuguradigan odam odatda uzoq yugurishlarga osonroq moslashadi."
+    ],
+    "syn": [
+      "regular jogger"
+    ]
+  },
+  "lifts_weights": {
+    "ex": [
+      "She lifts weights three times a week.",
+      "U haftasiga uch marta og‘irlik ko‘taradi."
+    ],
+    "syn": [
+      "does weight training"
+    ]
+  },
+  "long_or_demanding_workout": {
+    "ex": [
+      "Eat enough after a long or demanding workout.",
+      "Uzoq yoki katta kuch talab qiladigan mashqdan keyin yetarli ovqatlaning."
+    ],
+    "syn": [
+      "long or strenuous workout"
+    ]
+  },
+  "energy_stores": {
+    "ex": [
+      "Carbohydrates help refill your energy stores after exercise.",
+      "Uglevodlar mashqdan keyin energiya zaxiralarini qayta to‘ldirishga yordam beradi."
+    ],
+    "syn": [
+      "energy reserves"
+    ]
+  },
+  "protein_supplements": {
+    "ex": [
+      "Protein supplements are not necessary for everyone.",
+      "Oqsil qo‘shimchalari hamma uchun ham zarur emas."
+    ],
+    "syn": [
+      "protein products"
+    ]
+  },
+  "immediate_recovery": {
+    "ex": [
+      "Water and rest can support immediate recovery after training.",
+      "Suv va dam olish mashg‘ulotdan keyingi tez tiklanishga yordam berishi mumkin."
+    ],
+    "syn": [
+      "rapid recovery"
+    ]
+  },
+  "long_run": {
+    "ex": [
+      "I usually drink more water after a long run.",
+      "Men odatda uzoq yugurishdan keyin ko‘proq suv ichaman."
+    ],
+    "syn": [
+      "long-distance run"
+    ]
+  },
+  "intense_workout_session": {
+    "ex": [
+      "An intense workout session can leave you tired for several hours.",
+      "Juda intensiv mashg‘ulot sizni bir necha soat charchatishi mumkin."
+    ],
+    "syn": [
+      "hard workout session"
+    ]
+  },
+  "sweated_a_lot": {
+    "ex": [
+      "Drink more water if you sweated a lot during training.",
+      "Mashg‘ulot paytida ko‘p terlagan bo‘lsangiz, ko‘proq suv iching."
+    ],
+    "syn": [
+      "perspired heavily"
+    ]
+  },
+  "hot_weather": {
+    "ex": [
+      "Exercise feels harder in hot weather.",
+      "Issiq ob-havoda mashq qilish qiyinroq tuyuladi."
+    ],
+    "syn": [
+      "warm weather"
+    ]
+  },
+  "take_naps": {
+    "ex": [
+      "Some athletes take naps after hard morning sessions.",
+      "Ba’zi sportchilar og‘ir ertalabki mashg‘ulotlardan keyin kunduzgi qisqa uyqu qiladi."
+    ],
+    "syn": [
+      "have short naps"
+    ]
+  },
+  "physical_and_mental_performance": {
+    "ex": [
+      "Sleep affects both physical and mental performance.",
+      "Uyqu jismoniy va aqliy ko‘rsatkichga ta’sir qiladi."
+    ],
+    "syn": [
+      "physical and cognitive performance"
+    ]
+  },
+  "gentle_exercise": {
+    "ex": [
+      "Gentle exercise can help you move without putting too much stress on the body.",
+      "Yengil mashq tanaga ortiqcha zo‘riqish bermasdan harakat qilishga yordam beradi."
+    ],
+    "syn": [
+      "light exercise"
+    ]
+  },
+  "slow_walk": {
+    "ex": [
+      "A slow walk can be a good way to stay active on a rest day.",
+      "Sekin yurish dam olish kunida faol qolishning yaxshi usuli bo‘lishi mumkin."
+    ],
+    "syn": [
+      "gentle walk"
+    ]
+  },
+  "demanding_workouts": {
+    "ex": [
+      "Do not schedule several demanding workouts in a row.",
+      "Bir necha katta kuch talab qiladigan mashqni ketma-ket rejalashtirmang."
+    ],
+    "syn": [
+      "strenuous workouts",
+      "hard workouts"
+    ]
+  },
+  "longer_workouts": {
+    "ex": [
+      "Longer workouts usually require more food and rest.",
+      "Uzoqroq mashqlar odatda ko‘proq ovqat va dam olishni talab qiladi."
+    ],
+    "syn": [
+      "extended workouts"
+    ]
+  },
+  "hot_conditions": {
+    "ex": [
+      "Your body loses more fluid in hot conditions.",
+      "Issiq sharoitda tanangiz ko‘proq suyuqlik yo‘qotadi."
+    ],
+    "syn": [
+      "hot environments"
+    ]
+  },
+  "support_your_activity": {
+    "ex": [
+      "Eat enough food to support your activity.",
+      "Faoliyatingizni qo‘llab-quvvatlash uchun yetarli ovqatlaning."
+    ],
+    "syn": [
+      "support your exercise"
+    ]
+  },
+  "body_is_prepared_for": {
+    "ex": [
+      "Do not train much harder than your body is prepared for.",
+      "Tanangiz tayyor bo‘lgan darajadan ancha qattiqroq mashq qilmang."
+    ],
+    "syn": [
+      "your body is ready for"
+    ]
+  },
+  "reduce_how_bad": {
+    "ex": [
+      "Good recovery habits can reduce how bad your post-workout fatigue is.",
+      "Yaxshi tiklanish odatlari mashqdan keyingi charchoq qanchalik kuchli bo‘lishini kamaytirishi mumkin."
+    ],
+    "syn": [
+      "make your post-workout fatigue less severe"
+    ]
+  },
+  "chest_pain": {
+    "ex": [
+      "Stop exercising and seek help if you have chest pain.",
+      "Ko‘krak og‘rig‘i bo‘lsa, mashqni to‘xtating va yordam so‘rang."
+    ],
+    "syn": [
+      "pain in the chest"
+    ]
+  },
+  "unusual_breathlessness": {
+    "ex": [
+      "Unusual breathlessness after light activity should not be ignored.",
+      "Yengil faoliyatdan keyingi noodatiy nafas qisishini e’tiborsiz qoldirmaslik kerak."
+    ],
+    "syn": [
+      "unusual shortness of breath"
+    ]
+  },
+  "rare_illness": {
+    "ex": [
+      "Doctors discovered that the child had a rare illness.",
+      "Shifokorlar bolada kam uchraydigan kasallik borligini aniqladi."
+    ],
+    "syn": [
+      "uncommon illness"
+    ]
+  },
+  "developed_brain_damage": {
+    "ex": [
+      "The patient developed brain damage after a severe infection.",
+      "Bemor og‘ir infeksiyadan keyin miya shikastlanishiga uchradi."
+    ],
+    "syn": [
+      "suffered brain damage"
+    ]
+  },
+  "kidney_failure": {
+    "ex": [
+      "Severe dehydration can sometimes contribute to kidney failure.",
+      "Kuchli suvsizlanish ba’zan buyrak yetishmovchiligiga sabab bo‘lishi mumkin."
+    ],
+    "syn": [
+      "renal failure"
+    ]
+  },
+  "intensive_care": {
+    "ex": [
+      "The patient was taken to intensive care for close monitoring.",
+      "Bemor yaqindan kuzatish uchun intensiv terapiyaga olib ketildi."
+    ],
+    "syn": [
+      "critical care"
+    ]
+  },
+  "caused_by_infection": {
+    "ex": [
+      "Some serious illnesses are caused by infection.",
+      "Ba’zi jiddiy kasalliklar infeksiya sababli yuzaga keladi."
+    ],
+    "syn": [
+      "resulting from infection"
+    ]
+  },
+  "transmitted_in_a_variety_of_ways": {
+    "ex": [
+      "Some infections can be transmitted in a variety of ways.",
+      "Ba’zi infeksiyalar turli yo‘llar bilan yuqishi mumkin."
+    ],
+    "syn": [
+      "spread in different ways"
+    ]
+  },
+  "contact_with_animals": {
+    "ex": [
+      "Wash your hands after contact with animals.",
+      "Hayvonlar bilan aloqadan keyin qo‘llaringizni yuving."
+    ],
+    "syn": [
+      "contact with livestock"
+    ]
+  },
+  "shed_light_on": {
+    "ex": [
+      "The new study may shed light on how the infection spreads.",
+      "Yangi tadqiqot infeksiya qanday tarqalishiga oydinlik kiritishi mumkin."
+    ],
+    "syn": [
+      "clarify",
+      "help explain"
+    ]
+  },
+  "hygiene_precautions": {
+    "ex": [
+      "Simple hygiene precautions can lower the risk of infection.",
+      "Oddiy gigiyena ehtiyot choralari infeksiya xavfini kamaytirishi mumkin."
+    ],
+    "syn": [
+      "hygiene measures"
+    ]
+  },
+  "infection_risk": {
+    "ex": [
+      "Good handwashing can reduce infection risk.",
+      "Qo‘llarni yaxshi yuvish infeksiya yuqtirish xavfini kamaytirishi mumkin."
+    ],
+    "syn": [
+      "risk of infection"
+    ]
+  },
+  "warning_signs": {
+    "ex": [
+      "Parents should know the warning signs of serious illness.",
+      "Ota-onalar jiddiy kasallikning ogohlantiruvchi belgilarini bilishi kerak."
+    ],
+    "syn": [
+      "warning symptoms"
+    ]
+  },
+  "urgent_medical_assessment": {
+    "ex": [
+      "Severe symptoms may require urgent medical assessment.",
+      "Og‘ir alomatlar shoshilinch tibbiy ko‘rikni talab qilishi mumkin."
+    ],
+    "syn": [
+      "urgent medical evaluation"
+    ]
+  },
+  "as_soon_as_possible": {
+    "ex": [
+      "Call a doctor as soon as possible if the symptoms become severe.",
+      "Alomatlar kuchaysa, imkon qadar tezroq shifokorga qo‘ng‘iroq qiling."
+    ],
+    "syn": [
+      "as quickly as possible"
+    ]
+  },
+  "leads_to": {
+    "ex": [
+      "Poor hygiene sometimes leads to infection.",
+      "Yomon gigiyena ba’zan infeksiyaga olib keladi."
+    ],
+    "syn": [
+      "results in"
+    ]
+  },
+  "can_progress_to": {
+    "ex": [
+      "Without treatment, the infection can progress to a more serious condition.",
+      "Davolanmasa, infeksiya yanada jiddiy holatgacha rivojlanishi mumkin."
+    ],
+    "syn": [
+      "can develop into"
+    ]
+  },
+  "medical_treatment": {
+    "ex": [
+      "Early medical treatment can prevent serious complications.",
+      "Erta tibbiy davolash jiddiy asoratlarning oldini olishi mumkin."
+    ],
+    "syn": [
+      "medical care"
+    ]
+  },
+  "spread_to_humans": {
+    "ex": [
+      "Some animal infections can spread to humans.",
+      "Ba’zi hayvon infeksiyalari odamlarga yuqishi mumkin."
+    ],
+    "syn": [
+      "pass to humans"
+    ]
+  },
+  "contaminated_food_and_water": {
+    "ex": [
+      "Contaminated food and water can carry harmful bacteria.",
+      "Ifloslangan oziq-ovqat va suv zararli bakteriyalarni tashishi mumkin."
+    ],
+    "syn": [
+      "polluted food and water"
+    ]
+  },
+  "come_into_contact_with": {
+    "ex": [
+      "Children may come into contact with animals at petting zoos.",
+      "Bolalar hayvonot bog‘larida hayvonlar bilan aloqa qilishi mumkin."
+    ],
+    "syn": [
+      "have contact with"
+    ]
+  },
+  "not_the_only_way": {
+    "ex": [
+      "Touching animals is not the only way an infection can spread.",
+      "Hayvonlarga tegish infeksiya tarqalishining yagona yo‘li emas."
+    ],
+    "syn": [
+      "not the sole way"
+    ]
+  },
+  "the_risk_lies_when": {
+    "ex": [
+      "The risk lies when children touch their mouths before washing their hands.",
+      "Xavf bolalar qo‘llarini yuvmasdan og‘ziga tekkizganda yuzaga keladi."
+    ],
+    "syn": [
+      "the danger arises when"
+    ]
+  },
+  "particularly_difficult_to_protect": {
+    "ex": [
+      "Very young children can be particularly difficult to protect from germs.",
+      "Juda yosh bolalarni mikroblardan himoya qilish ayniqsa qiyin bo‘lishi mumkin."
+    ],
+    "syn": [
+      "especially hard to protect"
+    ]
+  },
+  "recognised_animal_reservoirs": {
+    "ex": [
+      "Cattle are recognised animal reservoirs for some bacteria.",
+      "Qoramollar ayrim bakteriyalarning tan olingan hayvon manbalaridir."
+    ],
+    "syn": [
+      "known animal reservoirs"
+    ]
+  },
+  "expose_children_to": {
+    "ex": [
+      "Poor hygiene can expose children to harmful bacteria.",
+      "Yomon gigiyena bolalarni zararli bakteriyalar ta’siriga duchor qilishi mumkin."
+    ],
+    "syn": [
+      "put children in contact with"
+    ]
+  },
+  "identified_as_a_risk": {
+    "ex": [
+      "Eating near animals has been identified as a risk.",
+      "Hayvonlar yaqinida ovqatlanish xavf sifatida aniqlangan."
+    ],
+    "syn": [
+      "recognised as a risk"
+    ]
+  },
+  "show_symptoms": {
+    "ex": [
+      "Some infected animals do not show symptoms.",
+      "Ba’zi zararlangan hayvonlar alomatlar ko‘rsatmaydi."
+    ],
+    "syn": [
+      "display symptoms"
+    ]
+  },
+  "provide_children_with": {
+    "ex": [
+      "The venue should provide children with a safe place to wash their hands.",
+      "Joy bolalarga qo‘llarini yuvish uchun xavfsiz joy taqdim etishi kerak."
+    ],
+    "syn": [
+      "give children"
+    ]
+  },
+  "appropriately_managed": {
+    "ex": [
+      "Animal contact areas should be appropriately managed.",
+      "Hayvonlar bilan aloqa qilinadigan joylar tegishli tarzda boshqarilishi kerak."
+    ],
+    "syn": [
+      "properly managed"
+    ]
+  },
+  "readily_accessible": {
+    "ex": [
+      "Handwashing facilities should be readily accessible to visitors.",
+      "Qo‘l yuvish joylaridan tashrif buyuruvchilar oson foydalanishi mumkin bo‘lishi kerak."
+    ],
+    "syn": [
+      "easily accessible"
+    ]
+  },
+  "physical_separation": {
+    "ex": [
+      "Physical separation between eating and animal areas can improve safety.",
+      "Ovqatlanish joylari bilan hayvonlar hududi o‘rtasidagi jismoniy ajratish xavfsizlikni oshirishi mumkin."
+    ],
+    "syn": [
+      "physical division"
+    ]
+  },
+  "need_to_ensure": {
+    "ex": [
+      "Parents need to ensure that children wash their hands properly.",
+      "Ota-onalar bolalar qo‘llarini to‘g‘ri yuvishiga ishonch hosil qilishi kerak."
+    ],
+    "syn": [
+      "must make sure"
+    ]
+  },
+  "are_supervised": {
+    "ex": [
+      "Young children are supervised while they wash their hands.",
+      "Yosh bolalar qo‘llarini yuvayotganda nazorat ostida bo‘ladi."
+    ],
+    "syn": [
+      "are watched"
+    ]
+  },
+  "as_effective_as": {
+    "ex": [
+      "A quick rinse is not as effective as proper handwashing.",
+      "Tezda chayish qo‘llarni to‘g‘ri yuvish kabi samarali emas."
+    ],
+    "syn": [
+      "equally effective as"
+    ]
+  },
+  "favour_venues_with": {
+    "ex": [
+      "Families should favour venues with good handwashing facilities.",
+      "Oilalar yaxshi qo‘l yuvish sharoiti mavjud joylarni afzal ko‘rishi kerak."
+    ],
+    "syn": [
+      "prefer venues with"
+    ]
+  },
+  "running_water": {
+    "ex": [
+      "Wash your hands with soap and running water.",
+      "Qo‘llaringizni sovun va oqayotgan suv bilan yuving."
+    ],
+    "syn": []
+  },
+  "disposable_towels": {
+    "ex": [
+      "Use disposable towels to dry your hands after washing.",
+      "Qo‘llaringizni yuvgandan keyin bir martalik sochiqlardan foydalaning."
+    ],
+    "syn": [
+      "single-use towels"
+    ]
+  },
+  "wash_before_eating_or_drinking": {
+    "ex": [
+      "Children should wash before eating or drinking after touching animals.",
+      "Bolalar hayvonlarga tekkandan keyin ovqatlanish yoki ichishdan oldin qo‘llarini yuvishi kerak."
+    ],
+    "syn": [
+      "wash before having food or drink"
+    ]
+  }
+};
+
 const readingArticles=[
   {
     "id": "post-workout-fatigue",
@@ -1262,13 +2307,48 @@ const exerciseQuestions = [
 
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 
+function vocabExampleHtml(example){
+  if(!example||!example[0])return '';
+  return '<div class="vocab-example"><p>'+esc(example[0])+'</p><span>'+esc(example[1]||'')+'</span></div>';
+}
+
+function speakVocab(key,accent){
+  const item=vocab[key];
+  if(!item||!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined')return;
+  const locale=accent==='gb'?'en-GB':'en-US';
+  const utterance=new SpeechSynthesisUtterance(item.term);
+  utterance.lang=locale;
+  const voices=window.speechSynthesis.getVoices();
+  const exact=voices.find(v=>String(v.lang||'').toLowerCase()===locale.toLowerCase());
+  const regional=voices.find(v=>String(v.lang||'').toLowerCase().startsWith(locale.toLowerCase().slice(0,2))&&String(v.lang||'').toLowerCase().includes(locale.slice(-2).toLowerCase()));
+  if(exact||regional)utterance.voice=exact||regional;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
+}
+
 function wordHtml(key,displayText){
   const item=vocab[key];
+  const detail=vocabDetails[key]||{ex:['',''],syn:[]};
   const text=displayText||item.term;
   const cls=item.level==='B1'?'b1':'b2';
+  const examples=[
+    '<div class="vocab-example vocab-example-context"><p>'+esc(text)+'</p><span>'+esc(item.uz)+'</span></div>',
+    vocabExampleHtml(detail.ex)
+  ].join('');
+  const synonyms=(detail.syn||[]).slice(0,2);
+  const synonymHtml=synonyms.length?'<div class="vocab-synonyms"><b>Similar</b><div>'+synonyms.map(s=>'<span>'+esc(s)+'</span>').join('')+'</div></div>':'';
   return '<span class="vocab-word '+cls+'" role="button" tabindex="0" data-vocab="'+esc(key)+'">'+
     esc(text)+
-    '<span class="vocab-popover" aria-hidden="true"><small>'+esc(item.level)+'</small><strong>'+esc(item.term)+'</strong><em>'+esc(item.uz)+'</em></span>'+
+    '<span class="vocab-popover" aria-hidden="true">'+
+      '<div class="vocab-card-head"><small>'+esc(item.level)+'</small><strong>'+esc(item.term)+'</strong></div>'+
+      '<div class="vocab-meaning"><b>Uzbek</b><em>'+esc(item.uz)+'</em></div>'+
+      '<div class="vocab-pronunciation" aria-label="Pronunciation">'+
+        '<button class="vocab-audio" type="button" data-accent="gb" data-vocab="'+esc(key)+'" aria-label="Hear British pronunciation">🇬🇧 <span>British</span> 🔊</button>'+
+        '<button class="vocab-audio" type="button" data-accent="us" data-vocab="'+esc(key)+'" aria-label="Hear American pronunciation">🇺🇸 <span>American</span> 🔊</button>'+
+      '</div>'+
+      '<div class="vocab-examples"><b>Examples</b>'+examples+'</div>'+
+      synonymHtml+
+    '</span>'+
   '</span>';
 }
 
@@ -1625,7 +2705,7 @@ function articleHtml(){
           '<div><span class="article-kicker">'+esc(activeArticle.kicker)+'</span><h1>'+esc(activeArticle.title)+'</h1><div class="article-byline">'+esc(activeArticle.byline||'')+'</div><div class="article-meta"><span>'+esc(activeArticle.level)+'</span><span>'+esc(activeArticle.minutes)+'</span><span>'+getArticleVocabCount(activeArticle)+' key items</span></div></div>'+
           '<button class="translation-toggle" id="translation-toggle" type="button" aria-pressed="false"><span class="toggle-track"><i></i></span><span><b>Translation mode</b><small id="translation-mode-label">Off</small></span></button>'+
         '</div>'+
-        '<div class="article-guide"><span class="guide-dot b1"></span><b>B1 useful English</b><span class="guide-dot b2"></span><b>B2–C1 vocabulary</b><p>Tap a bold word for its Uzbek translation. Turn on Translation Mode to translate full sentences.</p></div>'+
+        '<div class="article-guide"><span class="guide-dot b1"></span><b>B1 useful English</b><span class="guide-dot b2"></span><b>B2–C1 vocabulary</b><p>Tap a bold word for its Uzbek meaning, examples, similar words, and British or American pronunciation. Turn on Translation Mode to translate full sentences.</p></div>'+
         highlighterHtml()+
         '<div class="article-copy" id="article-copy">'+articleBodyHtml()+'</div>'+
       '</article>'+
@@ -1695,6 +2775,17 @@ function renderArticle(root,data,callbacks){
   }
 
   root.querySelector('#article-copy').addEventListener('click',e=>{
+    const audio=e.target.closest('.vocab-audio');
+    if(audio){
+      e.preventDefault();
+      e.stopPropagation();
+      speakVocab(audio.dataset.vocab,audio.dataset.accent);
+      return;
+    }
+    if(e.target.closest('.vocab-popover')){
+      e.stopPropagation();
+      return;
+    }
     if(highlighter.hasSelection())return;
     const word=e.target.closest('.vocab-word');
     if(word){
