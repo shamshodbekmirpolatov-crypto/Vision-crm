@@ -352,17 +352,22 @@ def build_rich_article(job, model_data, sentence_rows):
         seen_terms.add(norm)
         synonyms = [str(x).strip() for x in (raw.get("synonyms") or []) if str(x).strip()][:2]
         key = slug_key(term, used_keys)
+        uz = str(raw.get("uz") or "").strip()
+        if not uz:
+            continue
         vocab_json[key] = {
             "term": term,
             "level": str(raw.get("level") or "B1").strip(),
-            "uz": str(raw.get("uz") or "").strip(),
+            "uz": uz,
             "examples": examples,
             "synonyms": synonyms,
             "audio": {},
         }
 
-    if not vocab_json:
-        raise RuntimeError("The local language model did not return any valid vocabulary from the article.")
+    word_count = len(article_text.split())
+    minimum_vocab = 4 if word_count < 120 else 7
+    if len(vocab_json) < minimum_vocab:
+        raise RuntimeError(f"The local language model returned only {len(vocab_json)} valid vocabulary items; at least {minimum_vocab} are needed.")
 
     exercises = []
     raw_exercises = model_data.get("exercises", []) if isinstance(model_data, dict) else []
@@ -384,6 +389,9 @@ def build_rich_article(job, model_data, sentence_rows):
         exercises.append({"prompt": prompt, "options": options, "answer": answer})
         if len(exercises) >= 6:
             break
+
+    if len(exercises) < 4:
+        raise RuntimeError(f"The local language model returned only {len(exercises)} valid vocabulary exercises; at least 4 are needed.")
 
     return {
         "content_json": {"sections": [{"heading": "", "paragraphs": content_paragraphs}]},
@@ -564,8 +572,24 @@ def main():
 
     while True:
         try:
-            enrich_response = session.worker_call(ENRICH_WORKER_URL, "next_job")
-            enrich_job = enrich_response.get("job")
+            local_ai_ready, local_models = ollama_is_ready()
+            model_present = local_ai_ready and (
+                not local_models
+                or any(name == OLLAMA_MODEL or name.startswith(OLLAMA_MODEL + ":") or name.startswith(OLLAMA_MODEL) for name in local_models)
+            )
+
+            if model_present:
+                enrich_response = session.worker_call(ENRICH_WORKER_URL, "next_job")
+                enrich_job = enrich_response.get("job")
+            else:
+                enrich_job = None
+                now = time.time()
+                if now - last_ollama_warning > 60:
+                    if not local_ai_ready:
+                        print("Reading enrichment is waiting: Ollama is not running.")
+                    else:
+                        print(f"Reading enrichment is waiting: Ollama model '{OLLAMA_MODEL}' is not installed.")
+                    last_ollama_warning = now
 
             if enrich_job:
                 print("-" * 66)
@@ -574,18 +598,12 @@ def main():
                 try:
                     process_enrichment_job(session, enrich_job)
                 except Exception as job_error:
-                    print("Enrichment paused:", job_error)
-                    now = time.time()
-                    # Do not mark the job permanently failed just because Ollama is not running.
-                    if "Ollama is not running" in str(job_error):
-                        # Return it to pending by reporting failure only after Ollama exists but generation itself fails.
-                        # The worker claim will otherwise stay processing, so mark an actionable error.
+                    print("Enrichment failed:", job_error)
+                    try:
                         session.worker_call(ENRICH_WORKER_URL, "fail", job_id=enrich_job["id"], error=str(job_error))
-                    else:
-                        session.worker_call(ENRICH_WORKER_URL, "fail", job_id=enrich_job["id"], error=str(job_error))
-                    if now - last_ollama_warning > 30:
-                        print("Start Ollama and make sure the configured model is available, then requeue the text from the Teacher Reading Library.")
-                        last_ollama_warning = now
+                    except Exception as report_error:
+                        print("Could not report the enrichment failure:", report_error)
+                    print("Use Retry in Teacher → Reading Library after fixing the problem.")
                     time.sleep(10)
                 continue
 
