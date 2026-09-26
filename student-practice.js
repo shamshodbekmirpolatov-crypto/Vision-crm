@@ -3358,6 +3358,33 @@ function articleSpeechSegments(article){
   return segments;
 }
 
+function estimateSpeechSegmentSeconds(text){
+  const words=String(text||'').trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1.4,words/2.35+.22);
+}
+
+function articleAudioTimeline(article){
+  let cursor=0;
+  return articleSpeechSegments(article).map((text,index)=>{
+    const duration=estimateSpeechSegmentSeconds(text);
+    const item={text,index,start:cursor,end:cursor+duration,duration};
+    cursor+=duration;
+    return item;
+  });
+}
+
+function articleAudioDurationSeconds(article){
+  const timeline=articleAudioTimeline(article);
+  return timeline.length?timeline[timeline.length-1].end:0;
+}
+
+function formatAudioTime(value){
+  const seconds=Math.max(0,Math.round(Number(value)||0));
+  const mins=Math.floor(seconds/60);
+  const secs=seconds%60;
+  return mins+':'+String(secs).padStart(2,'0');
+}
+
 function getActiveExerciseQuestions(){
   return Array.isArray(activeArticle?.exerciseQuestions)&&activeArticle.exerciseQuestions.length?activeArticle.exerciseQuestions:exerciseQuestions;
 }
@@ -3388,14 +3415,29 @@ function articleHtml(){
           '<div><span class="article-kicker">'+esc(activeArticle.kicker)+'</span><h1>'+esc(activeArticle.title)+'</h1><div class="article-byline">'+esc(activeArticle.byline||'')+'</div><div class="article-meta"><span>'+esc(activeArticle.level)+'</span><span>'+esc(activeArticle.minutes)+'</span><span>'+getArticleVocabCount(activeArticle)+' key items</span></div></div>'+
           '<button class="translation-toggle" id="translation-toggle" type="button" aria-pressed="false"><span class="toggle-track"><i></i></span><span><b>Translation mode</b><small id="translation-mode-label">Off</small></span></button>'+
         '</div>'+
-        '<div class="article-audio-panel" id="article-audio-panel">'+
-          '<div class="article-audio-copy"><span>LISTEN TO THE ARTICLE</span><strong>Choose a pronunciation</strong><small id="article-audio-status">Ready to play</small></div>'+
-          '<div class="article-audio-controls">'+
-            '<button class="article-audio-button" type="button" data-article-accent="gb" aria-pressed="false"><span class="article-audio-flag">🇬🇧</span><span><b>British</b><small class="audio-action-label">Play</small></span><i>▶</i></button>'+
-            '<button class="article-audio-button" type="button" data-article-accent="us" aria-pressed="false"><span class="article-audio-flag">🇺🇸</span><span><b>American</b><small class="audio-action-label">Play</small></span><i>▶</i></button>'+
-            '<button class="article-audio-stop" id="article-audio-stop" type="button" disabled aria-label="Stop article audio">■ <span>Stop</span></button>'+
+        '<section class="article-audio-panel" id="article-audio-panel" aria-label="Article audio">'+
+          '<div class="article-audio-heading">'+
+            '<div><span class="article-audio-eyebrow">LISTEN WHILE YOU READ</span><strong>Full article audio</strong><small>Choose an accent. Pause, resume, or drag the timeline to any point.</small></div>'+
           '</div>'+
-        '</div>'+
+          '<div class="article-player-list">'+
+            '<div class="article-player-row" data-audio-player="gb">'+
+              '<button class="article-player-play" type="button" data-article-accent="gb" aria-label="Play British English article"><span>▶</span></button>'+
+              '<div class="article-player-accent"><span class="article-player-flag">🇬🇧</span><span><strong>British English</strong><small>Full article</small></span></div>'+
+              '<div class="article-player-track">'+
+                '<input class="article-audio-seek" data-article-seek="gb" type="range" min="0" max="'+Math.max(1,Math.round(articleAudioDurationSeconds(activeArticle)))+'" step="1" value="0" aria-label="British article playback position">'+
+                '<div class="article-player-time"><span data-current-time="gb">0:00</span><span data-total-time="gb">'+formatAudioTime(articleAudioDurationSeconds(activeArticle))+'</span></div>'+
+              '</div>'+
+            '</div>'+
+            '<div class="article-player-row" data-audio-player="us">'+
+              '<button class="article-player-play" type="button" data-article-accent="us" aria-label="Play American English article"><span>▶</span></button>'+
+              '<div class="article-player-accent"><span class="article-player-flag">🇺🇸</span><span><strong>American English</strong><small>Full article</small></span></div>'+
+              '<div class="article-player-track">'+
+                '<input class="article-audio-seek" data-article-seek="us" type="range" min="0" max="'+Math.max(1,Math.round(articleAudioDurationSeconds(activeArticle)))+'" step="1" value="0" aria-label="American article playback position">'+
+                '<div class="article-player-time"><span data-current-time="us">0:00</span><span data-total-time="us">'+formatAudioTime(articleAudioDurationSeconds(activeArticle))+'</span></div>'+
+              '</div>'+
+            '</div>'+
+          '</div>'+
+        '</section>'+
         '<div class="article-guide"><span class="guide-dot b1"></span><b>B1 useful English</b><span class="guide-dot b2"></span><b>B2–C1 vocabulary</b><p>Tap a bold word for its Uzbek meaning, examples, similar words, and British or American pronunciation. Turn on Translation Mode to translate full sentences.</p></div>'+
         highlighterHtml()+
         '<div class="article-copy" id="article-copy">'+articleBodyHtml()+'</div>'+
@@ -3460,107 +3502,258 @@ function renderArticle(root,data,callbacks){
   const articleEvents=new AbortController();
   const highlighter=bindReadingHighlighter(root,data,articleEvents.signal);
 
-  const articleAudioButtons=[...root.querySelectorAll('.article-audio-button')];
-  const articleAudioStop=root.querySelector('#article-audio-stop');
-  const articleAudioStatus=root.querySelector('#article-audio-status');
-  const articleAudioSegments=articleSpeechSegments(activeArticle);
-  const articleAudioState={
-    accent:null,
-    index:0,
-    paused:false,
-    stopped:true,
-    run:0
+  const articleAudioButtons=[...root.querySelectorAll('.article-player-play')];
+  const articleAudioTimelineData=articleAudioTimeline(activeArticle);
+  const articleAudioTotal=articleAudioTimelineData.length?articleAudioTimelineData[articleAudioTimelineData.length-1].end:0;
+  const audioPlayers={
+    gb:{position:0,playing:false,paused:false},
+    us:{position:0,playing:false,paused:false}
   };
+  let activeAudioAccent=null;
+  let audioRun=0;
+  let progressTimer=null;
+  let timerStartedAt=0;
+  let timerStartPosition=0;
 
-  function updateArticleAudioUi(message){
-    articleAudioButtons.forEach(button=>{
-      const active=button.dataset.articleAccent===articleAudioState.accent&&!articleAudioState.stopped;
-      button.classList.toggle('active',active);
-      button.setAttribute('aria-pressed',String(active));
-      const label=button.querySelector('.audio-action-label');
-      const icon=button.querySelector('i');
-      if(label)label.textContent=active?(articleAudioState.paused?'Resume':'Pause'):'Play';
-      if(icon)icon.textContent=active?(articleAudioState.paused?'▶':'Ⅱ'):'▶';
+  function playerEls(accent){
+    const row=root.querySelector('[data-audio-player="'+accent+'"]');
+    return {
+      row,
+      button:root.querySelector('.article-player-play[data-article-accent="'+accent+'"]'),
+      icon:root.querySelector('.article-player-play[data-article-accent="'+accent+'"] span'),
+      seek:root.querySelector('[data-article-seek="'+accent+'"]'),
+      current:root.querySelector('[data-current-time="'+accent+'"]')
+    };
+  }
+
+  function syncPlayerUi(accent){
+    const state=audioPlayers[accent];
+    const els=playerEls(accent);
+    if(!state||!els.row)return;
+    const max=Math.max(1,articleAudioTotal);
+    const clamped=Math.max(0,Math.min(max,state.position));
+    const percent=Math.max(0,Math.min(100,(clamped/max)*100));
+    els.row.classList.toggle('playing',state.playing&&!state.paused);
+    els.row.classList.toggle('paused',state.paused);
+    if(els.button){
+      els.button.setAttribute('aria-label',(state.playing&&!state.paused?'Pause ':'Play ')+(accent==='gb'?'British':'American')+' English article');
+      els.button.setAttribute('aria-pressed',String(state.playing&&!state.paused));
+    }
+    if(els.icon)els.icon.textContent=state.playing&&!state.paused?'Ⅱ':'▶';
+    if(els.seek){
+      els.seek.value=String(Math.round(clamped));
+      els.seek.style.setProperty('--audio-progress',percent+'%');
+    }
+    if(els.current)els.current.textContent=formatAudioTime(clamped);
+  }
+
+  function syncAllPlayerUi(){
+    syncPlayerUi('gb');
+    syncPlayerUi('us');
+  }
+
+  function clearProgressTimer(){
+    if(progressTimer){
+      clearInterval(progressTimer);
+      progressTimer=null;
+    }
+  }
+
+  function startProgressTimer(accent){
+    clearProgressTimer();
+    timerStartedAt=performance.now();
+    timerStartPosition=audioPlayers[accent].position;
+    progressTimer=setInterval(()=>{
+      const state=audioPlayers[accent];
+      if(!state||!state.playing||state.paused||activeAudioAccent!==accent)return;
+      const elapsed=(performance.now()-timerStartedAt)/1000;
+      state.position=Math.min(articleAudioTotal,timerStartPosition+elapsed);
+      syncPlayerUi(accent);
+    },200);
+  }
+
+  function setOtherPlayersInactive(exceptAccent){
+    ['gb','us'].forEach(accent=>{
+      if(accent===exceptAccent)return;
+      audioPlayers[accent].playing=false;
+      audioPlayers[accent].paused=false;
+      syncPlayerUi(accent);
     });
-    if(articleAudioStop)articleAudioStop.disabled=articleAudioState.stopped;
-    if(articleAudioStatus&&message)articleAudioStatus.textContent=message;
   }
 
-  function stopFullArticleAudio(message='Ready to play'){
-    articleAudioState.run++;
-    articleAudioState.stopped=true;
-    articleAudioState.paused=false;
-    articleAudioState.accent=null;
-    articleAudioState.index=0;
+  function locateArticlePosition(seconds){
+    const target=Math.max(0,Math.min(articleAudioTotal,Number(seconds)||0));
+    if(!articleAudioTimelineData.length)return null;
+    let segment=articleAudioTimelineData.find(item=>target<item.end);
+    if(!segment)segment=articleAudioTimelineData[articleAudioTimelineData.length-1];
+    const fraction=segment.duration?Math.max(0,Math.min(1,(target-segment.start)/segment.duration)):0;
+    const rawIndex=Math.floor(segment.text.length*fraction);
+    const before=segment.text.slice(0,rawIndex);
+    const lastSpace=before.lastIndexOf(' ');
+    const charIndex=rawIndex>0?(lastSpace>=0?lastSpace+1:rawIndex):0;
+    return {segment,charIndex,target};
+  }
+
+  function haltArticleSpeech({preservePosition=true,markPaused=false}={}){
+    audioRun++;
+    clearProgressTimer();
     if('speechSynthesis' in window)window.speechSynthesis.cancel();
-    updateArticleAudioUi(message);
-  }
-
-  function speakArticleSegment(runId){
-    if(articleAudioState.stopped||runId!==articleAudioState.run)return;
-    if(articleAudioState.index>=articleAudioSegments.length){
-      stopFullArticleAudio('Finished');
-      return;
-    }
-    const accent=articleAudioState.accent;
-    const locale=accent==='gb'?'en-GB':'en-US';
-    const utterance=new SpeechSynthesisUtterance(articleAudioSegments[articleAudioState.index]);
-    utterance.lang=locale;
-    const voice=preferredEnglishVoice(locale);
-    if(voice)utterance.voice=voice;
-    utterance.rate=.94;
-    utterance.onend=()=>{
-      if(articleAudioState.stopped||runId!==articleAudioState.run)return;
-      articleAudioState.index++;
-      setTimeout(()=>speakArticleSegment(runId),30);
-    };
-    utterance.onerror=event=>{
-      if(articleAudioState.stopped||runId!==articleAudioState.run)return;
-      if(event.error==='interrupted'||event.error==='canceled')return;
-      stopFullArticleAudio('Audio could not continue');
-    };
-    window.speechSynthesis.speak(utterance);
-  }
-
-  function startArticleAudio(accent){
-    if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined'){
-      updateArticleAudioUi('Audio is not supported on this device');
-      return;
-    }
-    const sameAccent=articleAudioState.accent===accent&&!articleAudioState.stopped;
-    if(sameAccent){
-      if(articleAudioState.paused){
-        window.speechSynthesis.resume();
-        articleAudioState.paused=false;
-        updateArticleAudioUi(accent==='gb'?'Playing British English':'Playing American English');
-      }else{
-        window.speechSynthesis.pause();
-        articleAudioState.paused=true;
-        updateArticleAudioUi('Paused');
+    if(activeAudioAccent){
+      const state=audioPlayers[activeAudioAccent];
+      if(state){
+        if(!preservePosition)state.position=0;
+        state.playing=false;
+        state.paused=markPaused;
+        syncPlayerUi(activeAudioAccent);
       }
+    }
+    activeAudioAccent=null;
+  }
+
+  function speakArticleFrom(accent,position){
+    if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined')return;
+    const located=locateArticlePosition(position);
+    if(!located){
+      audioPlayers[accent].playing=false;
+      audioPlayers[accent].paused=false;
+      syncPlayerUi(accent);
       return;
     }
 
-    window.speechSynthesis.cancel();
-    articleAudioState.run++;
-    articleAudioState.accent=accent;
-    articleAudioState.index=0;
-    articleAudioState.paused=false;
-    articleAudioState.stopped=false;
-    const runId=articleAudioState.run;
-    updateArticleAudioUi(accent==='gb'?'Playing British English':'Playing American English');
-    setTimeout(()=>speakArticleSegment(runId),40);
+    const state=audioPlayers[accent];
+    state.position=located.target;
+    state.playing=true;
+    state.paused=false;
+    activeAudioAccent=accent;
+    setOtherPlayersInactive(accent);
+    const runId=++audioRun;
+
+    function speakSegment(segmentIndex,startChar){
+      if(runId!==audioRun||activeAudioAccent!==accent||!state.playing||state.paused)return;
+      if(segmentIndex>=articleAudioTimelineData.length){
+        clearProgressTimer();
+        state.position=articleAudioTotal;
+        state.playing=false;
+        state.paused=false;
+        activeAudioAccent=null;
+        syncPlayerUi(accent);
+        return;
+      }
+
+      const segment=articleAudioTimelineData[segmentIndex];
+      const source=segment.text;
+      const charStart=Math.max(0,Math.min(source.length,startChar||0));
+      const spoken=source.slice(charStart).trimStart();
+      const leadingTrim=source.slice(charStart).length-spoken.length;
+      const effectiveStart=charStart+leadingTrim;
+      if(!spoken){
+        speakSegment(segmentIndex+1,0);
+        return;
+      }
+
+      const charFraction=source.length?effectiveStart/source.length:0;
+      state.position=segment.start+segment.duration*charFraction;
+      syncPlayerUi(accent);
+      startProgressTimer(accent);
+
+      const locale=accent==='gb'?'en-GB':'en-US';
+      const utterance=new SpeechSynthesisUtterance(spoken);
+      utterance.lang=locale;
+      const voice=preferredEnglishVoice(locale);
+      if(voice)utterance.voice=voice;
+      utterance.rate=.94;
+
+      utterance.onboundary=event=>{
+        if(runId!==audioRun||activeAudioAccent!==accent||state.paused)return;
+        if(typeof event.charIndex==='number'&&source.length){
+          const absoluteChar=Math.min(source.length,effectiveStart+event.charIndex);
+          state.position=segment.start+segment.duration*(absoluteChar/source.length);
+          timerStartedAt=performance.now();
+          timerStartPosition=state.position;
+          syncPlayerUi(accent);
+        }
+      };
+
+      utterance.onend=()=>{
+        if(runId!==audioRun||activeAudioAccent!==accent||state.paused)return;
+        state.position=segment.end;
+        syncPlayerUi(accent);
+        speakSegment(segmentIndex+1,0);
+      };
+
+      utterance.onerror=event=>{
+        if(runId!==audioRun)return;
+        if(event.error==='interrupted'||event.error==='canceled')return;
+        clearProgressTimer();
+        state.playing=false;
+        state.paused=false;
+        activeAudioAccent=null;
+        syncPlayerUi(accent);
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    speakSegment(located.segment.index,located.charIndex);
+  }
+
+  function toggleArticlePlayer(accent){
+    if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined')return;
+    const state=audioPlayers[accent];
+
+    if(activeAudioAccent===accent&&state.playing&&!state.paused){
+      window.speechSynthesis.pause();
+      clearProgressTimer();
+      state.paused=true;
+      syncPlayerUi(accent);
+      return;
+    }
+
+    if(activeAudioAccent===accent&&state.paused){
+      window.speechSynthesis.resume();
+      state.paused=false;
+      state.playing=true;
+      startProgressTimer(accent);
+      syncPlayerUi(accent);
+      return;
+    }
+
+    haltArticleSpeech({preservePosition:true,markPaused:false});
+    speakArticleFrom(accent,state.position>=articleAudioTotal-.5?0:state.position);
   }
 
   articleAudioButtons.forEach(button=>{
-    button.addEventListener('click',()=>startArticleAudio(button.dataset.articleAccent),{signal:articleEvents.signal});
+    button.addEventListener('click',()=>toggleArticlePlayer(button.dataset.articleAccent),{signal:articleEvents.signal});
   });
-  if(articleAudioStop){
-    articleAudioStop.addEventListener('click',()=>stopFullArticleAudio('Stopped'),{signal:articleEvents.signal});
-  }
-  cancelArticleAudio=()=>stopFullArticleAudio('Ready to play');
+
+  root.querySelectorAll('.article-audio-seek').forEach(seek=>{
+    const accent=seek.dataset.articleSeek;
+    const updatePreview=()=>{
+      const state=audioPlayers[accent];
+      state.position=Math.max(0,Math.min(articleAudioTotal,Number(seek.value)||0));
+      syncPlayerUi(accent);
+    };
+    seek.addEventListener('input',updatePreview,{signal:articleEvents.signal});
+    seek.addEventListener('change',()=>{
+      const state=audioPlayers[accent];
+      const target=Math.max(0,Math.min(articleAudioTotal,Number(seek.value)||0));
+      const wasActive=activeAudioAccent===accent;
+      const shouldContinue=wasActive&&state.playing&&!state.paused;
+      haltArticleSpeech({preservePosition:true,markPaused:false});
+      state.position=target;
+      state.paused=false;
+      syncPlayerUi(accent);
+      if(shouldContinue)speakArticleFrom(accent,target);
+    },{signal:articleEvents.signal});
+  });
+
+  syncAllPlayerUi();
+
+  cancelArticleAudio=()=>{
+    haltArticleSpeech({preservePosition:true,markPaused:true});
+  };
   disposeArticle=()=>{
-    cancelArticleAudio();
+    haltArticleSpeech({preservePosition:true,markPaused:false});
     articleEvents.abort();
   };
 
