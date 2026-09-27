@@ -799,7 +799,7 @@ async function dashboardPage(){
     can('owner','admin','cashier') ? query(sb.from('payments').select('id,amount,paid_at,fee_month,student_id,voided_at').eq('fee_month',first).is('voided_at',null)) : Promise.resolve([]),
     can('owner','admin','teacher') ? query(sb.from('attendance').select('id,status,lesson_date,student_id').gte('lesson_date',first).lte('lesson_date',last)) : Promise.resolve([]),
     (isTeacher||isAdmin) ? query(sb.from('academic_records').select('id,student_id,record_date,record_type,score,max_score,topic').gte('record_date',supportStart).not('score','is',null).not('max_score','is',null).order('record_date',{ascending:false})) : Promise.resolve([]),
-    isAdmin ? query(sb.from('leads').select('id,full_name,phone,parent_phone,interested_course,status,next_follow_up,created_at').order('created_at',{ascending:false})) : Promise.resolve([])
+    isAdmin ? query(sb.from('leads').select('id,full_name,phone,mother_phone,father_phone,interested_course,status,next_follow_up,created_at').order('created_at',{ascending:false})) : Promise.resolve([])
   ]);
 
   const expected=students.reduce((s,x)=>s+(x.is_free_place?0:Math.max(0,Number(x.monthly_fee)-Number(x.discount_amount))),0);
@@ -912,7 +912,7 @@ async function dashboardPage(){
 
     const followUpPanel='<section class="panel"><div class="panel-head"><div><h2>Lead follow-ups</h2><p>People who need contact today or are already overdue</p></div><span class="badge '+(followUpsDue.length?'warn':'success')+'">'+followUpsDue.length+' due</span></div><div class="panel-body">'+
       (followUpsDue.length
-        ? '<div class="list">'+followUpsDue.slice(0,8).map(l=>'<div class="list-item"><div class="list-main"><strong>'+esc(l.full_name)+'</strong><span>'+esc([l.interested_course,l.phone||l.parent_phone].filter(Boolean).join(' · ')||'Lead')+'</span></div><div class="row-actions"><span class="badge '+(l.next_follow_up<today()?'danger':'warn')+'">'+(l.next_follow_up<today()?'Overdue':'Today')+'</span></div></div>').join('')+'</div>'
+        ? '<div class="list">'+followUpsDue.slice(0,8).map(l=>'<div class="list-item"><div class="list-main"><strong>'+esc(l.full_name)+'</strong><span>'+esc([l.interested_course,l.phone||l.mother_phone||l.father_phone].filter(Boolean).join(' · ')||'Lead')+'</span></div><div class="row-actions"><span class="badge '+(l.next_follow_up<today()?'danger':'warn')+'">'+(l.next_follow_up<today()?'Overdue':'Today')+'</span></div></div>').join('')+'</div>'
         : '<div class="section-note">No lead follow-ups are due today.</div>')+
       (newLeads.length?'<div class="section-note" style="margin-top:12px"><strong>'+newLeads.length+' new lead'+(newLeads.length===1?'':'s')+'</strong> still waiting for first contact.</div>':'')+
       '</div></section>';
@@ -992,7 +992,7 @@ async function studentsPage(){
   });
   const visible=decorated.filter(s=>{
     const matchesStatus=statusFilter==='all'||s.status===statusFilter;
-    const hay=[s.full_name,s.phone,s.parent_phone,s.grade_or_age,s.groups?.name].filter(Boolean).join(' ').toLowerCase();
+    const hay=[s.full_name,s.phone,s.mother_phone,s.father_phone,s.grade_or_age,s.groups?.name].filter(Boolean).join(' ').toLowerCase();
     return matchesStatus&&(!search||hay.includes(search));
   });
   const activeCount=decorated.filter(s=>s.status==='active').length;
@@ -1000,7 +1000,7 @@ async function studentsPage(){
   const freeCount=decorated.filter(s=>s.status==='active'&&s.is_free_place).length;
   const add=can('owner','admin')?'<button class="btn btn-primary" data-action="student-new">'+uiIcon('plus')+'Add student</button>':'';
   const rows=visible.map(s=>'<tr class="student-row" data-student-open="'+s.id+'">'+
-    '<td><div class="student-identity"><div class="student-avatar">'+esc(initials(s.full_name))+'</div><div><strong>'+esc(s.full_name)+'</strong><span>'+esc(s.phone||s.parent_phone||'No phone')+'</span></div></div></td>'+
+    '<td><div class="student-identity"><div class="student-avatar">'+esc(initials(s.full_name))+'</div><div><strong>'+esc(s.full_name)+'</strong><span>'+esc(s.phone||s.mother_phone||s.father_phone||'No phone')+'</span></div></div></td>'+
     '<td><span class="course-pill">'+esc(s.groups?.name||'Unassigned')+'</span><div class="muted row-sub">'+esc(s.groups?.staff?.full_name||'No teacher')+'</div></td>'+
     '<td>'+fmtDate(s.join_date)+'</td>'+
     (can('owner','admin','cashier')?'<td class="num"><strong class="'+(s.balance>0?'balance-due':'balance-clear')+'">'+(s.is_free_place?'—':fmtMoney(s.balance))+'</strong><div class="muted row-sub">'+(s.is_free_place?'Free place':s.payment_status==='paid'?'Paid this month':humanize(s.payment_status))+'</div></td>':'')+
@@ -1031,8 +1031,10 @@ function studentForm(s={},groups=[]){
   return '<div class="form-cols">'+
     field('Full name','full_name',s.full_name||'','','required')+
     field('Grade / age','grade_or_age',s.grade_or_age||'')+
-    field('Student phone','phone',s.phone||'','tel')+
-    field('Parent phone','parent_phone',s.parent_phone||'','tel')+
+    field('Student phone (optional)','phone',s.phone||'','tel')+
+    field('Mother phone','mother_phone',s.mother_phone||'','tel')+
+    field('Father phone','father_phone',s.father_phone||'','tel')+
+    '<div class="span-2 section-note">At least one parent phone number is required. The student phone number is optional.</div>'+
     selectField('Group','group_id',groupOpts,s.group_id||'')+
     field('Join date','join_date',s.join_date||today(),'date')+
     field('Monthly fee','monthly_fee',s.monthly_fee??'', 'number','min="0" step="1"')+
@@ -1044,7 +1046,8 @@ function studentForm(s={},groups=[]){
 function bindStudentActions(students,groups){
   document.querySelector('[data-action="student-new"]')?.addEventListener('click',()=>openModal('Add student',studentForm({},groups),async f=>{
     const gid=val(f,'group_id'); const g=groups.find(x=>x.id===gid);
-    const payload={full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,phone:val(f,'phone')||null,parent_phone:val(f,'parent_phone')||null,group_id:gid||null,join_date:val(f,'join_date')||today(),monthly_fee:Number(val(f,'monthly_fee')||g?.default_monthly_fee||0),discount_amount:Number(val(f,'discount_amount')||0),is_free_place:checked(f,'is_free_place'),status:val(f,'status'),notes:val(f,'notes')||null};
+    const payload={full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,phone:val(f,'phone')||null,mother_phone:val(f,'mother_phone')||null,father_phone:val(f,'father_phone')||null,group_id:gid||null,join_date:val(f,'join_date')||today(),monthly_fee:Number(val(f,'monthly_fee')||g?.default_monthly_fee||0),discount_amount:Number(val(f,'discount_amount')||0),is_free_place:checked(f,'is_free_place'),status:val(f,'status'),notes:val(f,'notes')||null};
+    if(!payload.mother_phone&&!payload.father_phone)throw new Error('Enter at least one parent phone number.');
     if(payload.discount_amount>payload.monthly_fee)throw new Error('Discount cannot be greater than the monthly fee.');
     await query(sb.from('students').insert(payload));
   }));
@@ -1082,7 +1085,8 @@ function openStudentQuickActions(student,groups){
 }
 function openStudentEdit(student,groups){
   openModal('Edit student',studentForm(student,groups),async f=>{
-    const payload={full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,phone:val(f,'phone')||null,parent_phone:val(f,'parent_phone')||null,group_id:val(f,'group_id')||null,join_date:val(f,'join_date'),monthly_fee:Number(val(f,'monthly_fee')||0),discount_amount:Number(val(f,'discount_amount')||0),is_free_place:checked(f,'is_free_place'),status:val(f,'status'),notes:val(f,'notes')||null};
+    const payload={full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,phone:val(f,'phone')||null,mother_phone:val(f,'mother_phone')||null,father_phone:val(f,'father_phone')||null,group_id:val(f,'group_id')||null,join_date:val(f,'join_date'),monthly_fee:Number(val(f,'monthly_fee')||0),discount_amount:Number(val(f,'discount_amount')||0),is_free_place:checked(f,'is_free_place'),status:val(f,'status'),notes:val(f,'notes')||null};
+    if(!payload.mother_phone&&!payload.father_phone)throw new Error('Enter at least one parent phone number.');
     if(payload.discount_amount>payload.monthly_fee)throw new Error('Discount cannot be greater than the monthly fee.');
     await query(sb.from('students').update(payload).eq('id',student.id));
   });
@@ -1179,7 +1183,8 @@ async function openStudentProfile(studentId,tab='overview',groups=[]){
       body='<div class="profile-grid">'+summaryCards+'</div>'+
         '<div class="profile-section"><h4>Contact & enrolment</h4><div class="detail-list">'+
           detailRow('Student phone',student.phone||'—')+
-          detailRow('Parent phone',student.parent_phone||'—')+
+          detailRow('Mother phone',student.mother_phone||'—')+
+          detailRow('Father phone',student.father_phone||'—')+
           detailRow('Grade / age',student.grade_or_age||'—')+
           detailRow('Joined',fmtDate(student.join_date))+
           detailRow('Status',humanize(student.status))+
@@ -1286,25 +1291,27 @@ async function leadsPage(){
     query(sb.from('leads').select('*').order('created_at',{ascending:false})),
     query(sb.from('groups').select('id,name,default_monthly_fee').eq('active',true).order('name'))
   ]);
-  const rows=leads.map(l=>'<tr><td><strong>'+esc(l.full_name)+'</strong><div class="muted">'+esc(l.grade_or_age||'')+'</div></td><td>'+esc(l.phone||l.parent_phone||'—')+'</td><td>'+esc(l.interested_course||'—')+'</td><td>'+esc(l.source||'—')+'</td><td><span class="badge info">'+esc(humanize(l.status))+'</span></td><td>'+fmtDate(l.next_follow_up)+'</td><td><div class="action-row">'+actionButton('Edit','lead-edit',l.id)+(l.status!=='enrolled'&&l.status!=='lost'?actionButton('Enroll','lead-enroll',l.id,'primary'):'')+'</div></td></tr>').join('');
+  const rows=leads.map(l=>'<tr><td><strong>'+esc(l.full_name)+'</strong><div class="muted">'+esc(l.grade_or_age||'')+'</div></td><td>'+esc(l.phone||l.mother_phone||l.father_phone||'—')+'</td><td>'+esc(l.interested_course||'—')+'</td><td>'+esc(l.source||'—')+'</td><td><span class="badge info">'+esc(humanize(l.status))+'</span></td><td>'+fmtDate(l.next_follow_up)+'</td><td><div class="action-row">'+actionButton('Edit','lead-edit',l.id)+(l.status!=='enrolled'&&l.status!=='lost'?actionButton('Enroll','lead-enroll',l.id,'primary'):'')+'</div></td></tr>').join('');
   setTimeout(()=>bindLeadActions(leads,groups),0);
   return '<div class="section-note"><strong>Lead pipeline</strong><br>Track enquiries from first contact through trial lesson and enrollment. Use <strong>Enroll</strong> to turn a lead into a student without retyping their details.</div>'+tablePage('Prospective students','<button class="btn btn-primary" data-action="lead-new">'+uiIcon('plus')+'Add lead</button>',[['Name',''],['Phone',''],['Course',''],['Source',''],['Status',''],['Follow-up',''],['','']],rows,'No leads yet.');
 }
 function leadForm(l={}){
-  return '<div class="form-cols">'+field('Full name','full_name',l.full_name||'','','required')+field('Grade / age','grade_or_age',l.grade_or_age||'')+field('Phone','phone',l.phone||'','tel')+field('Parent phone','parent_phone',l.parent_phone||'','tel')+field('Interested course','interested_course',l.interested_course||'')+field('Source','source',l.source||'')+
+  return '<div class="form-cols">'+field('Full name','full_name',l.full_name||'','','required')+field('Grade / age','grade_or_age',l.grade_or_age||'')+field('Phone','phone',l.phone||'','tel')+field('Mother phone','mother_phone',l.mother_phone||'','tel')+field('Father phone','father_phone',l.father_phone||'','tel')+field('Interested course','interested_course',l.interested_course||'')+field('Source','source',l.source||'')+
   selectField('Status','status',[['new','New'],['contacted','Contacted'],['trial_booked','Trial booked'],['trial_attended','Trial attended'],['enrolled','Enrolled'],['lost','Lost']],l.status||'new')+field('Next follow-up','next_follow_up',l.next_follow_up||'','date')+textArea('Notes','notes',l.notes||'')+'</div>';
 }
 function bindLeadActions(leads,groups){
-  document.querySelector('[data-action="lead-new"]')?.addEventListener('click',()=>openModal('Add lead',leadForm(),async f=>query(sb.from('leads').insert({full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,phone:val(f,'phone')||null,parent_phone:val(f,'parent_phone')||null,interested_course:val(f,'interested_course')||null,source:val(f,'source')||null,status:val(f,'status'),next_follow_up:val(f,'next_follow_up')||null,notes:val(f,'notes')||null}))));
-  document.querySelectorAll('[data-action="lead-edit"]').forEach(b=>b.onclick=()=>{const l=leads.find(x=>x.id===b.dataset.id);openModal('Edit lead',leadForm(l),async f=>query(sb.from('leads').update({full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,phone:val(f,'phone')||null,parent_phone:val(f,'parent_phone')||null,interested_course:val(f,'interested_course')||null,source:val(f,'source')||null,status:val(f,'status'),next_follow_up:val(f,'next_follow_up')||null,notes:val(f,'notes')||null}).eq('id',l.id)));});
+  document.querySelector('[data-action="lead-new"]')?.addEventListener('click',()=>openModal('Add lead',leadForm(),async f=>query(sb.from('leads').insert({full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,phone:val(f,'phone')||null,mother_phone:val(f,'mother_phone')||null,father_phone:val(f,'father_phone')||null,interested_course:val(f,'interested_course')||null,source:val(f,'source')||null,status:val(f,'status'),next_follow_up:val(f,'next_follow_up')||null,notes:val(f,'notes')||null}))));
+  document.querySelectorAll('[data-action="lead-edit"]').forEach(b=>b.onclick=()=>{const l=leads.find(x=>x.id===b.dataset.id);openModal('Edit lead',leadForm(l),async f=>query(sb.from('leads').update({full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,phone:val(f,'phone')||null,mother_phone:val(f,'mother_phone')||null,father_phone:val(f,'father_phone')||null,interested_course:val(f,'interested_course')||null,source:val(f,'source')||null,status:val(f,'status'),next_follow_up:val(f,'next_follow_up')||null,notes:val(f,'notes')||null}).eq('id',l.id)));});
   document.querySelectorAll('[data-action="lead-enroll"]').forEach(b=>b.onclick=()=>{
     const l=leads.find(x=>x.id===b.dataset.id);
     const groupOpts=[['','Unassigned'],...groups.map(g=>[g.id,g.name])];
     const body='<div class="section-note span-2">This creates an active student record and marks the lead as enrolled.</div><div class="form-cols">'+
       field('Full name','full_name',l.full_name||'','','required')+
       field('Grade / age','grade_or_age',l.grade_or_age||'')+
-      field('Student phone','phone',l.phone||'','tel')+
-      field('Parent phone','parent_phone',l.parent_phone||'','tel')+
+      field('Student phone (optional)','phone',l.phone||'','tel')+
+      field('Mother phone','mother_phone',l.mother_phone||'','tel')+
+      field('Father phone','father_phone',l.father_phone||'','tel')+
+      '<div class="span-2 section-note">At least one parent phone number is required before enrollment.</div>'+
       selectField('Group','group_id',groupOpts,'')+
       field('Join date','join_date',today(),'date','required')+
       field('Monthly fee','monthly_fee','','number','min="0" step="1"')+
@@ -1318,12 +1325,16 @@ function bindLeadActions(leads,groups){
       const monthlyFee=Number(feeRaw||group?.default_monthly_fee||0);
       const discountAmount=Number(val(form,'discount_amount')||0);
       if(discountAmount>monthlyFee)throw new Error('Discount cannot be greater than the monthly fee.');
+      const motherPhone=val(form,'mother_phone')||null;
+      const fatherPhone=val(form,'father_phone')||null;
+      if(!motherPhone&&!fatherPhone)throw new Error('Enter at least one parent phone number.');
       await query(sb.rpc('enroll_lead',{
         p_lead_id:l.id,
         p_full_name:val(form,'full_name'),
         p_grade_or_age:val(form,'grade_or_age')||null,
         p_phone:val(form,'phone')||null,
-        p_parent_phone:val(form,'parent_phone')||null,
+        p_mother_phone:motherPhone,
+        p_father_phone:fatherPhone,
         p_group_id:gid||null,
         p_join_date:val(form,'join_date')||today(),
         p_monthly_fee:monthlyFee,
