@@ -165,7 +165,7 @@ async function login(e){
   e.preventDefault();
   const form=e.currentTarget;
   const btn=form.querySelector('button[type=submit]');
-  btn.disabled=true;btn.innerHTML='<span>Checking…</span><span>•••</span>';
+  const loginCopy=STUDENT_LOGIN_COPY[studentLoginLanguage()]||STUDENT_LOGIN_COPY.en;btn.disabled=true;btn.innerHTML='<span>'+esc(loginCopy.checking)+'</span><span>•••</span>';
   const credentials={phone:form.phone.value,pin:form.pin.value};
   const {data,error}=await sb.functions.invoke('student-portal',{body:credentials});
   if(error){
