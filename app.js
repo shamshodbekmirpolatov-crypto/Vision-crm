@@ -26,6 +26,7 @@ const state = {
   session: null,
   profile: null,
   staff: null,
+  settings: null,
   route: 'dashboard',
   sidebarOpen: false,
   cache: {},
@@ -80,7 +81,7 @@ const PAGE_META = {
   settings:['Settings','Centre name, currency and default fees'],
 };
 
-const fmtMoney = n => new Intl.NumberFormat('en-US',{maximumFractionDigits:0}).format(Number(n||0)) + ' so‘m';
+const fmtMoney = n => new Intl.NumberFormat('en-US',{maximumFractionDigits:0}).format(Number(n||0)) + ' ' + (state.settings?.currency||'so‘m');
 const fmtDate = d => d ? new Intl.DateTimeFormat('en-GB',{day:'2-digit',month:'short',year:'numeric'}).format(new Date(d+'T00:00:00')) : '—';
 function pad2(n){return String(n).padStart(2,'0');}
 function localYMD(d=new Date()){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
@@ -255,9 +256,10 @@ function empty(message='No records yet.'){ return '<div class="empty"><strong>No
 async function loadIdentity(){
   if(!state.session){ state.profile=null; state.staff=null; return; }
   const uid=state.session.user.id;
-  const [profile,staff] = await Promise.all([
+  const [profile,staff,settings] = await Promise.all([
     query(sb.from('profiles').select('*').eq('id',uid).maybeSingle()),
-    query(sb.from('staff').select('*').eq('user_id',uid).maybeSingle())
+    query(sb.from('staff').select('*').eq('user_id',uid).maybeSingle()),
+    query(sb.from('centre_settings').select('id,centre_name,currency,junior_default_fee,senior_default_fee').eq('id',1).maybeSingle())
   ]);
   if(!profile || !ROLE_DEFS[profile.role]){
     throw new Error('This account does not have a valid Vision CRM access profile. Contact the Owner.');
@@ -267,6 +269,7 @@ async function loadIdentity(){
   }
   state.profile=profile;
   state.staff=staff;
+  state.settings=settings||{currency:'so‘m',centre_name:'Vision Learning Centre'};
 }
 function allowedRoutes(){
   return NAV.filter(n=>n.roles.includes(role()) || (isOwnerLevel() && n.roles.includes('owner')));
@@ -766,7 +769,7 @@ function bindStudentActions(students,groups){
   document.querySelector('[data-action="student-new"]')?.addEventListener('click',()=>openModal('Add student',studentForm({},groups),async f=>{
     const gid=val(f,'group_id'); const g=groups.find(x=>x.id===gid);
     const payload={full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,phone:val(f,'phone')||null,parent_phone:val(f,'parent_phone')||null,group_id:gid||null,join_date:val(f,'join_date')||today(),monthly_fee:Number(val(f,'monthly_fee')||g?.default_monthly_fee||0),discount_amount:Number(val(f,'discount_amount')||0),is_free_place:checked(f,'is_free_place'),status:val(f,'status'),notes:val(f,'notes')||null};
-    if(payload.discount_amount>payload.monthly_fee&&!payload.is_free_place)throw new Error('Discount cannot be greater than the monthly fee.');
+    if(payload.discount_amount>payload.monthly_fee)throw new Error('Discount cannot be greater than the monthly fee.');
     await query(sb.from('students').insert(payload));
   }));
   document.querySelectorAll('[data-student-open]').forEach(row=>row.onclick=e=>{
@@ -804,7 +807,7 @@ function openStudentQuickActions(student,groups){
 function openStudentEdit(student,groups){
   openModal('Edit student',studentForm(student,groups),async f=>{
     const payload={full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,phone:val(f,'phone')||null,parent_phone:val(f,'parent_phone')||null,group_id:val(f,'group_id')||null,join_date:val(f,'join_date'),monthly_fee:Number(val(f,'monthly_fee')||0),discount_amount:Number(val(f,'discount_amount')||0),is_free_place:checked(f,'is_free_place'),status:val(f,'status'),notes:val(f,'notes')||null};
-    if(payload.discount_amount>payload.monthly_fee&&!payload.is_free_place)throw new Error('Discount cannot be greater than the monthly fee.');
+    if(payload.discount_amount>payload.monthly_fee)throw new Error('Discount cannot be greater than the monthly fee.');
     await query(sb.from('students').update(payload).eq('id',student.id));
   });
 }
@@ -826,7 +829,7 @@ function openStudentPayment(student){
       const remaining=Math.max(0,due-paid);
       const amount=Number(val(form,'amount'));
       if(amount<=0)throw new Error('Enter a valid payment amount.');
-      if(m===currentMonth&&amount>remaining)throw new Error('This is more than the remaining balance ('+fmtMoney(remaining)+').');
+      if(amount>remaining)throw new Error('This is more than the remaining balance for that course month ('+fmtMoney(remaining)+').');
       await query(sb.from('payments').insert({student_id:student.id,fee_month:monthKey,amount,paid_at:val(form,'paid_at'),method:val(form,'method'),reference:val(form,'reference')||null,notes:val(form,'notes')||null,created_by:state.session.user.id}));
     },'Save payment');
   const monthEl=modalRoot.querySelector('[name=fee_month]');
@@ -994,12 +997,15 @@ function bindLeadActions(leads,groups){
       const gid=val(form,'group_id');
       const group=groups.find(g=>g.id===gid);
       const feeRaw=val(form,'monthly_fee');
+      const monthlyFee=Number(feeRaw||group?.default_monthly_fee||0);
+      const discountAmount=Number(val(form,'discount_amount')||0);
+      if(discountAmount>monthlyFee)throw new Error('Discount cannot be greater than the monthly fee.');
       await query(sb.from('students').insert({
         full_name:val(form,'full_name'),grade_or_age:val(form,'grade_or_age')||null,
         phone:val(form,'phone')||null,parent_phone:val(form,'parent_phone')||null,
         group_id:gid||null,join_date:val(form,'join_date')||today(),
-        monthly_fee:Number(feeRaw||group?.default_monthly_fee||0),
-        discount_amount:Number(val(form,'discount_amount')||0),
+        monthly_fee:monthlyFee,
+        discount_amount:discountAmount,
         is_free_place:checked(form,'is_free_place'),status:'active',notes:val(form,'notes')||null
       }));
       await query(sb.from('leads').update({status:'enrolled',next_follow_up:null}).eq('id',l.id));
@@ -1132,13 +1138,18 @@ function bindPaymentActions(students,feeRows){
       textArea('Notes','notes','')+'</div>';
     openModal('Record student payment',body,async form=>{
       const sid=val(form,'student_id');
-      const row=feeRows.find(x=>x.id===sid);
+      const student=students.find(x=>x.id===sid);
       const amount=Number(val(form,'amount'));
       if(!amount||amount<=0)throw new Error('Enter a valid payment amount.');
-      if(row?.is_free_place)throw new Error('This student is marked as a free place and does not owe a monthly fee.');
-      if(row && amount>row.balance && val(form,'fee_month')===selectedMonth)throw new Error('This payment is higher than the remaining balance ('+fmtMoney(row.balance)+').');
+      if(student?.is_free_place)throw new Error('This student is marked as a free place and does not owe a monthly fee.');
       const m=val(form,'fee_month');
-      await query(sb.from('payments').insert({student_id:sid,fee_month:m+'-01',amount,paid_at:val(form,'paid_at'),method:val(form,'method'),reference:val(form,'reference')||null,notes:val(form,'notes')||null,created_by:state.session.user.id}));
+      const monthKey=m+'-01';
+      const existing=await query(sb.from('payments').select('amount').eq('student_id',sid).eq('fee_month',monthKey).is('voided_at',null));
+      const alreadyPaid=existing.reduce((sum,p)=>sum+Number(p.amount||0),0);
+      const expected=student?Math.max(0,Number(student.monthly_fee||0)-Number(student.discount_amount||0)):0;
+      const remaining=Math.max(0,expected-alreadyPaid);
+      if(amount>remaining)throw new Error('This payment is higher than the remaining balance for that course month ('+fmtMoney(remaining)+').');
+      await query(sb.from('payments').insert({student_id:sid,fee_month:monthKey,amount,paid_at:val(form,'paid_at'),method:val(form,'method'),reference:val(form,'reference')||null,notes:val(form,'notes')||null,created_by:state.session.user.id}));
     },'Save payment');
     const studentEl=modalRoot.querySelector('[name=student_id]');
     const monthEl=modalRoot.querySelector('[name=fee_month]');
@@ -1684,6 +1695,7 @@ async function applySession(session,{render=true}={}){
   if(!session){
     state.profile=null;
     state.staff=null;
+    state.settings=null;
     state.cache={};
     routePreloadStarted=false;
     routeRenderGeneration++;
@@ -1693,6 +1705,7 @@ async function applySession(session,{render=true}={}){
   if(previousUserId&&previousUserId!==nextUserId){
     state.profile=null;
     state.staff=null;
+    state.settings=null;
     state.cache={};
     routePreloadStarted=false;
     routeRenderGeneration++;
