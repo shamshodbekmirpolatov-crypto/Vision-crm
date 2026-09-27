@@ -1,0 +1,83 @@
+name: Cloudflare Read-only Bridge
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".cloudflare/control.json"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-cloudflare:
+    runs-on: ubuntu-latest
+    env:
+      CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate configured secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CF_API_TOKEN" || { echo "CLOUDFLARE_API_TOKEN is missing"; exit 1; }
+          test -n "$CF_ACCOUNT_ID" || { echo "CLOUDFLARE_ACCOUNT_ID is missing"; exit 1; }
+
+      - name: Verify Cloudflare token and inspect Pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p cloudflare-report
+
+          verify="$(curl --fail-with-body -sS             "https://api.cloudflare.com/client/v4/user/tokens/verify"             -H "Authorization: Bearer $CF_API_TOKEN"             -H "Content-Type: application/json")"
+
+          if [ "$(jq -r '.success' <<<"$verify")" != "true" ]; then
+            echo "Cloudflare token verification failed."
+            jq '{success, errors, messages}' <<<"$verify"
+            exit 1
+          fi
+
+          projects="$(curl --fail-with-body -sS             "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/pages/projects"             -H "Authorization: Bearer $CF_API_TOKEN"             -H "Content-Type: application/json")"
+
+          if [ "$(jq -r '.success' <<<"$projects")" != "true" ]; then
+            echo "Unable to list Cloudflare Pages projects."
+            jq '{success, errors, messages}' <<<"$projects"
+            exit 1
+          fi
+
+          jq -n             --arg verified "$(jq -r '.result.status // "unknown"' <<<"$verify")"             --argjson projects "$(jq '[.result[] | {
+              name,
+              subdomain,
+              production_branch,
+              created_on,
+              latest_deployment: (
+                if .latest_deployment then {
+                  id: .latest_deployment.id,
+                  environment: .latest_deployment.environment,
+                  url: .latest_deployment.url,
+                  created_on: .latest_deployment.created_on,
+                  modified_on: .latest_deployment.modified_on,
+                  latest_stage: .latest_deployment.latest_stage,
+                  deployment_trigger: .latest_deployment.deployment_trigger
+                } else null end
+              )
+            }]' <<<"$projects")"             '{
+              token_status: $verified,
+              pages_project_count: ($projects | length),
+              pages_projects: $projects
+            }' > cloudflare-report/cloudflare-report.json
+
+          echo "Cloudflare connection verified."
+          jq '.' cloudflare-report/cloudflare-report.json
+
+      - name: Upload sanitized Cloudflare report
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-readonly-report
+          path: cloudflare-report/cloudflare-report.json
+          if-no-files-found: error
+          retention-days: 7
