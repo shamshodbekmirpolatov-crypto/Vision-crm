@@ -7,7 +7,9 @@ const modalRoot = document.getElementById('modal-root');
 
 function renderBootError(message){
   app.className='';
-  app.innerHTML='<div class="auth-wrap"><section class="auth-panel" style="grid-column:1/-1"><div class="auth-card"><h2>Vision CRM could not start</h2><p class="sub">'+String(message||'Please check your connection and reload the page.')+'</p><button class="btn btn-primary btn-block" id="boot-reload">Reload CRM</button></div></section></div>';
+  app.innerHTML='<div class="auth-wrap"><section class="auth-panel" style="grid-column:1/-1"><div class="auth-card"><h2>Vision CRM could not start</h2><p class="sub" id="boot-error-message"></p><button class="btn btn-primary btn-block" id="boot-reload">Reload CRM</button></div></section></div>';
+  const messageEl=document.getElementById('boot-error-message');
+  if(messageEl)messageEl.textContent=String(message||'Please check your connection and reload the page.');
   document.getElementById('boot-reload')?.addEventListener('click',()=>location.reload());
 }
 
@@ -135,6 +137,7 @@ const checked = (form,name) => !!form.elements[name]?.checked;
 const role = () => state.profile?.role || 'unknown';
 const isOwnerLevel = (r=role()) => ROLE_DEFS[r]?.ownerLevel === true;
 const can = (...roles) => roles.includes(role()) || (isOwnerLevel() && roles.includes('owner'));
+const hasRouteAccess = nav => !!nav && (nav.roles.includes(role()) || (isOwnerLevel() && nav.roles.includes('owner')));
 const roleLabel = r => ROLE_DEFS[r]?.label || humanize(r || 'unknown');
 const roleToStaffTitle = r => ROLE_DEFS[r]?.staffTitle || null;
 const staffTitleToRole = title => ROLE_ORDER.find(r=>ROLE_DEFS[r].staffTitle===title) || null;
@@ -203,20 +206,35 @@ function invalidateCachedRoutes(exceptRoute=state.route){
   });
   routePreloadStarted=false;
 }
+function restoreDialogFocus(){
+  const target=modalRoot._returnFocus;
+  modalRoot._returnFocus=null;
+  if(target?.isConnected)requestAnimationFrame(()=>target.focus({preventScroll:true}));
+}
 function closeModal(immediate=false){
   clearTimeout(modalRoot._closeTimer);
   const layer=modalRoot.firstElementChild;
   if(!layer)return;
   const reduceMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-  if(immediate||reduceMotion){modalRoot.innerHTML='';return;}
+  if(immediate||reduceMotion){
+    modalRoot.innerHTML='';
+    restoreDialogFocus();
+    return;
+  }
   layer.classList.add('is-closing');
   layer.style.pointerEvents='none';
   modalRoot._closeTimer=setTimeout(()=>{
-    if(modalRoot.firstElementChild===layer)modalRoot.innerHTML='';
+    if(modalRoot.firstElementChild===layer){
+      modalRoot.innerHTML='';
+      restoreDialogFocus();
+    }
   },180);
 }
 function setModalContent(html){
   clearTimeout(modalRoot._closeTimer);
+  if(!modalRoot.firstElementChild && document.activeElement instanceof HTMLElement){
+    modalRoot._returnFocus=document.activeElement;
+  }
   modalRoot.innerHTML=html;
 }
 function openModal(title, body, onSubmit, submitLabel='Save'){
@@ -247,7 +265,23 @@ function openModal(title, body, onSubmit, submitLabel='Save'){
   };
 }
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'&&modalRoot.firstElementChild)closeModal();
+  if(e.key==='Escape'&&modalRoot.firstElementChild){
+    e.preventDefault();
+    closeModal();
+    return;
+  }
+  if(e.key!=='Tab'||!modalRoot.firstElementChild)return;
+  const dialog=modalRoot.querySelector('[role="dialog"]');
+  if(!dialog)return;
+  const focusable=[...dialog.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])')]
+    .filter(el=>el.getClientRects().length>0);
+  if(!focusable.length)return;
+  const first=focusable[0],last=focusable[focusable.length-1];
+  if(e.shiftKey&&document.activeElement===first){
+    e.preventDefault();last.focus();
+  }else if(!e.shiftKey&&document.activeElement===last){
+    e.preventDefault();first.focus();
+  }
 });
 function field(label,name,value='',type='text',extra=''){
   const id='field-'+name;
@@ -287,7 +321,7 @@ async function loadIdentity(){
   state.settings=settings||{currency:'so‘m',centre_name:'Vision Learning Centre'};
 }
 function allowedRoutes(){
-  return NAV.filter(n=>n.roles.includes(role()) || (isOwnerLevel() && n.roles.includes('owner')));
+  return NAV.filter(hasRouteAccess);
 }
 function shellContext(){
   const meta=PAGE_META[state.route]||['Vision CRM',''];
@@ -399,6 +433,7 @@ function go(routeName){
     activateRoutePanel(routeName);
     const age=Date.now()-Number(cached.dataset.loadedAt||0);
     if(age>60000) void renderRoute(true,true);
+    scheduleRoutePreload();
     return;
   }
   const contentEl=app.querySelector('.content');
@@ -417,6 +452,7 @@ window.addEventListener('popstate',()=>{
   updateShellChrome();
   if(routePanel(next)){
     activateRoutePanel(next);
+    scheduleRoutePreload();
   }else{
     app.querySelector('.content')?.classList.add('route-pending');
     void renderRoute(false,true).finally(()=>app.querySelector('.content')?.classList.remove('route-pending'));
@@ -953,6 +989,7 @@ async function openStudentProfile(studentId,tab='overview',groups=[]){
     '</aside></div>');
 
     modalRoot.querySelector('.drawer-close').onclick=()=>closeModal();
+    requestAnimationFrame(()=>modalRoot.querySelector('.drawer-close')?.focus({preventScroll:true}));
     modalRoot.querySelector('.drawer-backdrop').onclick=e=>{if(e.target.classList.contains('drawer-backdrop'))closeModal();};
     modalRoot.querySelectorAll('[data-profile-tab]').forEach(b=>b.onclick=()=>openStudentProfile(student.id,b.dataset.profileTab,groups));
     modalRoot.querySelector('[data-profile-action="payment"]')?.addEventListener('click',()=>{closeModal();openStudentPayment(student);});
@@ -1734,17 +1771,15 @@ async function preloadRoute(routeName){
   }
 }
 function scheduleRoutePreload(){
-  if(routePreloadStarted) return;
+  if(routePreloadStarted||!state.session)return;
+  const allowed=allowedRoutes();
+  const current=allowed.find(n=>n.id===state.route);
+  const candidate=allowed.find(n=>n.id!==state.route&&!routePanel(n.id)&&n.group===current?.group);
+  if(!candidate)return;
   routePreloadStarted=true;
-  const queue=allowedRoutes().map(n=>n.id).filter(id=>id!==state.route);
-  let index=0;
-  const next=()=>{
-    if(index>=queue.length||!state.session) return;
-    const id=queue[index++];
-    preloadRoute(id).finally(()=>setTimeout(next,180));
-  };
-  if('requestIdleCallback' in window) requestIdleCallback(next,{timeout:700});
-  else setTimeout(next,350);
+  const run=()=>preloadRoute(candidate.id).finally(()=>{routePreloadStarted=false;});
+  if('requestIdleCallback' in window) requestIdleCallback(run,{timeout:1800});
+  else setTimeout(run,1200);
 }
 async function renderRoute(force=false,navigation=false){
   if(!state.session){renderLogin();return;}
