@@ -80,13 +80,13 @@ jobs:
           _Read-only report. No Cloudflare secret values are included._
           EOF
 
-      - name: Post sanitized report to issue 1
+      - name: Refresh Cloudflare Control issue
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
             const body = fs.readFileSync('/tmp/cloudflare-report.md', 'utf8');
-            await github.rest.issues.createComment({
+            await github.rest.issues.update({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: 1,
