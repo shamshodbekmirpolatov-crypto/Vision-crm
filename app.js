@@ -1221,14 +1221,25 @@ function studentForm(s={},groups=[]){
     textArea('Notes','notes',s.notes||'')+'</div>';
 }
 function bindStudentActions(students,groups){
-  document.querySelector('[data-action="student-new"]')?.addEventListener('click',()=>openModal('Add student',studentForm({},groups),async f=>{
-    const gid=val(f,'group_id'); const g=groups.find(x=>x.id===gid);
-    const payload={full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,date_of_birth:val(f,'date_of_birth')||null,phone:val(f,'phone')||null,mother_phone:val(f,'mother_phone')||null,father_phone:val(f,'father_phone')||null,is_adult:checked(f,'is_adult'),group_id:gid||null,join_date:val(f,'join_date')||today(),monthly_fee:Number(val(f,'monthly_fee')||g?.default_monthly_fee||0),discount_amount:Number(val(f,'discount_amount')||0),is_free_place:checked(f,'is_free_place'),status:val(f,'status'),notes:val(f,'notes')||null};
-    if(payload.date_of_birth&&payload.date_of_birth>today())throw new Error('Date of birth cannot be in the future.');
-    if(!payload.is_adult&&!payload.mother_phone&&!payload.father_phone)throw new Error('Enter at least one parent phone number, or mark the student as an adult.');
-    if(payload.discount_amount>payload.monthly_fee)throw new Error('Discount cannot be greater than the monthly fee.');
-    await query(sb.from('students').insert(payload));
-  }));
+  document.querySelector('[data-action="student-new"]')?.addEventListener('click',()=>{
+    openModal('Add student',studentForm({},groups),async f=>{
+      const gid=val(f,'group_id'); const g=groups.find(x=>x.id===gid);
+      const payload={full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,date_of_birth:val(f,'date_of_birth')||null,phone:val(f,'phone')||null,mother_phone:val(f,'mother_phone')||null,father_phone:val(f,'father_phone')||null,is_adult:checked(f,'is_adult'),group_id:gid||null,join_date:val(f,'join_date')||today(),monthly_fee:Number(val(f,'monthly_fee')||g?.default_monthly_fee||0),discount_amount:Number(val(f,'discount_amount')||0),is_free_place:checked(f,'is_free_place'),status:val(f,'status'),notes:val(f,'notes')||null};
+      if(payload.date_of_birth&&payload.date_of_birth>today())throw new Error('Date of birth cannot be in the future.');
+      if(!payload.is_adult&&!payload.mother_phone&&!payload.father_phone)throw new Error('Enter at least one parent phone number, or mark the student as an adult.');
+      if(payload.discount_amount>payload.monthly_fee)throw new Error('Discount cannot be greater than the monthly fee.');
+      await query(sb.from('students').insert(payload));
+    });
+    const groupEl=modalRoot.querySelector('[name=group_id]');
+    const feeEl=modalRoot.querySelector('[name=monthly_fee]');
+    if(groupEl&&feeEl){
+      groupEl.onchange=()=>{
+        if(feeEl.value)return;
+        const group=groups.find(item=>item.id===groupEl.value);
+        if(group)feeEl.value=group.default_monthly_fee||0;
+      };
+    }
+  });
   document.querySelectorAll('[data-student-open]').forEach(row=>{
     const open=()=>openStudentProfile(row.dataset.studentOpen,'overview',groups);
     row.onclick=e=>{
