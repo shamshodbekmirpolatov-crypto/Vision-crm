@@ -916,7 +916,7 @@ async function openStudentProfile(studentId,tab='overview',groups=[]){
     const ninetyDate=localYMD(ninety);
 
     const [student,payments,attendance,academic]=await Promise.all([
-      query(sb.from('students').select('*, groups(name,level,schedule,room,staff(full_name))').eq('id',studentId).single()),
+      query(sb.from('students').select('*, groups(name,level,schedule,meeting_days,start_time,end_time,room,staff(full_name))').eq('id',studentId).single()),
       canViewFinance
         ? query(sb.from('payments').select('*').eq('student_id',studentId).is('voided_at',null).order('fee_month',{ascending:false}).order('paid_at',{ascending:false}).limit(60))
         : Promise.resolve([]),
@@ -960,7 +960,7 @@ async function openStudentProfile(studentId,tab='overview',groups=[]){
           detailRow('Status',humanize(student.status))+
         '</div></div>'+
         '<div class="profile-section"><h4>Class information</h4><div class="detail-list">'+
-          detailRow('Schedule',student.groups?.schedule||'—')+
+          detailRow('Schedule',student.groups?formattedGroupSchedule(student.groups):'—')+
           detailRow('Room',student.groups?.room||'—')+
           detailRow('Level',student.groups?.level||'—')+
         '</div></div>';
