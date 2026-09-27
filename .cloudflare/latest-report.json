@@ -1,0 +1,35 @@
+{
+  "generated_at": "2026-09-27T13:25:44Z",
+  "token_status": "active",
+  "pages_project_count": 1,
+  "pages_projects": [
+    {
+      "name": "vision-crm",
+      "subdomain": "vision-crm-4qd.pages.dev",
+      "production_branch": "main",
+      "created_on": "2026-09-22T22:34:11.638968Z",
+      "latest_deployment": {
+        "id": "8d3777ee-bde0-44fd-b95c-3d3f341fb7a6",
+        "environment": "production",
+        "url": "https://8d3777ee.vision-crm-4qd.pages.dev",
+        "created_on": "2026-09-27T13:25:37.798725Z",
+        "modified_on": "2026-09-27T13:25:40.814639Z",
+        "latest_stage": {
+          "name": "initialize",
+          "started_on": "2026-09-27T13:25:40.814639Z",
+          "ended_on": null,
+          "status": "active"
+        },
+        "deployment_trigger": {
+          "type": "github:push",
+          "metadata": {
+            "branch": "main",
+            "commit_hash": "de94541746f32022e11d67df42184ccaa64be0c0",
+            "commit_message": "Trigger Cloudflare connection check",
+            "commit_dirty": false
+          }
+        }
+      }
+    }
+  ]
+}
