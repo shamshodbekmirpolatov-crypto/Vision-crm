@@ -1643,38 +1643,243 @@ function bindPaymentActions(students,feeRows){
 async function attendancePage(){
   const [students,groups]=await Promise.all([
     query(sb.from('students').select('id,full_name,group_id,status').eq('status','active').order('full_name')),
-    query(sb.from('groups').select('id,name').eq('active',true).order('name'))
+    query(sb.from('groups').select('id,name,meeting_days,schedule,start_time,end_time').eq('active',true).order('name'))
   ]);
   if(!groups.length){
     return '<section class="panel"><div class="panel-body">'+empty(can('owner','admin')?'Create or activate a group before taking attendance.':'No active group is assigned to you yet.')+(can('owner','admin')?'<div class="empty-action"><button class="btn btn-primary" data-route="groups">Open Groups</button></div>':'')+'</div></section>';
   }
-  const selectedGroup=groups[0].id;
-  setTimeout(()=>setupAttendance(students,groups,selectedGroup),0);
-  return '<section class="panel"><div class="panel-head"><div><h2>Take attendance</h2><p>Choose the class and date, then mark each learner.</p></div><span class="badge info">'+students.length+' active students</span></div><div class="panel-body"><div class="toolbar attendance-toolbar"><div class="toolbar-left"><select class="select" id="att-group">'+groups.map(g=>'<option value="'+g.id+'">'+esc(g.name)+'</option>').join('')+'</select><input class="input" id="att-date" type="date" value="'+today()+'"></div><div class="toolbar-right"><button class="btn btn-primary" id="att-save">Save attendance</button></div></div><div id="att-list">'+empty('Loading students…')+'</div></div></section>';
+  const savedGroup=state.filters.attendanceGroup;
+  const selectedGroup=groups.some(g=>g.id===savedGroup)?savedGroup:groups[0].id;
+  state.filters.attendanceGroup=selectedGroup;
+  state.filters.attendanceMonth=state.filters.attendanceMonth||localYM();
+  setTimeout(()=>setupAttendance(students,groups),0);
+  return '<section class="panel attendance-panel">'+
+    '<div class="panel-head attendance-head"><div><h2>Attendance</h2><p>Click a cell to cycle: Present → Late → Absent → Empty.</p></div><div class="attendance-legend" aria-label="Attendance status legend"><span class="att-legend-item present"><i></i>Present</span><span class="att-legend-item late"><i></i>Late</span><span class="att-legend-item absent"><i></i>Absent</span></div></div>'+
+    '<div class="panel-body">'+
+      '<div class="attendance-controls">'+
+        '<select class="select attendance-group-select" id="att-group">'+groups.map(g=>'<option value="'+g.id+'" '+(g.id===selectedGroup?'selected':'')+'>'+esc(g.name)+'</option>').join('')+'</select>'+
+        '<div class="attendance-month-nav">'+
+          '<button class="btn btn-secondary attendance-nav-btn" type="button" id="att-prev-month" aria-label="Previous month">‹</button>'+
+          '<button class="btn btn-secondary" type="button" id="att-today">Today</button>'+
+          '<strong class="attendance-month-label" id="att-month-label"></strong>'+
+          '<button class="btn btn-secondary attendance-nav-btn" type="button" id="att-next-month" aria-label="Next month">›</button>'+
+        '</div>'+
+        '<button class="btn btn-secondary attendance-mark-all" type="button" id="att-mark-all">Mark everyone present today</button>'+
+      '</div>'+
+      '<div id="att-list">'+empty('Loading attendance…')+'</div>'+
+    '</div>'+
+  '</section>';
 }
-function setupAttendance(students,groups,groupId){
-  const groupEl=document.getElementById('att-group'),dateEl=document.getElementById('att-date'),list=document.getElementById('att-list'),save=document.getElementById('att-save');
-  const load=async()=>{
-    const gid=groupEl.value, date=dateEl.value; const members=students.filter(s=>s.group_id===gid);
-    if(!members.length){list.innerHTML=empty('This group has no active students.');return;}
-    try{
-      const records=await query(sb.from('attendance').select('*').eq('lesson_date',date).in('student_id',members.map(x=>x.id)));
-      const map=new Map(records.map(r=>[r.student_id,r]));
-      list.innerHTML='<div class="table-wrap"><table><thead><tr><th>Student</th><th>Status</th><th>Note</th></tr></thead><tbody>'+members.map(s=>{const r=map.get(s.id);return '<tr data-student="'+s.id+'"><td><strong>'+esc(s.full_name)+'</strong></td><td><select class="select att-status"><option value="present" '+(!r||r.status==='present'?'selected':'')+'>Present</option><option value="late" '+(r?.status==='late'?'selected':'')+'>Late</option><option value="absent" '+(r?.status==='absent'?'selected':'')+'>Absent</option></select></td><td><input class="input att-note" value="'+esc(r?.notes||'')+'" placeholder="Optional note"></td></tr>';}).join('')+'</tbody></table></div>';
-    }catch(e){fail(e);}
+function attendanceMonthLabel(ym){
+  const d=localCalendarDate(ym);
+  return d.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+}
+function attendanceDatesForGroup(group,ym){
+  const base=localCalendarDate(ym);
+  const year=base.getFullYear(),month=base.getMonth();
+  const last=new Date(year,month+1,0,12).getDate();
+  const selectedDays=new Set(Array.isArray(group.meeting_days)?group.meeting_days:[]);
+  const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const dates=[];
+  for(let day=1;day<=last;day++){
+    const d=new Date(year,month,day,12);
+    if(!selectedDays.size||selectedDays.has(dayNames[d.getDay()])) dates.push(localYMD(d));
+  }
+  return dates;
+}
+function attendanceStatusView(status){
+  if(status==='present')return {label:'Present',short:'P'};
+  if(status==='late')return {label:'Late',short:'L'};
+  if(status==='absent')return {label:'Absent',short:'A'};
+  return {label:'Not marked',short:'—'};
+}
+function nextAttendanceStatus(status){
+  if(!status)return 'present';
+  if(status==='present')return 'late';
+  if(status==='late')return 'absent';
+  return null;
+}
+function paintAttendanceCell(button,status){
+  const view=attendanceStatusView(status);
+  button.dataset.status=status||'';
+  button.classList.remove('present','late','absent','empty');
+  button.classList.add(status||'empty');
+  button.textContent=status?view.label:'—';
+  button.setAttribute('aria-label',(button.dataset.studentName||'Student')+' on '+(button.dataset.displayDate||button.dataset.date)+': '+view.label+'. Click to change.');
+  button.title=view.label+' · click to change';
+}
+function setupAttendance(students,groups){
+  const groupEl=document.getElementById('att-group');
+  const list=document.getElementById('att-list');
+  const label=document.getElementById('att-month-label');
+  const prev=document.getElementById('att-prev-month');
+  const next=document.getElementById('att-next-month');
+  const todayBtn=document.getElementById('att-today');
+  const markAll=document.getElementById('att-mark-all');
+  if(!groupEl||!list||!label||!prev||!next||!todayBtn||!markAll)return;
+
+  let statusMap=new Map();
+  let loadGeneration=0;
+  const recordKey=(studentId,date)=>studentId+'|'+date;
+  const selectedGroupObject=()=>groups.find(g=>g.id===groupEl.value)||groups[0];
+  const monthShift=delta=>{
+    const d=localCalendarDate(state.filters.attendanceMonth||localYM());
+    d.setMonth(d.getMonth()+delta);
+    state.filters.attendanceMonth=localYM(d);
+    load();
   };
-  groupEl.onchange=load; dateEl.onchange=load; load();
-  save.onclick=async()=>{
-    const rows=[...list.querySelectorAll('tr[data-student]')]; if(!rows.length)return;
-    save.disabled=true;save.textContent='Saving…';
+
+  const persist=async(button,nextStatus)=>{
+    if(button.disabled)return;
+    const studentId=button.dataset.student;
+    const date=button.dataset.date;
+    const key=recordKey(studentId,date);
+    const oldRecord=statusMap.get(key)||null;
+    const oldStatus=oldRecord?.status||null;
+    if(oldStatus===nextStatus)return;
+
+    button.disabled=true;
+    button.classList.add('saving');
+    paintAttendanceCell(button,nextStatus);
     try{
-      const payload=rows.map(r=>({student_id:r.dataset.student,lesson_date:dateEl.value,status:r.querySelector('.att-status').value,notes:r.querySelector('.att-note').value||null,marked_by:state.session.user.id}));
-      await query(sb.from('attendance').upsert(payload,{onConflict:'student_id,lesson_date'}));
+      if(nextStatus){
+        const payload={
+          student_id:studentId,
+          lesson_date:date,
+          status:nextStatus,
+          notes:oldRecord?.notes||null,
+          marked_by:state.session.user.id
+        };
+        await query(sb.from('attendance').upsert(payload,{onConflict:'student_id,lesson_date'}));
+        statusMap.set(key,{...(oldRecord||{}),...payload});
+      }else{
+        await query(sb.from('attendance').delete().eq('student_id',studentId).eq('lesson_date',date));
+        statusMap.delete(key);
+      }
       invalidateCachedRoutes('attendance');
       scheduleRoutePreload();
-      toast('Attendance saved.');
-    }catch(e){fail(e);}finally{save.disabled=false;save.textContent='Save attendance';}
+    }catch(error){
+      paintAttendanceCell(button,oldStatus);
+      fail(error);
+    }finally{
+      button.disabled=false;
+      button.classList.remove('saving');
+    }
   };
+
+  const bindCells=()=>{
+    list.querySelectorAll('.attendance-cell').forEach(button=>{
+      button.onclick=()=>persist(button,nextAttendanceStatus(button.dataset.status||null));
+    });
+  };
+
+  const render=async()=>{
+    const generation=++loadGeneration;
+    const group=selectedGroupObject();
+    const members=students.filter(s=>s.group_id===group.id);
+    const dates=attendanceDatesForGroup(group,state.filters.attendanceMonth);
+    label.textContent=attendanceMonthLabel(state.filters.attendanceMonth);
+    state.filters.attendanceGroup=group.id;
+
+    const isCurrentMonth=state.filters.attendanceMonth===localYM();
+    const todayDate=today();
+    const todayIncluded=dates.includes(todayDate);
+    markAll.disabled=!isCurrentMonth||!todayIncluded||!members.length;
+    markAll.title=markAll.disabled?'Today is not a scheduled class date in the selected month.':'Mark every student present for today.';
+
+    if(!members.length){
+      list.innerHTML=empty('This group has no active students.');
+      return;
+    }
+    if(!dates.length){
+      list.innerHTML=empty('No class dates are scheduled for this month.');
+      return;
+    }
+
+    list.innerHTML='<div class="attendance-loading">Loading '+esc(group.name)+' attendance…</div>';
+    try{
+      const records=await query(
+        sb.from('attendance')
+          .select('student_id,lesson_date,status,notes,marked_by')
+          .gte('lesson_date',dates[0])
+          .lte('lesson_date',dates[dates.length-1])
+          .in('student_id',members.map(x=>x.id))
+      );
+      if(generation!==loadGeneration)return;
+      statusMap=new Map(records.map(r=>[recordKey(r.student_id,r.lesson_date),r]));
+
+      const todayValue=today();
+      const headers=dates.map(date=>{
+        const d=localCalendarDate(date);
+        const day=d.getDate();
+        const weekday=d.toLocaleDateString('en-US',{weekday:'short'});
+        const isToday=date===todayValue;
+        return '<th class="attendance-date-head '+(isToday?'today':'')+'"><span>'+day+'</span><small>'+esc(weekday)+'</small>'+(isToday?'<b>Today</b>':'')+'</th>';
+      }).join('');
+
+      const rows=members.map(student=>{
+        const cells=dates.map(date=>{
+          const record=statusMap.get(recordKey(student.id,date));
+          const status=record?.status||'';
+          const view=attendanceStatusView(status);
+          const d=localCalendarDate(date);
+          const displayDate=d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+          return '<td class="attendance-status-cell"><button type="button" class="attendance-cell '+(status||'empty')+'" data-student="'+student.id+'" data-student-name="'+esc(student.full_name)+'" data-date="'+date+'" data-display-date="'+esc(displayDate)+'" data-status="'+status+'" aria-label="'+esc(student.full_name)+' on '+esc(displayDate)+': '+view.label+'. Click to change." title="'+view.label+' · click to change">'+(status?view.label:'—')+'</button></td>';
+        }).join('');
+        return '<tr><th class="attendance-student-head"><div class="student-identity"><div class="student-avatar">'+esc(initials(student.full_name))+'</div><div><strong>'+esc(student.full_name)+'</strong></div></div></th>'+cells+'</tr>';
+      }).join('');
+
+      list.innerHTML='<div class="attendance-grid-wrap"><table class="attendance-grid"><thead><tr><th class="attendance-student-head attendance-student-title">Student</th>'+headers+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+      bindCells();
+    }catch(error){
+      if(generation===loadGeneration){
+        list.innerHTML=empty('Attendance could not be loaded.');
+        fail(error);
+      }
+    }
+  };
+
+  const load=()=>render();
+
+  groupEl.onchange=()=>{state.filters.attendanceGroup=groupEl.value;load();};
+  prev.onclick=()=>monthShift(-1);
+  next.onclick=()=>monthShift(1);
+  todayBtn.onclick=()=>{state.filters.attendanceMonth=localYM();load();};
+  markAll.onclick=async()=>{
+    if(markAll.disabled)return;
+    const group=selectedGroupObject();
+    const members=students.filter(s=>s.group_id===group.id);
+    if(!members.length)return;
+    const date=today();
+    markAll.disabled=true;
+    const original=markAll.textContent;
+    markAll.textContent='Marking…';
+    try{
+      const payload=members.map(student=>{
+        const old=statusMap.get(recordKey(student.id,date));
+        return {
+          student_id:student.id,
+          lesson_date:date,
+          status:'present',
+          notes:old?.notes||null,
+          marked_by:state.session.user.id
+        };
+      });
+      await query(sb.from('attendance').upsert(payload,{onConflict:'student_id,lesson_date'}));
+      payload.forEach(record=>statusMap.set(recordKey(record.student_id,record.lesson_date),record));
+      list.querySelectorAll('.attendance-cell[data-date="'+date+'"]').forEach(button=>paintAttendanceCell(button,'present'));
+      invalidateCachedRoutes('attendance');
+      scheduleRoutePreload();
+      toast('Everyone marked present for today.');
+    }catch(error){
+      fail(error);
+    }finally{
+      markAll.textContent=original;
+      markAll.disabled=false;
+    }
+  };
+
+  load();
 }
 
 async function academicPage(){
