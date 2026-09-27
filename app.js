@@ -335,6 +335,33 @@ function shellContext(){
   const subNav=allowed.filter(n=>n.group===activeGroup).map(n=>'<button type="button" class="subnav-tab '+(n.id===state.route?'active':'')+'" data-route="'+n.id+'">'+esc(n.label)+'</button>').join('');
   return {meta,allowed,defaults,categoryNav,subNav};
 }
+async function refreshStaffCRM(){
+  const btn=document.getElementById('refresh');
+  if(btn?.disabled)return;
+  const original=btn?.innerHTML||'';
+  if(btn){
+    btn.disabled=true;
+    btn.innerHTML=uiIcon('refresh')+'<span>Refreshing…</span>';
+  }
+  try{
+    await loadIdentity();
+    state.cache={};
+    app.querySelectorAll('.route-page').forEach(panel=>{
+      if(panel.dataset.routePage!==state.route)panel.remove();
+    });
+    await renderRoute(true);
+    toast('Refreshed.','success');
+  }catch(error){
+    console.error(error);
+    fail(error);
+  }finally{
+    const current=document.getElementById('refresh');
+    if(current){
+      current.disabled=false;
+      current.innerHTML=original||uiIcon('refresh')+'<span>Refresh</span>';
+    }
+  }
+}
 function bindShellNavigation(ctx){
   document.querySelectorAll('[data-route]').forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();go(b.dataset.route);});
   document.querySelectorAll('[data-category]').forEach(b=>b.onclick=e=>{
@@ -345,7 +372,8 @@ function bindShellNavigation(ctx){
     if(target) go(target.id);
   });
   document.getElementById('signout').onclick=async()=>{await sb.auth.signOut();};
-  document.getElementById('refresh')?.addEventListener('click',()=>renderRoute(true));
+  const refresh=document.getElementById('refresh');
+  if(refresh)refresh.onclick=refreshStaffCRM;
 }
 function updateShellChrome(){
   const ctx=shellContext();
