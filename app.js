@@ -141,7 +141,7 @@ const accountRoleOptions = () => (isOwnerLevel()?ROLE_ORDER:['teacher','cashier'
 const staffRoleOptionsFor = (staff={}) => {
   if(isOwnerLevel()) return ROLE_ORDER.map(r=>[ROLE_DEFS[r].staffTitle,ROLE_DEFS[r].staffTitle]);
   const currentRole=staffTitleToRole(staff.role_title);
-  if(staff.user_id && currentRole && !['teacher','cashier'].includes(currentRole)){
+  if(currentRole && !isOwnerLevel() && !['teacher','cashier'].includes(currentRole)){
     return [[staff.role_title,staff.role_title]];
   }
   return ['teacher','cashier'].map(r=>[ROLE_DEFS[r].staffTitle,ROLE_DEFS[r].staffTitle]);
@@ -151,6 +151,12 @@ const canManageAccountTarget = (targetRole,userId='') => {
   return isOwnerLevel()
     ? ['senior_manager','admin','teacher','cashier'].includes(targetRole)
     : ['teacher','cashier'].includes(targetRole);
+};
+const canManageStaffRecord = staff => {
+  const targetRole=staff?.account?.role || staffTitleToRole(staff?.role_title);
+  if(targetRole==='owner')return false;
+  if(staff?.user_id)return canManageAccountTarget(targetRole,staff.user_id);
+  return isOwnerLevel() || ['teacher','cashier'].includes(targetRole);
 };
 const withTimeout = (promise, ms=20000, message='The request took too long. Please try again.') => {
   let timer;
@@ -1372,7 +1378,7 @@ function bindStaffActions(staff){
   document.querySelector('[data-action="staff-new"]')?.addEventListener('click',()=>openModal('Add staff member',staffForm(),async f=>query(sb.from('staff').insert({full_name:val(f,'full_name'),role_title:val(f,'role_title')||null,phone:val(f,'phone')||null,monthly_salary:Number(val(f,'monthly_salary')||0),start_date:val(f,'start_date')||null,active:checked(f,'active')}))));
   document.querySelectorAll('[data-action=staff-edit]').forEach(b=>b.onclick=()=>{
     const s=staff.find(x=>x.id===b.dataset.id);
-    const canDelete=!s.user_id||canManageAccountTarget(s.account?.role,s.user_id);
+    const canDelete=canManageStaffRecord(s);
     const footer=canDelete?'<div class="danger-zone"><div><strong>Permanent deletion</strong><span>Only available if this person has no CRM history or active assignments.</span></div><button type="button" class="btn btn-danger" id="staff-delete">Delete permanently</button></div>':'';
     openModal('Edit staff member',staffForm(s)+footer,async f=>{
       const fullName=val(f,'full_name');
