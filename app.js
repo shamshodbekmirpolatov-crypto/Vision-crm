@@ -999,7 +999,21 @@ async function dashboardPage(){
     if(text.includes('every day')||text.includes('daily')) return true;
     return (dayAliases[dayName]||[]).some(alias=>new RegExp('(^|[^a-z])'+alias+'([^a-z]|$)','i').test(text));
   };
-  const todayGroups=(isTeacher||isAdmin) ? groups.filter(g=>scheduleMatchesToday(g)) : [];
+  const todayGroups=(isTeacher||isAdmin)
+    ? groups
+        .filter(g=>scheduleMatchesToday(g))
+        .sort((a,b)=>{
+          const aStart=String(a.start_time||'99:99:99');
+          const bStart=String(b.start_time||'99:99:99');
+          const startCompare=aStart.localeCompare(bStart);
+          if(startCompare) return startCompare;
+          const aEnd=String(a.end_time||'99:99:99');
+          const bEnd=String(b.end_time||'99:99:99');
+          const endCompare=aEnd.localeCompare(bEnd);
+          if(endCompare) return endCompare;
+          return String(a.name||'').localeCompare(String(b.name||''));
+        })
+    : [];
 
   const followUpsDue=isAdmin ? leads.filter(l=>l.next_follow_up && l.next_follow_up<=today() && !['enrolled','lost'].includes(l.status)) : [];
   const newLeads=isAdmin ? leads.filter(l=>l.status==='new') : [];
