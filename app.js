@@ -1163,7 +1163,7 @@ async function studentsPage(){
   const add=can('owner','admin')?'<button class="btn btn-primary" data-action="student-new">'+uiIcon('plus')+'Add student</button>':'';
   const rows=visible.map(s=>{
     const searchText=[s.full_name,s.phone,s.mother_phone,s.father_phone,s.grade_or_age,s.groups?.name,s.groups?.staff?.full_name].filter(Boolean).join(' ').toLowerCase();
-    return '<tr class="student-row" data-student-open="'+s.id+'" data-student-search="'+esc(searchText)+'" data-student-status-value="'+esc(s.status)+'">'+
+    return '<tr class="student-row" data-student-open="'+s.id+'" data-student-search="'+esc(searchText)+'" data-student-status-value="'+esc(s.status)+'" tabindex="0" aria-label="Open '+esc(s.full_name)+' student profile">'+
     '<td><div class="student-identity"><div class="student-avatar">'+esc(initials(s.full_name))+'</div><div><strong>'+esc(s.full_name)+'</strong><span>'+esc(s.phone||s.mother_phone||s.father_phone||'No phone')+'</span></div></div></td>'+
     '<td><span class="course-pill">'+esc(s.groups?.name||'Unassigned')+'</span><div class="muted row-sub">'+esc(s.groups?.staff?.full_name||'No teacher')+'</div></td>'+
     '<td>'+fmtDate(s.join_date)+'</td>'+
@@ -1217,9 +1217,18 @@ function bindStudentActions(students,groups){
     if(payload.discount_amount>payload.monthly_fee)throw new Error('Discount cannot be greater than the monthly fee.');
     await query(sb.from('students').insert(payload));
   }));
-  document.querySelectorAll('[data-student-open]').forEach(row=>row.onclick=e=>{
-    if(e.target.closest('[data-student-menu]'))return;
-    openStudentProfile(row.dataset.studentOpen,'overview',groups);
+  document.querySelectorAll('[data-student-open]').forEach(row=>{
+    const open=()=>openStudentProfile(row.dataset.studentOpen,'overview',groups);
+    row.onclick=e=>{
+      if(e.target.closest('[data-student-menu]'))return;
+      open();
+    };
+    row.onkeydown=e=>{
+      if(e.key!=='Enter'&&e.key!==' ')return;
+      if(e.target.closest('button,input,select,textarea,a'))return;
+      e.preventDefault();
+      open();
+    };
   });
   document.querySelectorAll('[data-student-menu]').forEach(btn=>btn.onclick=e=>{
     e.stopPropagation();
@@ -1437,7 +1446,7 @@ async function groupsPage(){
   ]);
   const rows=groups.map(g=>{
     const n=students.filter(s=>s.group_id===g.id&&s.status==='active').length;
-    return '<tr class="group-row" data-group-open="'+g.id+'" tabindex="0" role="button" aria-label="Open '+esc(g.name)+' group students">'+
+    return '<tr class="group-row" data-group-open="'+g.id+'" tabindex="0" aria-label="Open '+esc(g.name)+' group students">'+
       '<td><strong>'+esc(g.name)+'</strong><div class="muted">'+esc(g.level||'')+'</div></td>'+
       '<td>'+esc(formattedGroupSchedule(g))+'</td>'+
       '<td>'+esc(g.staff?.full_name||'—')+'</td>'+
