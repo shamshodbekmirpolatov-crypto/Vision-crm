@@ -2783,13 +2783,31 @@ function readingStudentId(data){
 }
 
 function completionKey(data){
+  return 'vision-reading-completed:v4:'+readingStudentId(data);
+}
+function legacyCompletionKey(data){
   return 'vision-reading-completed:v3:'+readingStudentId(data);
 }
-
+function articleProgressId(article,index){
+  return String(article?.id||('article-'+index));
+}
 function getCompletedArticles(data){
   try{
     const saved=JSON.parse(localStorage.getItem(completionKey(data))||'[]');
-    return new Set(Array.isArray(saved)?saved.map(Number):[]);
+    if(Array.isArray(saved)&&saved.length)return new Set(saved.map(String));
+
+    const legacy=JSON.parse(localStorage.getItem(legacyCompletionKey(data))||'[]');
+    if(Array.isArray(legacy)&&legacy.length){
+      const migrated=legacy
+        .map(Number)
+        .filter(index=>Number.isInteger(index)&&index>=0&&index<readingArticles.length)
+        .map(index=>articleProgressId(readingArticles[index],index));
+      if(migrated.length){
+        localStorage.setItem(completionKey(data),JSON.stringify([...new Set(migrated)]));
+        return new Set(migrated);
+      }
+    }
+    return new Set();
   }catch{
     return new Set();
   }
@@ -2797,7 +2815,7 @@ function getCompletedArticles(data){
 
 function markArticleCompleted(data,index){
   const completed=getCompletedArticles(data);
-  completed.add(Number(index));
+  completed.add(articleProgressId(readingArticles[index],index));
   try{localStorage.setItem(completionKey(data),JSON.stringify([...completed]));}catch{}
 }
 
@@ -3399,8 +3417,8 @@ function libraryHtml(data){
   const student=data?.student||{};
   const completed=getCompletedArticles(data);
   const articleRows=readingArticles.map((item,index)=>{
-    const isDone=completed.has(index);
-    const isUnlocked=index===0||Array.from({length:index},(_,i)=>i).every(i=>completed.has(i));
+    const isDone=completed.has(articleProgressId(item,index));
+    const isUnlocked=index===0||Array.from({length:index},(_,i)=>i).every(i=>completed.has(articleProgressId(readingArticles[i],i)));
     return '<button class="reading-list-row'+(isDone?' completed':'')+(isUnlocked?'':' locked')+'" data-article-index="'+index+'" type="button" '+(isUnlocked?'':'disabled aria-disabled="true"')+'>'+
       '<strong class="reading-list-label">Article '+(index+1)+'</strong>'+
       '<div class="reading-list-status'+(isDone?' done':isUnlocked?'':' locked')+'">'+(isDone?'✓':isUnlocked?'→':'🔒')+'</div>'+
