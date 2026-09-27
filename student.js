@@ -65,22 +65,23 @@ function signOut(){
   toast('Signed out.');
 }
 
-async function reloadPracticeAssets(){
-  const css=document.querySelector('link[href*="student-practice.css"]');
-  if(css){
-    const clean=css.getAttribute('href').split('?')[0];
-    css.setAttribute('href',clean+'?live='+Date.now());
-  }
+async function ensurePracticeReady(){
+  if(window.VisionStudentPractice)return true;
   await new Promise((resolve,reject)=>{
-    const old=document.getElementById('student-practice-live-script');
-    if(old)old.remove();
+    const existing=document.getElementById('student-practice-recovery-script');
+    if(existing){
+      existing.addEventListener('load',resolve,{once:true});
+      existing.addEventListener('error',reject,{once:true});
+      return;
+    }
     const script=document.createElement('script');
-    script.id='student-practice-live-script';
-    script.src='./student-practice.js?live='+Date.now();
+    script.id='student-practice-recovery-script';
+    script.src='./student-practice.js';
     script.onload=resolve;
     script.onerror=reject;
     document.body.appendChild(script);
   });
+  return Boolean(window.VisionStudentPractice);
 }
 
 async function refreshPortal(view='dashboard'){
@@ -114,7 +115,7 @@ async function refreshPortal(view='dashboard'){
     if(view==='dashboard'){
       renderPortal();
     }else if(view==='practice'){
-      try{await reloadPracticeAssets();}catch{}
+      try{await ensurePracticeReady();}catch{}
       if(window.VisionStudentPractice){
         window.VisionStudentPractice.render({
           root:app,
@@ -188,7 +189,7 @@ function renderPortal(){
   const practiceTab=document.getElementById('student-practice-tab');
   if(practiceTab&&window.VisionStudentPractice){
     practiceTab.onclick=async()=>{
-      try{await reloadPracticeAssets();}catch{}
+      try{await ensurePracticeReady();}catch{}
       if(window.VisionStudentPractice){
         window.VisionStudentPractice.render({
           root:app,
