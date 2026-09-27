@@ -376,6 +376,93 @@ async function refreshStaffCRM(){
     }
   }
 }
+const CRM_THEME_KEY='vision-crm-app-theme';
+function currentCRMTheme(){
+  const saved=localStorage.getItem(CRM_THEME_KEY);
+  if(saved==='dark'||saved==='light')return saved;
+  return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches?'dark':'light';
+}
+function applyCRMTheme(theme=currentCRMTheme()){
+  const next=theme==='dark'?'dark':'light';
+  document.body.classList.toggle('crm-dark',next==='dark');
+  localStorage.setItem(CRM_THEME_KEY,next);
+  document.querySelectorAll('[data-crm-theme]').forEach(button=>{
+    const active=button.dataset.crmTheme===next;
+    button.classList.toggle('active',active);
+    button.setAttribute('aria-pressed',active?'true':'false');
+  });
+}
+function closeAccountMenu(){
+  const menu=document.getElementById('account-menu');
+  const trigger=document.getElementById('account-menu-trigger');
+  if(menu)menu.hidden=true;
+  if(trigger)trigger.setAttribute('aria-expanded','false');
+}
+function updateFullscreenMenu(){
+  const button=document.getElementById('account-fullscreen');
+  if(!button)return;
+  const active=!!document.fullscreenElement;
+  const label=button.querySelector('[data-fullscreen-label]');
+  if(label)label.textContent=active?'Exit fullscreen':'Fullscreen';
+  button.classList.toggle('active',active);
+}
+function updateAccountMenuControls(){
+  applyCRMTheme(currentCRMTheme());
+  updateFullscreenMenu();
+}
+function bindAccountMenu(ctx){
+  const trigger=document.getElementById('account-menu-trigger');
+  const menu=document.getElementById('account-menu');
+  if(trigger&&menu){
+    trigger.onclick=e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      const opening=menu.hidden;
+      closeAccountMenu();
+      menu.hidden=!opening;
+      trigger.setAttribute('aria-expanded',opening?'true':'false');
+      if(opening)updateAccountMenuControls();
+    };
+    menu.onclick=e=>e.stopPropagation();
+  }
+  document.querySelectorAll('[data-crm-theme]').forEach(button=>{
+    button.onclick=()=>{
+      applyCRMTheme(button.dataset.crmTheme);
+    };
+  });
+  document.getElementById('account-fullscreen')?.addEventListener('click',async()=>{
+    try{
+      if(document.fullscreenElement)await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen();
+    }catch(error){fail(error);}
+    updateFullscreenMenu();
+  });
+  document.getElementById('account-settings')?.addEventListener('click',()=>{
+    closeAccountMenu();
+    go('settings');
+  });
+  document.getElementById('signout')?.addEventListener('click',async()=>{
+    closeAccountMenu();
+    await sb.auth.signOut();
+  });
+
+  if(!document._visionAccountMenuEventsBound){
+    document._visionAccountMenuEventsBound=true;
+    document.addEventListener('click',e=>{
+      if(!e.target.closest?.('.account-menu-wrap'))closeAccountMenu();
+    });
+    document.addEventListener('keydown',e=>{
+      if(e.key==='Escape'){
+        const menu=document.getElementById('account-menu');
+        if(menu&&!menu.hidden){
+          closeAccountMenu();
+          document.getElementById('account-menu-trigger')?.focus();
+        }
+      }
+    });
+    document.addEventListener('fullscreenchange',updateFullscreenMenu);
+  }
+}
 function bindShellNavigation(ctx){
   document.querySelectorAll('[data-route]').forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();go(b.dataset.route);});
   document.querySelectorAll('[data-category]').forEach(b=>b.onclick=e=>{
@@ -385,9 +472,9 @@ function bindShellNavigation(ctx){
     const target=ctx.allowed.find(n=>n.group===group&&n.id===preferred)||ctx.allowed.find(n=>n.group===group);
     if(target) go(target.id);
   });
-  document.getElementById('signout').onclick=async()=>{await sb.auth.signOut();};
   const refresh=document.getElementById('refresh');
   if(refresh)refresh.onclick=refreshStaffCRM;
+  bindAccountMenu(ctx);
 }
 function updateShellChrome(){
   const ctx=shellContext();
@@ -441,6 +528,7 @@ function renderShell(content,routeName=state.route,activate=true){
     }
     return;
   }
+  const settingsAllowed=ctx.allowed.some(item=>item.id==='settings');
   app.className='';
   app.innerHTML =
     '<div class="shell top-shell">'+
@@ -449,9 +537,25 @@ function renderShell(content,routeName=state.route,activate=true){
           '<div class="app-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision CRM</strong><span>Vision Learning Centre</span></div></div>'+
           '<div class="app-user">'+
             '<button type="button" class="btn btn-secondary desktop-only" id="refresh">'+uiIcon('refresh')+'<span>Refresh</span></button>'+
-            '<span class="role-chip desktop-only">'+esc(roleLabel(role()))+'</span>'+
-            '<div class="user-chip"><div class="avatar">'+esc(initials(state.profile?.full_name))+'</div><div class="user-chip-copy"><strong>'+esc(state.profile?.full_name||'User')+'</strong><span>'+esc(roleLabel(role()))+'</span></div></div>'+
-            '<button type="button" id="signout" class="icon-btn signout-icon" title="Sign out" aria-label="Sign out">'+uiIcon('logout')+'</button>'+
+            '<div class="account-menu-wrap">'+
+              '<button type="button" class="user-chip account-menu-trigger" id="account-menu-trigger" aria-haspopup="menu" aria-expanded="false">'+
+                '<div class="avatar">'+esc(initials(state.profile?.full_name))+'</div>'+
+                '<div class="user-chip-copy"><strong>'+esc(state.profile?.full_name||'User')+'</strong><span>'+esc(roleLabel(role()))+'</span></div>'+
+                '<span class="account-chevron" aria-hidden="true">⌄</span>'+
+              '</button>'+
+              '<div class="account-menu" id="account-menu" role="menu" hidden>'+
+                '<div class="account-menu-head"><div class="avatar account-menu-avatar">'+esc(initials(state.profile?.full_name))+'</div><div><strong>'+esc(state.profile?.full_name||'User')+'</strong><span>'+esc(roleLabel(role()))+'</span></div></div>'+
+                '<div class="account-menu-section"><span class="account-menu-label">Appearance</span><div class="account-theme-switch" role="group" aria-label="Appearance">'+
+                  '<button type="button" data-crm-theme="light" aria-pressed="false"><span>☀</span>Light</button>'+
+                  '<button type="button" data-crm-theme="dark" aria-pressed="false"><span>☾</span>Dark</button>'+
+                '</div></div>'+
+                '<div class="account-menu-actions">'+
+                  '<button type="button" class="account-menu-action" id="account-fullscreen" role="menuitem"><span class="account-action-icon">⛶</span><span data-fullscreen-label>Fullscreen</span></button>'+
+                  (settingsAllowed?'<button type="button" class="account-menu-action" id="account-settings" role="menuitem"><span class="account-action-icon">'+uiIcon('settings')+'</span><span>Settings</span></button>':'')+
+                  '<button type="button" class="account-menu-action danger" id="signout" role="menuitem"><span class="account-action-icon">'+uiIcon('logout')+'</span><span>Sign out</span></button>'+
+                '</div>'+
+              '</div>'+
+            '</div>'+
           '</div>'+
         '</div>'+
         '<nav class="category-nav">'+ctx.categoryNav+'</nav>'+
@@ -462,8 +566,10 @@ function renderShell(content,routeName=state.route,activate=true){
         '<div class="content"><section class="route-page active route-panel-in" data-route-page="'+esc(routeName)+'" data-loaded-at="'+Date.now()+'">'+content+'</section></div>'+
       '</main>'+
     '</div>';
+  applyCRMTheme(currentCRMTheme());
   bindShellNavigation(ctx);
 }
+
 function go(routeName){
   if(!allowedRoutes().some(n=>n.id===routeName)) routeName='dashboard';
   if(state.route===routeName && app.querySelector('.top-shell')) return;
