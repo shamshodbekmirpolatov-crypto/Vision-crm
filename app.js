@@ -1196,7 +1196,7 @@ function studentForm(s={},groups=[]){
   return '<div class="form-cols">'+
     field('Full name','full_name',s.full_name||'','','required')+
     field('Grade / age','grade_or_age',s.grade_or_age||'')+
-    field('Date of birth (optional)','date_of_birth',s.date_of_birth||'','date')+
+    field('Date of birth (optional)','date_of_birth',s.date_of_birth||'','date','max="'+today()+'"')+
     field('Student phone (optional)','phone',s.phone||'','tel')+
     field('Mother phone','mother_phone',s.mother_phone||'','tel')+
     field('Father phone','father_phone',s.father_phone||'','tel')+
@@ -1213,6 +1213,7 @@ function bindStudentActions(students,groups){
   document.querySelector('[data-action="student-new"]')?.addEventListener('click',()=>openModal('Add student',studentForm({},groups),async f=>{
     const gid=val(f,'group_id'); const g=groups.find(x=>x.id===gid);
     const payload={full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,date_of_birth:val(f,'date_of_birth')||null,phone:val(f,'phone')||null,mother_phone:val(f,'mother_phone')||null,father_phone:val(f,'father_phone')||null,is_adult:checked(f,'is_adult'),group_id:gid||null,join_date:val(f,'join_date')||today(),monthly_fee:Number(val(f,'monthly_fee')||g?.default_monthly_fee||0),discount_amount:Number(val(f,'discount_amount')||0),is_free_place:checked(f,'is_free_place'),status:val(f,'status'),notes:val(f,'notes')||null};
+    if(payload.date_of_birth&&payload.date_of_birth>today())throw new Error('Date of birth cannot be in the future.');
     if(!payload.is_adult&&!payload.mother_phone&&!payload.father_phone)throw new Error('Enter at least one parent phone number, or mark the student as an adult.');
     if(payload.discount_amount>payload.monthly_fee)throw new Error('Discount cannot be greater than the monthly fee.');
     await query(sb.from('students').insert(payload));
@@ -1279,6 +1280,7 @@ function openStudentQuickActions(student,groups){
 function openStudentEdit(student,groups){
   openModal('Edit student',studentForm(student,groups),async f=>{
     const payload={full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,date_of_birth:val(f,'date_of_birth')||null,phone:val(f,'phone')||null,mother_phone:val(f,'mother_phone')||null,father_phone:val(f,'father_phone')||null,is_adult:checked(f,'is_adult'),group_id:val(f,'group_id')||null,join_date:val(f,'join_date'),monthly_fee:Number(val(f,'monthly_fee')||0),discount_amount:Number(val(f,'discount_amount')||0),is_free_place:checked(f,'is_free_place'),status:val(f,'status'),notes:val(f,'notes')||null};
+    if(payload.date_of_birth&&payload.date_of_birth>today())throw new Error('Date of birth cannot be in the future.');
     if(!payload.is_adult&&!payload.mother_phone&&!payload.father_phone)throw new Error('Enter at least one parent phone number, or mark the student as an adult.');
     if(payload.discount_amount>payload.monthly_fee)throw new Error('Discount cannot be greater than the monthly fee.');
     await query(sb.from('students').update(payload).eq('id',student.id));
@@ -1594,19 +1596,27 @@ async function leadsPage(){
   return '<div class="section-note"><strong>Lead pipeline</strong><br>Track enquiries from first contact through trial lesson and enrollment. Use <strong>Enroll</strong> to turn a lead into a student without retyping their details.</div>'+tablePage('Prospective students','<button class="btn btn-primary" data-action="lead-new">'+uiIcon('plus')+'Add lead</button>',[['Name',''],['Phone',''],['Course',''],['Source',''],['Status',''],['Follow-up',''],['','']],rows,'No leads yet.');
 }
 function leadForm(l={}){
-  return '<div class="form-cols">'+field('Full name','full_name',l.full_name||'','','required')+field('Grade / age','grade_or_age',l.grade_or_age||'')+field('Date of birth (optional)','date_of_birth',l.date_of_birth||'','date')+field('Phone','phone',l.phone||'','tel')+field('Mother phone','mother_phone',l.mother_phone||'','tel')+field('Father phone','father_phone',l.father_phone||'','tel')+'<div class="field span-2"><label>Parental contact requirement</label><label class="inline-check"><input type="checkbox" name="is_adult" '+(l.is_adult?'checked':'')+'> Adult student — parental phone number not required</label></div>'+field('Interested course','interested_course',l.interested_course||'')+field('Source','source',l.source||'')+
+  return '<div class="form-cols">'+field('Full name','full_name',l.full_name||'','','required')+field('Grade / age','grade_or_age',l.grade_or_age||'')+field('Date of birth (optional)','date_of_birth',l.date_of_birth||'','date','max="'+today()+'"')+field('Phone','phone',l.phone||'','tel')+field('Mother phone','mother_phone',l.mother_phone||'','tel')+field('Father phone','father_phone',l.father_phone||'','tel')+'<div class="field span-2"><label>Parental contact requirement</label><label class="inline-check"><input type="checkbox" name="is_adult" '+(l.is_adult?'checked':'')+'> Adult student — parental phone number not required</label></div>'+field('Interested course','interested_course',l.interested_course||'')+field('Source','source',l.source||'')+
   selectField('Status','status',[['new','New'],['contacted','Contacted'],['trial_booked','Trial booked'],['trial_attended','Trial attended'],['enrolled','Enrolled'],['lost','Lost']],l.status||'new')+field('Next follow-up','next_follow_up',l.next_follow_up||'','date')+textArea('Notes','notes',l.notes||'')+'</div>';
 }
 function bindLeadActions(leads,groups){
-  document.querySelector('[data-action="lead-new"]')?.addEventListener('click',()=>openModal('Add lead',leadForm(),async f=>query(sb.from('leads').insert({full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,date_of_birth:val(f,'date_of_birth')||null,phone:val(f,'phone')||null,mother_phone:val(f,'mother_phone')||null,father_phone:val(f,'father_phone')||null,is_adult:checked(f,'is_adult'),interested_course:val(f,'interested_course')||null,source:val(f,'source')||null,status:val(f,'status'),next_follow_up:val(f,'next_follow_up')||null,notes:val(f,'notes')||null}))));
-  document.querySelectorAll('[data-action="lead-edit"]').forEach(b=>b.onclick=()=>{const l=leads.find(x=>x.id===b.dataset.id);openModal('Edit lead',leadForm(l),async f=>query(sb.from('leads').update({full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,date_of_birth:val(f,'date_of_birth')||null,phone:val(f,'phone')||null,mother_phone:val(f,'mother_phone')||null,father_phone:val(f,'father_phone')||null,is_adult:checked(f,'is_adult'),interested_course:val(f,'interested_course')||null,source:val(f,'source')||null,status:val(f,'status'),next_follow_up:val(f,'next_follow_up')||null,notes:val(f,'notes')||null}).eq('id',l.id)));});
+  document.querySelector('[data-action="lead-new"]')?.addEventListener('click',()=>openModal('Add lead',leadForm(),async f=>{
+    const dob=val(f,'date_of_birth');
+    if(dob&&dob>today())throw new Error('Date of birth cannot be in the future.');
+    await query(sb.from('leads').insert({full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,date_of_birth:dob||null,phone:val(f,'phone')||null,mother_phone:val(f,'mother_phone')||null,father_phone:val(f,'father_phone')||null,is_adult:checked(f,'is_adult'),interested_course:val(f,'interested_course')||null,source:val(f,'source')||null,status:val(f,'status'),next_follow_up:val(f,'next_follow_up')||null,notes:val(f,'notes')||null}));
+  }));
+  document.querySelectorAll('[data-action="lead-edit"]').forEach(b=>b.onclick=()=>{const l=leads.find(x=>x.id===b.dataset.id);openModal('Edit lead',leadForm(l),async f=>{
+    const dob=val(f,'date_of_birth');
+    if(dob&&dob>today())throw new Error('Date of birth cannot be in the future.');
+    await query(sb.from('leads').update({full_name:val(f,'full_name'),grade_or_age:val(f,'grade_or_age')||null,date_of_birth:dob||null,phone:val(f,'phone')||null,mother_phone:val(f,'mother_phone')||null,father_phone:val(f,'father_phone')||null,is_adult:checked(f,'is_adult'),interested_course:val(f,'interested_course')||null,source:val(f,'source')||null,status:val(f,'status'),next_follow_up:val(f,'next_follow_up')||null,notes:val(f,'notes')||null}).eq('id',l.id));
+  });});
   document.querySelectorAll('[data-action="lead-enroll"]').forEach(b=>b.onclick=()=>{
     const l=leads.find(x=>x.id===b.dataset.id);
     const groupOpts=[['','Unassigned'],...groups.map(g=>[g.id,g.name])];
     const body='<div class="section-note span-2">This creates an active student record and marks the lead as enrolled.</div><div class="form-cols">'+
       field('Full name','full_name',l.full_name||'','','required')+
       field('Grade / age','grade_or_age',l.grade_or_age||'')+
-      field('Date of birth (optional)','date_of_birth',l.date_of_birth||'','date')+
+      field('Date of birth (optional)','date_of_birth',l.date_of_birth||'','date','max="'+today()+'"')+
       field('Student phone (optional)','phone',l.phone||'','tel')+
       field('Mother phone','mother_phone',l.mother_phone||'','tel')+
       field('Father phone','father_phone',l.father_phone||'','tel')+
@@ -1623,6 +1633,8 @@ function bindLeadActions(leads,groups){
       const feeRaw=val(form,'monthly_fee');
       const monthlyFee=Number(feeRaw||group?.default_monthly_fee||0);
       const discountAmount=Number(val(form,'discount_amount')||0);
+      const dob=val(form,'date_of_birth');
+      if(dob&&dob>today())throw new Error('Date of birth cannot be in the future.');
       if(discountAmount>monthlyFee)throw new Error('Discount cannot be greater than the monthly fee.');
       const motherPhone=val(form,'mother_phone')||null;
       const fatherPhone=val(form,'father_phone')||null;
@@ -1632,7 +1644,7 @@ function bindLeadActions(leads,groups){
         p_lead_id:l.id,
         p_full_name:val(form,'full_name'),
         p_grade_or_age:val(form,'grade_or_age')||null,
-        p_date_of_birth:val(form,'date_of_birth')||null,
+        p_date_of_birth:dob||null,
         p_is_adult:isAdult,
         p_phone:val(form,'phone')||null,
         p_mother_phone:motherPhone,
@@ -2123,7 +2135,9 @@ async function academicPage(){
     query(sb.from('students').select('id,full_name,status').eq('status','active').order('full_name'))
   ]);
   const rows=records.map(r=>'<tr><td>'+fmtDate(r.record_date)+'</td><td><strong>'+esc(r.students?.full_name||'Student')+'</strong></td><td>'+esc(r.record_type)+'</td><td>'+esc(r.topic||'—')+'</td><td>'+(r.score==null?'—':esc(r.score)+' / '+esc(r.max_score??'—'))+'</td><td>'+esc(r.teacher_note||'—')+'</td></tr>').join('');
-  setTimeout(()=>document.querySelector('[data-action=academic-new]')?.addEventListener('click',()=>openModal('Add academic record','<div class="form-cols">'+selectField('Student','student_id',students.map(s=>[s.id,s.full_name]))+field('Date','record_date',today(),'date','required')+field('Record type','record_type','Progress check','','required')+field('Topic','topic','')+field('Score','score','','number','min="0" step="0.01"')+field('Max score','max_score','100','number','min="0.01" step="0.01"')+textArea('Teacher note','teacher_note','')+'</div>',async f=>{
+  setTimeout(()=>document.querySelector('[data-action=academic-new]')?.addEventListener('click',()=>openModal('Add academic record','<div class="form-cols">'+selectField('Student','student_id',students.map(s=>[s.id,s.full_name]))+field('Date','record_date',today(),'date','required max="'+today()+'"')+field('Record type','record_type','Progress check','','required')+field('Topic','topic','')+field('Score','score','','number','min="0" step="0.01"')+field('Max score','max_score','100','number','min="0.01" step="0.01"')+textArea('Teacher note','teacher_note','')+'</div>',async f=>{
+    const recordDate=val(f,'record_date');
+    if(recordDate>today())throw new Error('Academic record date cannot be in the future.');
     const scoreRaw=val(f,'score');
     const maxRaw=val(f,'max_score');
     const score=scoreRaw===''?null:Number(scoreRaw);
@@ -2270,7 +2284,11 @@ async function readingPage(){
 async function expensesPage(){
   const expenses=await query(sb.from('expenses').select('*').order('expense_date',{ascending:false}).limit(500));
   const rows=expenses.map(e=>'<tr><td>'+fmtDate(e.expense_date)+'</td><td>'+esc(e.category)+'</td><td>'+esc(e.description||'—')+'</td><td class="num">'+fmtMoney(e.amount)+'</td><td>'+esc(humanize(e.method))+'</td></tr>').join('');
-  setTimeout(()=>document.querySelector('[data-action=expense-new]')?.addEventListener('click',()=>openModal('Add expense','<div class="form-cols">'+field('Date','expense_date',today(),'date','required')+selectField('Category','category',['Rent','Utilities','Learning Materials','Marketing','CRM / Software','Maintenance','Equipment','Office Supplies','Taxes / YATT','Transport','Other'],'Utilities')+field('Amount','amount','','number','required min="1"')+selectField('Method','method',[['cash','Cash'],['card_transfer','Card / transfer'],['other','Other']],'cash')+textArea('Description','description','')+'</div>',async f=>query(sb.from('expenses').insert({expense_date:val(f,'expense_date'),category:val(f,'category'),amount:Number(val(f,'amount')),method:val(f,'method'),description:val(f,'description')||null,created_by:state.session.user.id})))),0);
+  setTimeout(()=>document.querySelector('[data-action=expense-new]')?.addEventListener('click',()=>openModal('Add expense','<div class="form-cols">'+field('Date','expense_date',today(),'date','required max="'+today()+'"')+selectField('Category','category',['Rent','Utilities','Learning Materials','Marketing','CRM / Software','Maintenance','Equipment','Office Supplies','Taxes / YATT','Transport','Other'],'Utilities')+field('Amount','amount','','number','required min="1"')+selectField('Method','method',[['cash','Cash'],['card_transfer','Card / transfer'],['other','Other']],'cash')+textArea('Description','description','')+'</div>',async f=>{
+    const expenseDate=val(f,'expense_date');
+    if(expenseDate>today())throw new Error('Expense date cannot be in the future.');
+    return query(sb.from('expenses').insert({expense_date:expenseDate,category:val(f,'category'),amount:Number(val(f,'amount')),method:val(f,'method'),description:val(f,'description')||null,created_by:state.session.user.id}));
+  })),0);
   return tablePage('Centre expenses','<button class="btn btn-primary" data-action="expense-new">'+uiIcon('plus')+'Add expense</button>',[['Date',''],['Category',''],['Description',''],['Amount','num'],['Method','']],rows,'No expenses recorded.');
 }
 
@@ -2290,7 +2308,7 @@ async function staffPage(){
   setTimeout(()=>bindStaffActions(staffWithAccounts),0);
   const staffTable=tablePage('Staff records','<button class="btn btn-primary" data-action="staff-new">'+uiIcon('plus')+'Add staff</button>',[['Name',''],['Role',''],['Phone',''],['Monthly salary','num'],['Status',''],['','']],rows,'No staff records.');
   const pRows=payroll.map(p=>'<tr><td>'+fmtDate(p.paid_at)+'</td><td>'+esc(p.staff?.full_name||'Staff')+'</td><td>'+new Date(p.salary_month+'T00:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'})+'</td><td class="num">'+fmtMoney(p.amount)+'</td><td>'+esc(p.notes||'—')+'</td></tr>').join('');
-  setTimeout(()=>document.querySelector('[data-action=payroll-new]')?.addEventListener('click',()=>openModal('Record payroll','<div class="form-cols">'+selectField('Staff member','staff_id',staff.filter(s=>s.active).map(s=>[s.id,s.full_name]))+field('Salary month','salary_month',monthStart().slice(0,7),'month','required')+field('Amount','amount','','number','required min="1"')+field('Paid date','paid_at',today(),'date','required')+textArea('Notes','notes','')+'</div>',async f=>{const m=val(f,'salary_month');return query(sb.from('payroll').insert({staff_id:val(f,'staff_id'),salary_month:m+'-01',amount:Number(val(f,'amount')),paid_at:val(f,'paid_at'),notes:val(f,'notes')||null,created_by:state.session.user.id}));})),0);
+  setTimeout(()=>document.querySelector('[data-action=payroll-new]')?.addEventListener('click',()=>openModal('Record payroll','<div class="form-cols">'+selectField('Staff member','staff_id',staff.filter(s=>s.active).map(s=>[s.id,s.full_name]))+field('Salary month','salary_month',monthStart().slice(0,7),'month','required')+field('Amount','amount','','number','required min="1"')+field('Paid date','paid_at',today(),'date','required max="'+today()+'"')+textArea('Notes','notes','')+'</div>',async f=>{const paidDate=val(f,'paid_at');if(paidDate>today())throw new Error('Payroll paid date cannot be in the future.');const m=val(f,'salary_month');return query(sb.from('payroll').insert({staff_id:val(f,'staff_id'),salary_month:m+'-01',amount:Number(val(f,'amount')),paid_at:paidDate,notes:val(f,'notes')||null,created_by:state.session.user.id}));})),0);
   return staffTable+'<div style="height:16px"></div>'+tablePage('Payroll history',staff.some(s=>s.active)?'<button class="btn btn-primary" data-action="payroll-new">'+uiIcon('plus')+'Record salary</button>':'<button class="btn btn-primary" disabled>No active staff</button>',[['Paid on',''],['Staff',''],['Salary month',''],['Amount','num'],['Notes','']],pRows,'No payroll entries.');
 }
 function staffForm(s={}){
