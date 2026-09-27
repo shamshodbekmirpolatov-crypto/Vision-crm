@@ -344,6 +344,20 @@ async function refreshStaffCRM(){
     btn.innerHTML=uiIcon('refresh')+'<span>Refreshing…</span>';
   }
   try{
+    try{
+      const response=await fetch('./index.html?update_check='+Date.now(),{cache:'no-store'});
+      if(response.ok){
+        const html=await response.text();
+        const latest=html.match(/app\.js\?v=([^"'&<]+)/)?.[1]||'';
+        const current=document.querySelector('script[src*="app.js"]')?.src.match(/[?&]v=([^&]+)/)?.[1]||'';
+        if(latest&&current&&latest!==current){
+          location.reload();
+          return;
+        }
+      }
+    }catch(updateError){
+      console.warn('Update check skipped:',updateError);
+    }
     await loadIdentity();
     state.cache={};
     app.querySelectorAll('.route-page').forEach(panel=>{
