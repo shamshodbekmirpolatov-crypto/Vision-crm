@@ -810,7 +810,7 @@ function bindLoginPreferences(){
     applyLoginTheme(next);
   });
 }
-function renderLogin(error=''){
+function renderLogin(error='',emailValue=''){
   app.className='';
   document.body.classList.remove('crm-dark');
   const mailIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>';
@@ -859,7 +859,7 @@ function renderLogin(error=''){
           '<div class="login-heading premium-login-heading"><span class="login-kicker" data-login-copy="loginKicker">WELCOME TO VISION</span><h2 data-login-copy="heading">Welcome back</h2><p class="sub" data-login-copy="sub">Enter your account details to continue.</p></div>'+
           (error?'<div class="login-error">'+esc(error)+'</div>':'')+
           '<form id="login-form" class="form-grid premium-login-form">'+
-            '<div class="field premium-field"><label for="crm-login-email" data-login-copy="emailLabel">Email address</label><div class="login-input-shell"><span class="login-input-icon">'+mailIcon+'</span><input id="crm-login-email" class="input" type="email" name="email" required autocomplete="email" placeholder="you@example.com"></div></div>'+
+            '<div class="field premium-field"><label for="crm-login-email" data-login-copy="emailLabel">Email address</label><div class="login-input-shell"><span class="login-input-icon">'+mailIcon+'</span><input id="crm-login-email" class="input" type="email" name="email" required autocomplete="email" placeholder="you@example.com" value="'+esc(emailValue)+'"></div></div>'+
             '<div class="field premium-field"><label for="crm-login-password" data-login-copy="passwordLabel">Password</label><div class="password-wrap login-input-shell"><span class="login-input-icon">'+lockIcon+'</span><input id="crm-login-password" class="input password-input" type="password" name="password" required autocomplete="current-password" placeholder="Enter your password"><button class="password-toggle" type="button" aria-label="Show password" title="Show password"><span class="eye-open">◉</span><span class="eye-closed">—</span></button></div></div>'+
             '<div class="login-form-row"><span class="secure-note"><span class="secure-dot"></span><span data-login-copy="secure">Protected staff access</span></span><button class="link-btn" type="button" id="forgot" data-login-copy="forgot">Forgot password?</button></div>'+
             '<button class="btn btn-primary btn-block login-submit premium-signin" type="submit"><span data-login-copy="signIn">Sign in</span><span aria-hidden="true">→</span></button>'+
@@ -873,13 +873,29 @@ function renderLogin(error=''){
   bindPasswordToggle(app);
   bindLoginPreferences();
   applyLoginLanguage(selectedLang);
+  requestAnimationFrame(()=>{
+    const target=document.getElementById(error&&emailValue?'crm-login-password':'crm-login-email');
+    target?.focus({preventScroll:true});
+  });
   document.getElementById('login-form').onsubmit=async e=>{
     e.preventDefault();
-    const b=e.currentTarget.querySelector('[type="submit"]');
+    const form=e.currentTarget;
+    const b=form.querySelector('[type="submit"]');
+    if(b?.disabled)return;
     const copy=LOGIN_COPY[loginLanguage()]||LOGIN_COPY.en;
-    b.disabled=true;b.innerHTML='<span>'+esc(copy.signingIn)+'</span><span class="signin-spinner" aria-hidden="true"></span>';
-    const {error}=await sb.auth.signInWithPassword({email:val(e.currentTarget,'email'),password:val(e.currentTarget,'password')});
-    if(error){renderLogin(error.message);}
+    const email=val(form,'email');
+    const password=val(form,'password');
+    if(b){b.disabled=true;b.innerHTML='<span>'+esc(copy.signingIn)+'</span><span class="signin-spinner" aria-hidden="true"></span>';}
+    try{
+      const {error}=await sb.auth.signInWithPassword({email,password});
+      if(error){
+        renderLogin(error.message,email);
+        return;
+      }
+    }catch(error){
+      console.error(error);
+      renderLogin('Could not connect right now. Please try again.',email);
+    }
   };
   document.getElementById('forgot').onclick=()=>{
     const copy=LOGIN_COPY[loginLanguage()]||LOGIN_COPY.en;
@@ -899,16 +915,25 @@ function renderPasswordUpdate(forced=false){
   bindPasswordToggle(app);
   document.getElementById('pw-form').onsubmit=async e=>{
     e.preventDefault();
-    const {error}=await sb.auth.updateUser({password:val(e.currentTarget,'password')});
-    if(error) return fail(error);
-    if(forced){
-      try{await invokeEdge('manage-users',{action:'clear_first_login'});}
-      catch(error){return fail(error);}
-      await loadIdentity();
+    const form=e.currentTarget;
+    const button=form.querySelector('[type="submit"]');
+    if(button?.disabled)return;
+    const original=button?.textContent||'Update password';
+    if(button){button.disabled=true;button.textContent='Updating…';}
+    try{
+      const {error}=await sb.auth.updateUser({password:val(form,'password')});
+      if(error)throw error;
+      if(forced){
+        await invokeEdge('manage-users',{action:'clear_first_login'});
+        await loadIdentity();
+      }
+      toast('Password updated.');
+      state.route='dashboard';
+      await renderRoute();
+    }catch(error){
+      fail(error);
+      if(button){button.disabled=false;button.textContent=original;}
     }
-    toast('Password updated.');
-    state.route='dashboard';
-    await renderRoute();
   };
 }
 
