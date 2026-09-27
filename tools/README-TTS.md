@@ -28,7 +28,7 @@ The computer needs:
    - `%USERPROFILE%\Downloads\voices-v1.0.bin`
 2. **Ollama** for the local Reading-language processor.
 3. An Ollama model. By default the agent uses:
-   - `qwen2.5:7b`
+   - `qwen3:4b-instruct`
 
 You can choose another installed Ollama model by setting the environment variable `VISION_OLLAMA_MODEL`.
 
