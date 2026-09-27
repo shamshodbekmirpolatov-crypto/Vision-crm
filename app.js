@@ -2560,8 +2560,9 @@ async function settingsPage(){
   return '<section class="panel"><div class="panel-head"><div><h2>Centre settings</h2><p>Centre identity, currency and fee references</p></div></div><div class="panel-body"><form id="settings-form"><div class="form-cols">'+
     field('Centre name','centre_name',s.centre_name,'','required')+
     field('Currency','currency',s.currency,'','required maxlength="12"')+
-    field('Grades 3–6 default fee','junior_default_fee',s.junior_default_fee,'number','min="0"')+
-    field('Grades 7–11 & adults default fee','senior_default_fee',s.senior_default_fee,'number','min="0"')+
+    field('Grades 3–6 reference fee','junior_default_fee',s.junior_default_fee,'number','min="0"')+
+    field('Grades 7–11 & adults reference fee','senior_default_fee',s.senior_default_fee,'number','min="0"')+
+    '<div class="span-2 section-note" style="margin:0">Reference fees are informational. Actual monthly dues come from each group/student fee, so changing these values does not rewrite existing student fees.</div>'+
     '</div><div style="margin-top:16px"><button class="btn btn-primary" type="submit">Save settings</button></div></form></div></section>';
 }
 
