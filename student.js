@@ -27,8 +27,8 @@ function renderLogin(error=''){
       '<h2>Welcome back</h2><p>Enter the phone number registered with Vision and your 4-digit PIN.</p>'+
       (error?'<div class="login-error">'+esc(error)+'</div>':'')+
       '<form id="student-login-form" class="login-form">'+
-        '<div class="field"><label>Phone number</label><div class="input-shell"><input name="phone" inputmode="tel" autocomplete="tel" placeholder="+998 99 123 45 67" required></div></div>'+
-        '<div class="field"><label>4-digit PIN</label><div class="input-shell"><input class="pin-input" name="pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" type="password" placeholder="••••" required></div></div>'+
+        '<div class="field"><label for="student-login-phone">Phone number</label><div class="input-shell"><input id="student-login-phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="+998 99 123 45 67" required></div></div>'+
+        '<div class="field"><label for="student-login-pin">4-digit PIN</label><div class="input-shell"><input id="student-login-pin" class="pin-input" name="pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" type="password" placeholder="••••" required></div></div>'+
         '<button class="login-button" type="submit"><span>Open my progress</span><span>→</span></button>'+
       '</form>'+
       '<div class="login-note">Your PIN is the last four digits of the phone number registered in your Vision student profile. After 5 incorrect attempts, login is temporarily locked.</div>'+
