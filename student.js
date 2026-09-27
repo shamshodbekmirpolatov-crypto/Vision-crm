@@ -126,7 +126,7 @@ function bindStudentLoginPreferences(){
     applyStudentLoginTheme(next);
   });
 }
-function renderLogin(error=''){
+function renderLogin(error='',phoneValue=''){
   const selectedLang=studentLoginLanguage();
   const selectedTheme=studentLoginTheme();
   const moonIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.7 6.7 0 0 0 21 12.8Z"/></svg>';
@@ -149,7 +149,7 @@ function renderLogin(error=''){
       '<h2 data-student-login-copy="welcome">Welcome back</h2><p data-student-login-copy="intro">Enter the phone number registered with Vision and your 4-digit PIN.</p>'+
       (error?'<div class="login-error">'+esc(error)+'</div>':'')+
       '<form id="student-login-form" class="login-form">'+
-        '<div class="field"><label for="student-login-phone" data-student-login-copy="phone">Phone number</label><div class="input-shell"><input id="student-login-phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="+998 99 123 45 67" required></div></div>'+
+        '<div class="field"><label for="student-login-phone" data-student-login-copy="phone">Phone number</label><div class="input-shell"><input id="student-login-phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="+998 99 123 45 67" value="'+esc(phoneValue)+'" required></div></div>'+
         '<div class="field"><label for="student-login-pin" data-student-login-copy="pin">4-digit PIN</label><div class="input-shell"><input id="student-login-pin" class="pin-input" name="pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" type="password" placeholder="••••" required></div></div>'+
         '<button class="login-button" type="submit"><span data-student-login-copy="open">Open my progress</span><span>→</span></button>'+
       '</form>'+
@@ -159,27 +159,43 @@ function renderLogin(error=''){
   bindStudentLoginPreferences();
   applyStudentLoginLanguage(selectedLang);
   document.getElementById('student-login-form').onsubmit=login;
+  requestAnimationFrame(()=>{
+    const target=document.getElementById(error&&phoneValue?'student-login-pin':'student-login-phone');
+    target?.focus({preventScroll:true});
+  });
 }
 
 async function login(e){
   e.preventDefault();
   const form=e.currentTarget;
   const btn=form.querySelector('button[type=submit]');
-  const loginCopy=STUDENT_LOGIN_COPY[studentLoginLanguage()]||STUDENT_LOGIN_COPY.en;btn.disabled=true;btn.innerHTML='<span>'+esc(loginCopy.checking)+'</span><span>•••</span>';
-  const credentials={phone:form.phone.value,pin:form.pin.value};
-  const {data,error}=await sb.functions.invoke('student-portal',{body:credentials});
-  if(error){
-    let msg=error.message;
-    try{const body=await error.context?.json?.();if(body?.error)msg=body.error;}catch{}
-    return renderLogin(msg);
+  if(btn?.disabled)return;
+  const loginCopy=STUDENT_LOGIN_COPY[studentLoginLanguage()]||STUDENT_LOGIN_COPY.en;
+  if(btn){btn.disabled=true;btn.innerHTML='<span>'+esc(loginCopy.checking)+'</span><span>•••</span>';}
+  const credentials={phone:form.phone.value.trim(),pin:form.pin.value.trim()};
+  try{
+    const {data,error}=await sb.functions.invoke('student-portal',{body:credentials});
+    if(error){
+      let msg=error.message;
+      try{const body=await error.context?.json?.();if(body?.error)msg=body.error;}catch{}
+      renderLogin(msg,credentials.phone);
+      return;
+    }
+    if(data?.error){
+      renderLogin(data.error,credentials.phone);
+      return;
+    }
+    portalAuth=credentials;
+    if(data?.selection_required&&Array.isArray(data.students)){
+      renderStudentPicker(data.students);
+      return;
+    }
+    portalData=data;
+    renderPortal();
+  }catch(error){
+    console.error(error);
+    renderLogin('Could not connect right now. Please try again.',credentials.phone);
   }
-  if(data?.error)return renderLogin(data.error);
-  portalAuth=credentials;
-  if(data?.selection_required&&Array.isArray(data.students)){
-    return renderStudentPicker(data.students);
-  }
-  portalData=data;
-  renderPortal();
 }
 
 function signOut(){
