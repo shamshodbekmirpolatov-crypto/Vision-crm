@@ -103,7 +103,7 @@ button{cursor:pointer}
 .y100{top:2px}.y75{top:25%}.y50{top:50%}.y25{top:75%}.y0{bottom:35px}
 .bar-track{height:100%;display:flex;align-items:flex-end;gap:18px;padding:0 8px}
 .result-bar-wrap{height:100%;min-width:72px;flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;position:relative}
-.result-bar{width:min(52px,72%);border-radius:9px 9px 3px 3px;min-height:3px;position:relative;box-shadow:0 7px 16px rgba(28,67,92,.12);transition:transform .16s ease}
+.result-bar{width:min(52px,72%);border-radius:9px 9px 3px 3px;min-height:3px;position:relative;box-shadow:0 7px 16px rgba(28,67,92,.12);transition:transform var(--motion-fast) var(--ease-standard)}
 .result-bar:hover{transform:translateY(-4px)}
 .result-bar.red{background:linear-gradient(180deg,#e46868,#ca4141)}
 .result-bar.yellow{background:linear-gradient(180deg,#e7bd45,#cf9912)}
@@ -339,8 +339,7 @@ button{cursor:pointer}
 }
 .login-button,.signout,.student-picker-card,.summary-card,.chart-panel,.info-panel,
 .group-badge,.result-row,.result-bar,.input-shell input{
-  transition:
-    background-color var(--motion-fast) var(--ease-standard),
+  transition:background-color var(--motion-fast) var(--ease-standard),
     border-color var(--motion-fast) var(--ease-standard),
     color var(--motion-fast) var(--ease-standard),
     box-shadow var(--motion-base) var(--ease-standard),
