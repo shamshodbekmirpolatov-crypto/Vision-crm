@@ -78,7 +78,7 @@ async function ensurePracticeReady(){
     script.id='student-practice-recovery-script';
     script.src='./student-practice.js';
     script.onload=resolve;
-    script.onerror=reject;
+    script.onerror=event=>{script.remove();reject(event);};
     document.body.appendChild(script);
   });
   return Boolean(window.VisionStudentPractice);
@@ -142,7 +142,7 @@ function renderStudentPicker(portals){
     portalData={ok:true,...selected};
     renderPortal();
   });
-  document.getElementById('picker-signout').onclick=()=>renderLogin();
+  document.getElementById('picker-signout').onclick=signOut;
 }
 
 function statValue(value,fallback='—'){return value===null||value===undefined?fallback:value;}
@@ -187,10 +187,12 @@ function renderPortal(){
   const refreshBtn=document.getElementById('student-refresh');
   if(refreshBtn)refreshBtn.onclick=()=>refreshPortal('dashboard');
   const practiceTab=document.getElementById('student-practice-tab');
-  if(practiceTab&&window.VisionStudentPractice){
+  if(practiceTab){
     practiceTab.onclick=async()=>{
-      try{await ensurePracticeReady();}catch{}
-      if(window.VisionStudentPractice){
+      practiceTab.disabled=true;
+      try{
+        const ready=await ensurePracticeReady();
+        if(!ready||!window.VisionStudentPractice)throw new Error('Practice could not load.');
         window.VisionStudentPractice.render({
           root:app,
           data:portalData,
@@ -198,6 +200,10 @@ function renderPortal(){
           onRefresh:()=>refreshPortal('practice'),
           onSignOut:signOut
         });
+      }catch(error){
+        console.error(error);
+        toast('Practice could not load. Please try again.');
+        practiceTab.disabled=false;
       }
     };
   }
