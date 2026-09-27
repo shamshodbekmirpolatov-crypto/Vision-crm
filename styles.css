@@ -896,3 +896,82 @@ tbody tr:hover{background:#f8fbfd}
   .login-form-row{align-items:flex-start;flex-direction:column;gap:8px}
   .premium-panel-footer{bottom:13px}
 }
+
+
+/* Vision unified premium motion system */
+:root{
+  --motion-fast:120ms;
+  --motion-base:180ms;
+  --motion-slow:240ms;
+  --ease-premium:cubic-bezier(.22,1,.36,1);
+  --ease-standard:cubic-bezier(.2,.8,.2,1);
+}
+.route-page.route-panel-in{animation:visionRouteIn var(--motion-base) var(--ease-premium) both}
+@keyframes visionRouteIn{
+  from{opacity:0;transform:translate3d(0,5px,0)}
+  to{opacity:1;transform:translate3d(0,0,0)}
+}
+.modal-backdrop{animation:visionOverlayIn var(--motion-base) var(--ease-standard) both}
+.modal{animation:visionModalIn var(--motion-base) var(--ease-premium) both;transform-origin:50% 42%}
+.modal-backdrop.is-closing{animation:visionOverlayOut var(--motion-base) var(--ease-standard) both}
+.modal-backdrop.is-closing .modal{animation:visionModalOut var(--motion-fast) ease-in both}
+.drawer-backdrop{animation:visionOverlayIn var(--motion-base) var(--ease-standard) both}
+.student-drawer{animation:visionDrawerIn var(--motion-slow) var(--ease-premium) both}
+.drawer-backdrop.is-closing{animation:visionOverlayOut var(--motion-base) var(--ease-standard) both}
+.drawer-backdrop.is-closing .student-drawer{animation:visionDrawerOut var(--motion-base) ease-in both}
+@keyframes visionOverlayIn{from{opacity:0}to{opacity:1}}
+@keyframes visionOverlayOut{from{opacity:1}to{opacity:0}}
+@keyframes visionModalIn{
+  from{opacity:0;transform:translate3d(0,8px,0) scale(.985)}
+  to{opacity:1;transform:translate3d(0,0,0) scale(1)}
+}
+@keyframes visionModalOut{
+  from{opacity:1;transform:translate3d(0,0,0) scale(1)}
+  to{opacity:0;transform:translate3d(0,5px,0) scale(.99)}
+}
+@keyframes visionDrawerIn{
+  from{opacity:0;transform:translate3d(24px,0,0)}
+  to{opacity:1;transform:translate3d(0,0,0)}
+}
+@keyframes visionDrawerOut{
+  from{opacity:1;transform:translate3d(0,0,0)}
+  to{opacity:0;transform:translate3d(22px,0,0)}
+}
+.category-tab,.subnav-tab,.nav-btn,.quick-action,.status-chip,.payment-space,
+.action-sheet-btn,.drawer-tab,.kebab-btn,.icon-btn,.user-chip,.signout-icon,
+.btn,.input,.select,.textarea,.stat,.panel,.report-card,.mini-metric{
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-base) var(--ease-standard),
+    opacity var(--motion-fast) var(--ease-standard),
+    transform var(--motion-base) var(--ease-premium);
+}
+.btn:active:not(:disabled),.quick-action:active,.action-sheet-btn:active,.payment-space:active{
+  transform:translate3d(0,1px,0) scale(.99)
+}
+.input:focus,.select:focus,.textarea:focus{transition-duration:var(--motion-fast)}
+.account-status-readonly{
+  min-height:42px;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:8px 10px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:var(--panel-2);
+}
+.account-status-readonly small{color:var(--muted);font-size:10px}
+:where(button,input,select,textarea,a):focus-visible{
+  outline:3px solid rgba(20,108,148,.20);
+  outline-offset:2px;
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+    scroll-behavior:auto!important;
+  }
+}
