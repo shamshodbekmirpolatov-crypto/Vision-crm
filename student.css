@@ -322,3 +322,46 @@ button{cursor:pointer}
   .learning-panel{grid-template-columns:1fr}
   .result-card{flex-basis:190px}
 }
+
+
+/* Vision student portal motion system */
+:root{
+  --motion-fast:120ms;
+  --motion-base:180ms;
+  --motion-slow:240ms;
+  --ease-premium:cubic-bezier(.22,1,.36,1);
+  --ease-standard:cubic-bezier(.2,.8,.2,1);
+}
+.student-login,.portal{animation:studentSurfaceIn var(--motion-slow) var(--ease-premium) both}
+@keyframes studentSurfaceIn{
+  from{opacity:0;transform:translate3d(0,4px,0)}
+  to{opacity:1;transform:translate3d(0,0,0)}
+}
+.login-button,.signout,.student-picker-card,.summary-card,.chart-panel,.info-panel,
+.group-badge,.result-row,.result-bar,.input-shell input{
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-base) var(--ease-standard),
+    opacity var(--motion-fast) var(--ease-standard),
+    transform var(--motion-base) var(--ease-premium);
+}
+.login-button:hover:not(:disabled),.student-picker-card:hover,.signout:hover{
+  transform:translate3d(0,-1px,0)
+}
+.login-button:active:not(:disabled),.student-picker-card:active,.signout:active{
+  transform:translate3d(0,1px,0) scale(.99)
+}
+:where(button,input,a):focus-visible{
+  outline:3px solid rgba(20,108,148,.22);
+  outline-offset:2px;
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+    scroll-behavior:auto!important;
+  }
+}
