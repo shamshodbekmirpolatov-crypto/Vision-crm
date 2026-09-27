@@ -212,6 +212,7 @@ function restoreDialogFocus(){
   if(target?.isConnected)requestAnimationFrame(()=>target.focus({preventScroll:true}));
 }
 function closeModal(immediate=false){
+  if(modalRoot.dataset.busy==='true'&&!immediate)return;
   clearTimeout(modalRoot._closeTimer);
   const layer=modalRoot.firstElementChild;
   if(!layer)return;
@@ -232,6 +233,7 @@ function closeModal(immediate=false){
 }
 function setModalContent(html){
   clearTimeout(modalRoot._closeTimer);
+  modalRoot.dataset.busy='false';
   if(!modalRoot.firstElementChild && document.activeElement instanceof HTMLElement){
     modalRoot._returnFocus=document.activeElement;
   }
@@ -250,17 +252,24 @@ function openModal(title, body, onSubmit, submitLabel='Save'){
   if(firstControl)requestAnimationFrame(()=>firstControl.focus({preventScroll:true}));
   modalRoot.querySelector('#modal-form').onsubmit=async e=>{
     e.preventDefault();
-    const btn=e.currentTarget.querySelector('[type=submit]'); btn.disabled=true; btn.textContent='Saving…';
+    const form=e.currentTarget;
+    const btn=form.querySelector('[type=submit]');
+    if(btn?.disabled)return;
+    modalRoot.dataset.busy='true';
+    modalRoot.querySelectorAll('[data-close]').forEach(control=>control.disabled=true);
+    if(btn){btn.disabled=true;btn.textContent='Saving…';}
     try{
-      await onSubmit(e.currentTarget);
+      await onSubmit(form);
       invalidateCachedRoutes();
+      modalRoot.dataset.busy='false';
       closeModal();
       await renderRoute();
       toast('Saved successfully.');
     }catch(err){
+      modalRoot.dataset.busy='false';
       fail(err);
-      btn.disabled=false;
-      btn.textContent=submitLabel;
+      modalRoot.querySelectorAll('[data-close]').forEach(control=>control.disabled=false);
+      if(btn){btn.disabled=false;btn.textContent=submitLabel;}
     }
   };
 }
