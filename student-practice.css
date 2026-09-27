@@ -210,7 +210,7 @@
   box-shadow:0 8px 24px rgba(13,54,83,.11);
   backdrop-filter:blur(9px);
   -webkit-backdrop-filter:blur(9px);
-  transition:transform .14s ease,border-color .14s ease,box-shadow .14s ease;
+  transition:transform var(--motion-fast,120ms) var(--ease-standard,120ms),border-color var(--motion-fast,120ms) var(--ease-standard,120ms),box-shadow var(--motion-fast,120ms) var(--ease-standard,120ms);
 }
 .article-return-button:hover{
   color:#0d5278;
@@ -285,7 +285,7 @@
   .highlight-controls{gap:5px}
   .highlight-controls button{padding:7px 6px}
 }
-.article-sentence{border-radius:4px;transition:background .12s ease,box-shadow .12s ease}
+.article-sentence{border-radius:4px;transition:background var(--motion-fast,120ms) var(--ease-standard,120ms),box-shadow var(--motion-fast,120ms) var(--ease-standard,120ms)}
 .translation-on .article-sentence{cursor:pointer}
 .translation-on .article-sentence:hover{background:#fff1d8;box-shadow:0 0 0 3px #fff1d8}
 .translation-on .article-sentence.translated{background:#fff1d8;box-shadow:0 0 0 3px #fff1d8}
@@ -450,7 +450,7 @@
   font-size:11px;
   font-weight:800;
   cursor:pointer;
-  transition:background .12s ease,border-color .12s ease,transform .12s ease;
+  transition:background var(--motion-fast,120ms) var(--ease-standard,120ms),border-color var(--motion-fast,120ms) var(--ease-standard,120ms),transform var(--motion-fast,120ms) var(--ease-standard,120ms);
 }
 .vocab-audio:hover,.vocab-audio:focus-visible{
   background:#eaf5fb;
@@ -654,7 +654,7 @@
   gap:8px;
   text-align:left;
   cursor:pointer;
-  transition:background .14s ease,border-color .14s ease,box-shadow .14s ease,transform .14s ease;
+  transition:background var(--motion-fast,120ms) var(--ease-standard,120ms),border-color var(--motion-fast,120ms) var(--ease-standard,120ms),box-shadow var(--motion-fast,120ms) var(--ease-standard,120ms),transform var(--motion-fast,120ms) var(--ease-standard,120ms);
 }
 .article-audio-button:hover{
   background:#fff;
@@ -779,7 +779,7 @@
   border-radius:15px;
   background:#fff;
   box-shadow:0 2px 8px rgba(17,57,82,.035);
-  transition:border-color .15s ease,box-shadow .15s ease,background .15s ease;
+  transition:border-color var(--motion-fast,120ms) var(--ease-standard,120ms),box-shadow var(--motion-fast,120ms) var(--ease-standard,120ms),background var(--motion-fast,120ms) var(--ease-standard,120ms);
 }
 .article-player-row.playing{
   border-color:#aec8d7;
@@ -800,7 +800,7 @@
   color:#fff;
   cursor:pointer;
   box-shadow:0 5px 12px rgba(23,63,89,.18);
-  transition:transform .14s ease,background .14s ease,box-shadow .14s ease;
+  transition:transform var(--motion-fast,120ms) var(--ease-standard,120ms),background var(--motion-fast,120ms) var(--ease-standard,120ms),box-shadow var(--motion-fast,120ms) var(--ease-standard,120ms);
 }
 .article-player-play:hover{
   transform:translateY(-1px);
@@ -1054,7 +1054,7 @@
   font-weight:800;
   cursor:pointer;
   padding:0 10px;
-  transition:background .14s ease,color .14s ease;
+  transition:background var(--motion-fast,120ms) var(--ease-standard,120ms),color var(--motion-fast,120ms) var(--ease-standard,120ms);
 }
 .article-gender-options button+button{
   border-left:1px solid #d7e2e9;
@@ -1087,8 +1087,7 @@
 .back-to-practice,.back-to-reading,.translation-toggle,.highlight-button,.article-player-play,
 .article-skip-button,.article-gender-options button,.exercise-options button,.check-answers,
 .retry-exercises,.vocab-word,.vocab-popover{
-  transition:
-    background-color var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,.8,.2,1)),
+  transition:background-color var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,.8,.2,1)),
     border-color var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,.8,.2,1)),
     color var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,.8,.2,1)),
     box-shadow var(--motion-base,180ms) var(--ease-standard,cubic-bezier(.2,.8,.2,1)),
