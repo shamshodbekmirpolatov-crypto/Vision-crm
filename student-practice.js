@@ -2776,6 +2776,8 @@ const builtInReadingArticles=[
 let readingArticles=builtInReadingArticles.slice();
 let activeArticleIndex=0;
 let activeArticle=null;
+let currentPracticeView='home';
+let currentPracticeArticleId=null;
 
 function readingStudentId(data){
   const student=data?.student||{};
@@ -3605,6 +3607,8 @@ function bindHeader(root,callbacks){
 }
 
 function renderHome(root,data,callbacks){
+  currentPracticeView='home';
+  currentPracticeArticleId=null;
   cleanupArticle();
   root.innerHTML=practiceHomeHtml(data);
   bindHeader(root,callbacks);
@@ -3613,6 +3617,8 @@ function renderHome(root,data,callbacks){
 }
 
 function renderLibrary(root,data,callbacks){
+  currentPracticeView='library';
+  currentPracticeArticleId=null;
   cleanupArticle();
   root.innerHTML=libraryHtml(data);
   bindHeader(root,callbacks);
@@ -3628,6 +3634,8 @@ function renderLibrary(root,data,callbacks){
 }
 
 function renderListening(root,data,callbacks){
+  currentPracticeView='listening';
+  currentPracticeArticleId=null;
   cleanupArticle();
   root.innerHTML=listeningHtml(data);
   bindHeader(root,callbacks);
@@ -3637,6 +3645,8 @@ function renderListening(root,data,callbacks){
 function renderArticle(root,data,callbacks){
   cleanupArticle();
   if(!activeArticle){renderLibrary(root,data,callbacks);return;}
+  currentPracticeView='article';
+  currentPracticeArticleId=String(activeArticle.id||'');
   root.innerHTML=articleHtml();
   bindHeader(root,callbacks);
   root.querySelector('#back-to-reading').onclick=()=>renderLibrary(root,data,callbacks);
@@ -4312,5 +4322,27 @@ function render({root,data,onDashboard,onRefresh,onSignOut}){
   renderHome(root,data,{onDashboard,onRefresh,onSignOut});
 }
 
-window.VisionStudentPractice={render,destroy:cleanupArticle};
+function refresh({root,data,onDashboard,onRefresh,onSignOut}){
+  const callbacks={onDashboard,onRefresh,onSignOut};
+  const previousView=currentPracticeView;
+  const previousArticleId=currentPracticeArticleId;
+  syncReadingArticles(data);
+
+  if(previousView==='article'&&previousArticleId){
+    const nextIndex=readingArticles.findIndex(article=>String(article.id||'')===previousArticleId);
+    if(nextIndex>=0){
+      activeArticleIndex=nextIndex;
+      activeArticle=readingArticles[nextIndex];
+      renderArticle(root,data,callbacks);
+      return;
+    }
+    renderLibrary(root,data,callbacks);
+    return;
+  }
+  if(previousView==='library'){renderLibrary(root,data,callbacks);return;}
+  if(previousView==='listening'){renderListening(root,data,callbacks);return;}
+  renderHome(root,data,callbacks);
+}
+
+window.VisionStudentPractice={render,refresh,destroy:cleanupArticle};
 })();
