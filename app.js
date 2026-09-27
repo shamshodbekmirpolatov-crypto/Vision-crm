@@ -1852,8 +1852,8 @@ function bindPaymentActions(students,feeRows){
 }
 async function attendancePage(){
   const [students,groups]=await Promise.all([
-    query(sb.from('students').select('id,full_name,group_id,status').eq('status','active').order('full_name')),
-    query(sb.from('groups').select('id,name,meeting_days,schedule,start_time,end_time').eq('active',true).order('name'))
+    query(sb.from('students').select('id,full_name,group_id,status,join_date').eq('status','active').order('full_name')),
+    query(sb.from('groups').select('id,name,meeting_days,schedule,start_time,end_time,start_date').eq('active',true).order('name'))
   ]);
   if(!groups.length){
     return '<section class="panel"><div class="panel-body">'+empty(can('owner','admin')?'Create or activate a group before taking attendance.':'No active group is assigned to you yet.')+(can('owner','admin')?'<div class="empty-action"><button class="btn btn-primary" data-route="groups">Open Groups</button></div>':'')+'</div></section>';
@@ -1893,7 +1893,9 @@ function attendanceDatesForGroup(group,ym){
   const dates=[];
   for(let day=1;day<=last;day++){
     const d=new Date(year,month,day,12);
-    if(!selectedDays.size||selectedDays.has(dayNames[d.getDay()])) dates.push(localYMD(d));
+    const date=localYMD(d);
+    if(group.start_date&&date<group.start_date)continue;
+    if(!selectedDays.size||selectedDays.has(dayNames[d.getDay()])) dates.push(date);
   }
   return dates;
 }
@@ -2039,9 +2041,16 @@ function setupAttendance(students,groups){
           const d=localCalendarDate(date);
           const displayDate=d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
           const isFuture=date>todayValue;
-          const futureAttrs=isFuture?' disabled aria-disabled="true"':'';
-          const labelText=isFuture?'Future lesson — not available yet':view.label+'. Click to change';
-          return '<td class="attendance-status-cell"><button type="button" class="attendance-cell '+(status||'empty')+(isFuture?' future':'')+'" data-student="'+student.id+'" data-student-name="'+esc(student.full_name)+'" data-date="'+date+'" data-display-date="'+esc(displayDate)+'" data-status="'+status+'" aria-label="'+esc(student.full_name)+' on '+esc(displayDate)+': '+esc(labelText)+'" title="'+esc(labelText)+'"'+futureAttrs+'>'+(status?view.label:'—')+'</button></td>';
+          const isBeforeJoin=!!student.join_date&&date<student.join_date;
+          const unavailable=isFuture||isBeforeJoin;
+          const unavailableAttrs=unavailable?' disabled aria-disabled="true"':'';
+          const labelText=isBeforeJoin
+            ?'Before this student joined the group'
+            :isFuture
+              ?'Future lesson — not available yet'
+              :view.label+'. Click to change';
+          const availabilityClass=isBeforeJoin?' unavailable':isFuture?' future':'';
+          return '<td class="attendance-status-cell"><button type="button" class="attendance-cell '+(status||'empty')+availabilityClass+'" data-student="'+student.id+'" data-student-name="'+esc(student.full_name)+'" data-date="'+date+'" data-display-date="'+esc(displayDate)+'" data-status="'+status+'" aria-label="'+esc(student.full_name)+' on '+esc(displayDate)+': '+esc(labelText)+'" title="'+esc(labelText)+'"'+unavailableAttrs+'>'+(status?view.label:'—')+'</button></td>';
         }).join('');
         return '<tr><th class="attendance-student-head"><div class="student-identity"><div class="student-avatar">'+esc(initials(student.full_name))+'</div><div><strong><span class="attendance-student-number">'+(index+1)+'.</span> '+esc(student.full_name)+'</strong></div></div></th>'+cells+'</tr>';
       }).join('');
@@ -2065,9 +2074,9 @@ function setupAttendance(students,groups){
   markAll.onclick=async()=>{
     if(markAll.disabled)return;
     const group=selectedGroupObject();
-    const members=students.filter(s=>s.group_id===group.id);
-    if(!members.length)return;
     const date=today();
+    const members=students.filter(s=>s.group_id===group.id&&(!s.join_date||s.join_date<=date));
+    if(!members.length)return;
     markAll.disabled=true;
     const original=markAll.textContent;
     markAll.textContent='Marking…';
