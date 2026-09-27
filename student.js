@@ -218,7 +218,20 @@ async function refreshPortal(view='dashboard'){
   try{
     const {data,error}=await sb.functions.invoke('student-portal',{body:portalAuth});
     if(error||data?.error){
-      toast(data?.error||'Could not refresh right now.');
+      let message=data?.error||error?.message||'Could not refresh right now.';
+      if(error){
+        try{
+          const body=await error.context?.json?.();
+          if(body?.error)message=body.error;
+        }catch{}
+      }
+      if(/phone number or pin is incorrect/i.test(message)){
+        portalData=null;
+        portalAuth=null;
+        renderLogin(message);
+        return;
+      }
+      toast(message);
       return;
     }
     if(data?.selection_required&&Array.isArray(data.students)){
