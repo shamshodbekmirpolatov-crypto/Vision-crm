@@ -378,14 +378,16 @@ async function refreshStaffCRM(){
 }
 const CRM_THEME_KEY='vision-crm-app-theme';
 function currentCRMTheme(){
-  const saved=localStorage.getItem(CRM_THEME_KEY);
-  if(saved==='dark'||saved==='light')return saved;
+  try{
+    const saved=localStorage.getItem(CRM_THEME_KEY);
+    if(saved==='dark'||saved==='light')return saved;
+  }catch{}
   return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches?'dark':'light';
 }
 function applyCRMTheme(theme=currentCRMTheme()){
   const next=theme==='dark'?'dark':'light';
   document.body.classList.toggle('crm-dark',next==='dark');
-  localStorage.setItem(CRM_THEME_KEY,next);
+  try{localStorage.setItem(CRM_THEME_KEY,next);}catch{}
   document.querySelectorAll('[data-crm-theme]').forEach(button=>{
     const active=button.dataset.crmTheme===next;
     button.classList.toggle('active',active);
@@ -910,7 +912,7 @@ async function dashboardPage(){
   const last=monthEnd(first);
   const supportStartDate=new Date();
   supportStartDate.setDate(supportStartDate.getDate()-90);
-  const supportStart=supportStartDate.toISOString().slice(0,10);
+  const supportStart=localYMD(supportStartDate);
   const isTeacher=role()==='teacher';
   const isAdmin=role()==='admin';
   const [students,groups,payments,attendance,academic,leads] = await Promise.all([
@@ -1124,14 +1126,14 @@ async function studentsPage(){
     const payment_status=s.is_free_place?'free':paid<=0?'unpaid':balance>0?'partial':'paid';
     return {...s,due,paid,balance,payment_status};
   });
-  const visible=decorated.filter(s=>statusFilter==='all'||s.status===statusFilter);
+  const visible=decorated;
   const activeCount=decorated.filter(s=>s.status==='active').length;
   const attention=decorated.filter(s=>s.status==='active'&&(s.payment_status==='partial'||s.payment_status==='unpaid')).length;
   const freeCount=decorated.filter(s=>s.status==='active'&&s.is_free_place).length;
   const add=can('owner','admin')?'<button class="btn btn-primary" data-action="student-new">'+uiIcon('plus')+'Add student</button>':'';
   const rows=visible.map(s=>{
     const searchText=[s.full_name,s.phone,s.mother_phone,s.father_phone,s.grade_or_age,s.groups?.name,s.groups?.staff?.full_name].filter(Boolean).join(' ').toLowerCase();
-    return '<tr class="student-row" data-student-open="'+s.id+'" data-student-search="'+esc(searchText)+'">'+
+    return '<tr class="student-row" data-student-open="'+s.id+'" data-student-search="'+esc(searchText)+'" data-student-status-value="'+esc(s.status)+'">'+
     '<td><div class="student-identity"><div class="student-avatar">'+esc(initials(s.full_name))+'</div><div><strong>'+esc(s.full_name)+'</strong><span>'+esc(s.phone||s.mother_phone||s.father_phone||'No phone')+'</span></div></div></td>'+
     '<td><span class="course-pill">'+esc(s.groups?.name||'Unassigned')+'</span><div class="muted row-sub">'+esc(s.groups?.staff?.full_name||'No teacher')+'</div></td>'+
     '<td>'+fmtDate(s.join_date)+'</td>'+
@@ -1195,23 +1197,29 @@ function bindStudentActions(students,groups){
     openStudentQuickActions(s,groups);
   });
   const searchEl=document.getElementById('student-search');
-  if(searchEl){
-    const applyStudentSearch=()=>{
-      const queryText=searchEl.value.trim().toLowerCase();
-      state.filters.studentSearch=searchEl.value;
-      let shown=0;
-      document.querySelectorAll('.student-table tbody .student-row').forEach(row=>{
-        const matches=!queryText||String(row.dataset.studentSearch||'').includes(queryText);
-        row.hidden=!matches;
-        if(matches)shown++;
-      });
-      const emptyRow=document.querySelector('.student-search-empty');
-      if(emptyRow)emptyRow.hidden=shown!==0;
-    };
-    searchEl.oninput=applyStudentSearch;
-    applyStudentSearch();
-  }
-  document.querySelectorAll('[data-student-status]').forEach(b=>b.onclick=()=>{state.filters.studentStatus=b.dataset.studentStatus;renderRoute();});
+  const statusButtons=[...document.querySelectorAll('[data-student-status]')];
+  const applyStudentFilters=()=>{
+    const queryText=(searchEl?.value||'').trim().toLowerCase();
+    const status=state.filters.studentStatus||'active';
+    if(searchEl)state.filters.studentSearch=searchEl.value;
+    let shown=0;
+    document.querySelectorAll('.student-table tbody .student-row').forEach(row=>{
+      const matchesSearch=!queryText||String(row.dataset.studentSearch||'').includes(queryText);
+      const matchesStatus=status==='all'||row.dataset.studentStatusValue===status;
+      const matches=matchesSearch&&matchesStatus;
+      row.hidden=!matches;
+      if(matches)shown++;
+    });
+    statusButtons.forEach(button=>button.classList.toggle('active',button.dataset.studentStatus===status));
+    const emptyRow=document.querySelector('.student-search-empty');
+    if(emptyRow)emptyRow.hidden=shown!==0;
+  };
+  if(searchEl)searchEl.oninput=applyStudentFilters;
+  statusButtons.forEach(button=>button.onclick=()=>{
+    state.filters.studentStatus=button.dataset.studentStatus;
+    applyStudentFilters();
+  });
+  applyStudentFilters();
 }
 function openStudentQuickActions(student,groups){
   const body='<div class="action-sheet">'+
