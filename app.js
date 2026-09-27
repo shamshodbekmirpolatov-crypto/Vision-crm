@@ -476,12 +476,196 @@ function bindPasswordToggle(root=document){
     };
   });
 }
+const LOGIN_LANG_KEY='vision-crm-login-language';
+const LOGIN_THEME_KEY='vision-crm-login-theme';
+const LOGIN_COPY=Object.freeze({
+  en:{
+    heroKicker:'VISION CRM',
+    heroLine1:'Everything your',
+    heroLine2:'centre needs,',
+    heroLine3:'in one clear system.',
+    heroBody:'Students, groups, attendance, payments, staff and academic progress — securely managed in one place.',
+    students:'Students',studentsSub:'Manage with ease',
+    attendance:'Attendance',attendanceSub:'Track in real time',
+    payments:'Payments',paymentsSub:'Simple & secure',
+    reports:'Reports',reportsSub:'Insights that matter',
+    system:'Vision Learning Centre',internal:'Internal management system',
+    brandTag:'Secure staff access',
+    loginKicker:'WELCOME TO VISION',
+    heading:'Welcome back',
+    sub:'Enter your account details to continue.',
+    emailLabel:'Email address',
+    emailPlaceholder:'you@example.com',
+    passwordLabel:'Password',
+    passwordPlaceholder:'Enter your password',
+    secure:'Protected staff access',
+    forgot:'Forgot password?',
+    signIn:'Sign in',
+    signingIn:'Signing in…',
+    trustTitle:'Built for your centre.',
+    trustSub:'Vision Learning Centre staff only',
+    footerLead:'More than learning.',
+    footerStrong:'A brighter tomorrow.',
+    themeDark:'Switch to dark mode',
+    themeLight:'Switch to light mode',
+    showPassword:'Show password',
+    hidePassword:'Hide password',
+    resetTitle:'Reset password',
+    accountEmail:'Account email',
+    sendReset:'Send reset link',
+    resetSent:'Password reset email sent.'
+  },
+  uz:{
+    heroKicker:'VISION CRM',
+    heroLine1:'Markazingizga kerak',
+    heroLine2:'bo‘lgan hamma narsa,',
+    heroLine3:'bitta aniq tizimda.',
+    heroBody:'O‘quvchilar, guruhlar, davomat, to‘lovlar, xodimlar va o‘quv natijalari — barchasi bir joyda xavfsiz boshqariladi.',
+    students:'O‘quvchilar',studentsSub:'Oson boshqaruv',
+    attendance:'Davomat',attendanceSub:'Real vaqtda kuzatish',
+    payments:'To‘lovlar',paymentsSub:'Oddiy va xavfsiz',
+    reports:'Hisobotlar',reportsSub:'Muhim tahlillar',
+    system:'Vision Learning Centre',internal:'Ichki boshqaruv tizimi',
+    brandTag:'Xodimlar uchun xavfsiz kirish',
+    loginKicker:'VISIONGA XUSH KELIBSIZ',
+    heading:'Xush kelibsiz',
+    sub:'Davom etish uchun akkaunt ma’lumotlaringizni kiriting.',
+    emailLabel:'Email manzil',
+    emailPlaceholder:'you@example.com',
+    passwordLabel:'Parol',
+    passwordPlaceholder:'Parolingizni kiriting',
+    secure:'Himoyalangan xodim kirishi',
+    forgot:'Parolni unutdingizmi?',
+    signIn:'Kirish',
+    signingIn:'Kirilmoqda…',
+    trustTitle:'Markazingiz uchun yaratilgan.',
+    trustSub:'Faqat Vision Learning Centre xodimlari uchun',
+    footerLead:'Bu shunchaki ta’lim emas.',
+    footerStrong:'Yorqinroq kelajak.',
+    themeDark:'Tungi rejimga o‘tish',
+    themeLight:'Yorug‘ rejimga o‘tish',
+    showPassword:'Parolni ko‘rsatish',
+    hidePassword:'Parolni yashirish',
+    resetTitle:'Parolni tiklash',
+    accountEmail:'Akkaunt emaili',
+    sendReset:'Tiklash havolasini yuborish',
+    resetSent:'Parolni tiklash xati yuborildi.'
+  },
+  ru:{
+    heroKicker:'VISION CRM',
+    heroLine1:'Всё, что нужно',
+    heroLine2:'вашему центру,',
+    heroLine3:'в одной понятной системе.',
+    heroBody:'Ученики, группы, посещаемость, платежи, сотрудники и учебный прогресс — всё безопасно управляется в одном месте.',
+    students:'Ученики',studentsSub:'Удобное управление',
+    attendance:'Посещаемость',attendanceSub:'Отслеживание в реальном времени',
+    payments:'Платежи',paymentsSub:'Просто и безопасно',
+    reports:'Отчёты',reportsSub:'Важные показатели',
+    system:'Vision Learning Centre',internal:'Внутренняя система управления',
+    brandTag:'Безопасный вход для сотрудников',
+    loginKicker:'ДОБРО ПОЖАЛОВАТЬ В VISION',
+    heading:'С возвращением',
+    sub:'Введите данные аккаунта, чтобы продолжить.',
+    emailLabel:'Электронная почта',
+    emailPlaceholder:'you@example.com',
+    passwordLabel:'Пароль',
+    passwordPlaceholder:'Введите пароль',
+    secure:'Защищённый доступ для сотрудников',
+    forgot:'Забыли пароль?',
+    signIn:'Войти',
+    signingIn:'Выполняется вход…',
+    trustTitle:'Создано для вашего центра.',
+    trustSub:'Только для сотрудников Vision Learning Centre',
+    footerLead:'Больше, чем обучение.',
+    footerStrong:'Светлое будущее.',
+    themeDark:'Включить тёмную тему',
+    themeLight:'Включить светлую тему',
+    showPassword:'Показать пароль',
+    hidePassword:'Скрыть пароль',
+    resetTitle:'Сброс пароля',
+    accountEmail:'Email аккаунта',
+    sendReset:'Отправить ссылку',
+    resetSent:'Письмо для сброса пароля отправлено.'
+  }
+});
+function loginLanguage(){
+  try{
+    const value=localStorage.getItem(LOGIN_LANG_KEY);
+    return Object.prototype.hasOwnProperty.call(LOGIN_COPY,value)?value:'en';
+  }catch{return'en';}
+}
+function loginTheme(){
+  try{return localStorage.getItem(LOGIN_THEME_KEY)==='dark'?'dark':'light';}
+  catch{return'light';}
+}
+function saveLoginPreference(key,value){
+  try{localStorage.setItem(key,value);}catch{}
+}
+function applyLoginTheme(theme){
+  const root=app.querySelector('.premium-auth');
+  if(!root)return;
+  const dark=theme==='dark';
+  root.classList.toggle('login-theme-dark',dark);
+  const toggle=document.getElementById('login-theme-toggle');
+  const copy=LOGIN_COPY[loginLanguage()]||LOGIN_COPY.en;
+  if(toggle){
+    const label=dark?copy.themeLight:copy.themeDark;
+    toggle.setAttribute('aria-label',label);
+    toggle.setAttribute('title',label);
+    toggle.setAttribute('aria-pressed',dark?'true':'false');
+  }
+  const meta=document.querySelector('meta[name="theme-color"]');
+  if(meta)meta.setAttribute('content',dark?'#10162f':'#0f3d5e');
+}
+function applyLoginLanguage(lang){
+  const copy=LOGIN_COPY[lang]||LOGIN_COPY.en;
+  document.documentElement.lang=lang;
+  app.querySelectorAll('[data-login-copy]').forEach(el=>{
+    const key=el.dataset.loginCopy;
+    if(Object.prototype.hasOwnProperty.call(copy,key))el.textContent=copy[key];
+  });
+  const email=document.getElementById('crm-login-email');
+  const password=document.getElementById('crm-login-password');
+  if(email)email.placeholder=copy.emailPlaceholder;
+  if(password)password.placeholder=copy.passwordPlaceholder;
+  app.querySelectorAll('[data-login-lang]').forEach(btn=>{
+    const active=btn.dataset.loginLang===lang;
+    btn.classList.toggle('active',active);
+    btn.setAttribute('aria-pressed',active?'true':'false');
+  });
+  const passwordToggle=app.querySelector('.premium-login-form .password-toggle');
+  if(passwordToggle&&password){
+    const label=password.type==='password'?copy.showPassword:copy.hidePassword;
+    passwordToggle.setAttribute('aria-label',label);
+    passwordToggle.setAttribute('title',label);
+  }
+  applyLoginTheme(loginTheme());
+}
+function bindLoginPreferences(){
+  app.querySelectorAll('[data-login-lang]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const lang=btn.dataset.loginLang;
+      if(!Object.prototype.hasOwnProperty.call(LOGIN_COPY,lang))return;
+      saveLoginPreference(LOGIN_LANG_KEY,lang);
+      applyLoginLanguage(lang);
+    });
+  });
+  document.getElementById('login-theme-toggle')?.addEventListener('click',()=>{
+    const next=app.querySelector('.premium-auth')?.classList.contains('login-theme-dark')?'light':'dark';
+    saveLoginPreference(LOGIN_THEME_KEY,next);
+    applyLoginTheme(next);
+  });
+}
 function renderLogin(error=''){
   app.className='';
   const mailIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>';
   const lockIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
+  const moonIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.7 6.7 0 0 0 21 12.8Z"/></svg>';
+  const sunIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>';
+  const selectedLang=loginLanguage();
+  const selectedTheme=loginTheme();
   app.innerHTML =
-    '<div class="auth-wrap auth-login premium-auth">'+
+    '<div class="auth-wrap auth-login premium-auth '+(selectedTheme==='dark'?'login-theme-dark':'')+'">'+
       '<section class="auth-hero premium-auth-hero">'+
         '<div class="hero-photo" aria-hidden="true"></div>'+
         '<div class="hero-overlay" aria-hidden="true"></div>'+
@@ -490,17 +674,17 @@ function renderLogin(error=''){
         '<div class="premium-hero-content">'+
           '<div class="premium-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre logo"><div><strong>VISION</strong><span>LEARNING CENTRE</span></div></div>'+
           '<div class="premium-copy">'+
-            '<span class="premium-kicker">VISION CRM</span>'+
-            '<h1>Everything your<br>centre needs,<br><em>in one clear system.</em></h1>'+
-            '<p>Students, groups, attendance, payments, staff and academic progress — securely managed in one place.</p>'+
+            '<span class="premium-kicker" data-login-copy="heroKicker">VISION CRM</span>'+
+            '<h1><span data-login-copy="heroLine1">Everything your</span><br><span data-login-copy="heroLine2">centre needs,</span><br><em data-login-copy="heroLine3">in one clear system.</em></h1>'+
+            '<p data-login-copy="heroBody">Students, groups, attendance, payments, staff and academic progress — securely managed in one place.</p>'+
           '</div>'+
           '<div class="premium-feature-grid">'+
-            '<div class="premium-feature-card"><span class="feature-icon">'+uiIcon('students')+'</span><div><strong>Students</strong><small>Manage with ease</small></div></div>'+
-            '<div class="premium-feature-card"><span class="feature-icon">'+uiIcon('attendance')+'</span><div><strong>Attendance</strong><small>Track in real time</small></div></div>'+
-            '<div class="premium-feature-card"><span class="feature-icon">'+uiIcon('payments')+'</span><div><strong>Payments</strong><small>Simple & secure</small></div></div>'+
-            '<div class="premium-feature-card"><span class="feature-icon">'+uiIcon('reports')+'</span><div><strong>Reports</strong><small>Insights that matter</small></div></div>'+
+            '<div class="premium-feature-card"><span class="feature-icon">'+uiIcon('students')+'</span><div><strong data-login-copy="students">Students</strong><small data-login-copy="studentsSub">Manage with ease</small></div></div>'+
+            '<div class="premium-feature-card"><span class="feature-icon">'+uiIcon('attendance')+'</span><div><strong data-login-copy="attendance">Attendance</strong><small data-login-copy="attendanceSub">Track in real time</small></div></div>'+
+            '<div class="premium-feature-card"><span class="feature-icon">'+uiIcon('payments')+'</span><div><strong data-login-copy="payments">Payments</strong><small data-login-copy="paymentsSub">Simple & secure</small></div></div>'+
+            '<div class="premium-feature-card"><span class="feature-icon">'+uiIcon('reports')+'</span><div><strong data-login-copy="reports">Reports</strong><small data-login-copy="reportsSub">Insights that matter</small></div></div>'+
           '</div>'+
-          '<div class="premium-hero-footer"><span></span><div><strong>Vision Learning Centre</strong><small>Internal management system</small></div></div>'+
+          '<div class="premium-hero-footer"><span></span><div><strong data-login-copy="system">Vision Learning Centre</strong><small data-login-copy="internal">Internal management system</small></div></div>'+
         '</div>'+
         '<div class="floating-card float-one"><span>'+uiIcon('academic')+'</span><strong>Smarter<br>Education</strong></div>'+
         '<div class="floating-card float-two"><span>'+uiIcon('reports')+'</span><strong>A Brighter<br>Tomorrow</strong></div>'+
@@ -508,35 +692,48 @@ function renderLogin(error=''){
       '<section class="auth-panel premium-auth-panel">'+
         '<div class="auth-ambient ambient-one" aria-hidden="true"></div><div class="auth-ambient ambient-two" aria-hidden="true"></div>'+
         '<div class="auth-card premium-login-card">'+
-          '<div class="login-brand premium-login-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision CRM</strong><span>Secure staff access</span></div></div>'+
-          '<div class="login-heading premium-login-heading"><span class="login-kicker">WELCOME TO VISION</span><h2>Welcome back</h2><p class="sub">Enter your account details to continue.</p></div>'+
+          '<div class="login-preferences">'+
+            '<div class="login-language-switch" role="group" aria-label="Language">'+
+              '<button class="login-language-btn" type="button" data-login-lang="uz" aria-pressed="false">UZ</button>'+
+              '<button class="login-language-btn" type="button" data-login-lang="ru" aria-pressed="false">RU</button>'+
+              '<button class="login-language-btn" type="button" data-login-lang="en" aria-pressed="false">EN</button>'+
+            '</div>'+
+            '<button class="login-theme-toggle" id="login-theme-toggle" type="button" aria-pressed="false"><span class="theme-moon">'+moonIcon+'</span><span class="theme-sun">'+sunIcon+'</span></button>'+
+          '</div>'+
+          '<div class="login-brand premium-login-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision CRM</strong><span data-login-copy="brandTag">Secure staff access</span></div></div>'+
+          '<div class="login-heading premium-login-heading"><span class="login-kicker" data-login-copy="loginKicker">WELCOME TO VISION</span><h2 data-login-copy="heading">Welcome back</h2><p class="sub" data-login-copy="sub">Enter your account details to continue.</p></div>'+
           (error?'<div class="login-error">'+esc(error)+'</div>':'')+
           '<form id="login-form" class="form-grid premium-login-form">'+
-            '<div class="field premium-field"><label for="crm-login-email">Email address</label><div class="login-input-shell"><span class="login-input-icon">'+mailIcon+'</span><input id="crm-login-email" class="input" type="email" name="email" required autocomplete="email" placeholder="you@example.com"></div></div>'+
-            '<div class="field premium-field"><label for="crm-login-password">Password</label><div class="password-wrap login-input-shell"><span class="login-input-icon">'+lockIcon+'</span><input id="crm-login-password" class="input password-input" type="password" name="password" required autocomplete="current-password" placeholder="Enter your password"><button class="password-toggle" type="button" aria-label="Show password" title="Show password"><span class="eye-open">◉</span><span class="eye-closed">—</span></button></div></div>'+
-            '<div class="login-form-row"><span class="secure-note"><span class="secure-dot"></span>Protected staff access</span><button class="link-btn" type="button" id="forgot">Forgot password?</button></div>'+
-            '<button class="btn btn-primary btn-block login-submit premium-signin" type="submit"><span>Sign in</span><span aria-hidden="true">→</span></button>'+
+            '<div class="field premium-field"><label for="crm-login-email" data-login-copy="emailLabel">Email address</label><div class="login-input-shell"><span class="login-input-icon">'+mailIcon+'</span><input id="crm-login-email" class="input" type="email" name="email" required autocomplete="email" placeholder="you@example.com"></div></div>'+
+            '<div class="field premium-field"><label for="crm-login-password" data-login-copy="passwordLabel">Password</label><div class="password-wrap login-input-shell"><span class="login-input-icon">'+lockIcon+'</span><input id="crm-login-password" class="input password-input" type="password" name="password" required autocomplete="current-password" placeholder="Enter your password"><button class="password-toggle" type="button" aria-label="Show password" title="Show password"><span class="eye-open">◉</span><span class="eye-closed">—</span></button></div></div>'+
+            '<div class="login-form-row"><span class="secure-note"><span class="secure-dot"></span><span data-login-copy="secure">Protected staff access</span></span><button class="link-btn" type="button" id="forgot" data-login-copy="forgot">Forgot password?</button></div>'+
+            '<button class="btn btn-primary btn-block login-submit premium-signin" type="submit"><span data-login-copy="signIn">Sign in</span><span aria-hidden="true">→</span></button>'+
           '</form>'+
           '<div class="premium-login-divider"><span></span><b>VISION</b><span></span></div>'+
-          '<div class="login-trust"><span class="trust-icon">'+uiIcon('students')+'</span><div><strong>Built for your centre.</strong><span>Vision Learning Centre staff only</span></div></div>'+
+          '<div class="login-trust"><span class="trust-icon">'+uiIcon('students')+'</span><div><strong data-login-copy="trustTitle">Built for your centre.</strong><span data-login-copy="trustSub">Vision Learning Centre staff only</span></div></div>'+
         '</div>'+
-        '<div class="premium-panel-footer">More than learning. <strong>A brighter tomorrow.</strong></div>'+
+        '<div class="premium-panel-footer"><span data-login-copy="footerLead">More than learning.</span> <strong data-login-copy="footerStrong">A brighter tomorrow.</strong></div>'+
       '</section>'+
     '</div>';
   bindPasswordToggle(app);
+  bindLoginPreferences();
+  applyLoginLanguage(selectedLang);
   document.getElementById('login-form').onsubmit=async e=>{
     e.preventDefault();
-    const b=e.currentTarget.querySelector('[type="submit"]'); b.disabled=true;b.innerHTML='<span>Signing in…</span><span class="signin-spinner" aria-hidden="true"></span>';
+    const b=e.currentTarget.querySelector('[type="submit"]');
+    const copy=LOGIN_COPY[loginLanguage()]||LOGIN_COPY.en;
+    b.disabled=true;b.innerHTML='<span>'+esc(copy.signingIn)+'</span><span class="signin-spinner" aria-hidden="true"></span>';
     const {error}=await sb.auth.signInWithPassword({email:val(e.currentTarget,'email'),password:val(e.currentTarget,'password')});
     if(error){renderLogin(error.message);}
   };
   document.getElementById('forgot').onclick=()=>{
-    openModal('Reset password',field('Account email','email','','email','required'),async f=>{
+    const copy=LOGIN_COPY[loginLanguage()]||LOGIN_COPY.en;
+    openModal(copy.resetTitle,field(copy.accountEmail,'email','','email','required'),async f=>{
       const email=val(f,'email');
       const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
       if(error) throw error;
-      toast('Password reset email sent.');
-    },'Send reset link');
+      toast(copy.resetSent);
+    },copy.sendReset);
   };
 }
 function renderPasswordUpdate(forced=false){
