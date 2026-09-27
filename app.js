@@ -554,6 +554,7 @@ function renderShell(content,routeName=state.route,activate=true){
                 '<div class="account-menu-actions">'+
                   '<button type="button" class="account-menu-action" id="account-fullscreen" role="menuitem"><span class="account-action-icon">⛶</span><span data-fullscreen-label>Fullscreen</span></button>'+
                   (settingsAllowed?'<button type="button" class="account-menu-action" id="account-settings" role="menuitem"><span class="account-action-icon">'+uiIcon('settings')+'</span><span>Settings</span></button>':'')+
+                  '<a class="account-menu-action" href="./student.html" target="_blank" rel="noopener" role="menuitem"><span class="account-action-icon">↗</span><span>Student portal</span></a>'+
                   '<button type="button" class="account-menu-action danger" id="signout" role="menuitem"><span class="account-action-icon">'+uiIcon('logout')+'</span><span>Sign out</span></button>'+
                 '</div>'+
               '</div>'+
