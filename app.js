@@ -55,7 +55,7 @@ const NAV = [
   { id:'dashboard', label:'Dashboard', icon:'⌂', roles:['owner','admin','teacher','cashier'], group:'Overview' },
   { id:'leads', label:'Leads', icon:'◎', roles:['owner','admin'], group:'Students' },
   { id:'students', label:'Students', icon:'◉', roles:['owner','admin','teacher','cashier'], group:'Students' },
-  { id:'groups', label:'Groups', icon:'▦', roles:['owner','admin','teacher','cashier'], group:'Students' },
+  { id:'groups', label:'Groups', icon:'▦', roles:['owner','admin','teacher'], group:'Students' },
   { id:'attendance', label:'Attendance', icon:'✓', roles:['owner','admin','teacher'], group:'Teaching' },
   { id:'academic', label:'Academic Records', icon:'✎', roles:['owner','admin','teacher'], group:'Teaching' },
   { id:'reading', label:'Reading Library', icon:'▤', roles:['owner','admin','teacher'], group:'Teaching' },
@@ -773,7 +773,7 @@ async function studentsPage(){
   const activeCount=decorated.filter(s=>s.status==='active').length;
   const attention=decorated.filter(s=>s.status==='active'&&(s.payment_status==='partial'||s.payment_status==='unpaid')).length;
   const freeCount=decorated.filter(s=>s.status==='active'&&s.is_free_place).length;
-  const add=can('owner','admin','cashier')?'<button class="btn btn-primary" data-action="student-new">'+uiIcon('plus')+'Add student</button>':'';
+  const add=can('owner','admin')?'<button class="btn btn-primary" data-action="student-new">'+uiIcon('plus')+'Add student</button>':'';
   const rows=visible.map(s=>'<tr class="student-row" data-student-open="'+s.id+'">'+
     '<td><div class="student-identity"><div class="student-avatar">'+esc(initials(s.full_name))+'</div><div><strong>'+esc(s.full_name)+'</strong><span>'+esc(s.phone||s.parent_phone||'No phone')+'</span></div></div></td>'+
     '<td><span class="course-pill">'+esc(s.groups?.name||'Unassigned')+'</span><div class="muted row-sub">'+esc(s.groups?.staff?.full_name||'No teacher')+'</div></td>'+
@@ -843,7 +843,7 @@ function openStudentQuickActions(student,groups){
   const body='<div class="action-sheet">'+
     '<button type="button" class="action-sheet-btn" data-student-action="profile"><span>'+uiIcon('students')+'</span><div><strong>Open profile</strong><small>Payments, attendance and progress</small></div></button>'+
     (can('owner','admin','cashier')?'<button type="button" class="action-sheet-btn" data-student-action="payment"><span>'+uiIcon('payments')+'</span><div><strong>Record payment</strong><small>Record this student\'s fee payment</small></div></button>':'')+
-    (can('owner','admin','cashier')?'<button type="button" class="action-sheet-btn" data-student-action="edit"><span>'+uiIcon('settings')+'</span><div><strong>Edit details</strong><small>Group, fee, phone and status</small></div></button>':'')+
+    (can('owner','admin')?'<button type="button" class="action-sheet-btn" data-student-action="edit"><span>'+uiIcon('settings')+'</span><div><strong>Edit details</strong><small>Group, fee, phone and status</small></div></button>':'')+
   '</div>';
   openModal(student.full_name,body,async()=>{},'Close');
   const form=modalRoot.querySelector('#modal-form');
@@ -902,7 +902,9 @@ async function openStudentProfile(studentId,tab='overview',groups=[]){
   try{
     const canViewFinance=can('owner','admin','cashier');
     const canViewTeaching=can('owner','admin','teacher');
-    const allowedTabs=['overview',...(canViewFinance?['payments']:[]),...(canViewTeaching?['attendance','academic']:[]),'notes'];
+    const canEditStudent=can('owner','admin');
+    const canViewNotes=can('owner','admin');
+    const allowedTabs=['overview',...(canViewFinance?['payments']:[]),...(canViewTeaching?['attendance','academic']:[]),...(canViewNotes?['notes']:[])];
     if(!allowedTabs.includes(tab))tab='overview';
 
     setModalContent('<div class="drawer-backdrop"><aside class="student-drawer" role="dialog" aria-modal="true" aria-label="Student profile"><div class="drawer-loading">Loading student profile…</div></aside></div>');
@@ -984,7 +986,7 @@ async function openStudentProfile(studentId,tab='overview',groups=[]){
 
     setModalContent('<div class="drawer-backdrop"><aside class="student-drawer" role="dialog" aria-modal="true" aria-label="'+esc(student.full_name)+' profile">'+
       '<div class="drawer-head"><button class="icon-btn drawer-close" aria-label="Close">×</button><div class="profile-hero"><div class="student-avatar large">'+esc(initials(student.full_name))+'</div><div><h3>'+esc(student.full_name)+'</h3><p>'+esc(student.groups?.name||'Unassigned')+' · '+esc(student.grade_or_age||'Student')+'</p><div class="profile-badges"><span class="badge '+(student.status==='active'?'success':student.status==='paused'?'warn':'')+'">'+humanize(student.status)+'</span>'+(canViewFinance?'<span class="badge payment-'+paymentStatus+'">'+humanize(paymentStatus)+'</span>':'')+'</div></div></div>'+
-      '<div class="drawer-actions">'+(canViewFinance&&!student.is_free_place?'<button class="btn btn-primary" data-profile-action="payment">'+uiIcon('payments')+'Payment</button>':'')+(canViewFinance?'<button class="btn btn-secondary" data-profile-action="edit">Edit</button>':'')+'</div></div>'+
+      '<div class="drawer-actions">'+(canViewFinance&&!student.is_free_place?'<button class="btn btn-primary" data-profile-action="payment">'+uiIcon('payments')+'Payment</button>':'')+(canEditStudent?'<button class="btn btn-secondary" data-profile-action="edit">Edit</button>':'')+'</div></div>'+
       '<nav class="drawer-tabs">'+tabNav+'</nav><div class="drawer-body">'+body+'</div>'+
     '</aside></div>');
 
@@ -1297,7 +1299,7 @@ async function attendancePage(){
     query(sb.from('groups').select('id,name').eq('active',true).order('name'))
   ]);
   if(!groups.length){
-    return '<section class="panel"><div class="panel-body">'+empty('Create or activate a group before taking attendance.')+(can('owner','admin')?'<div class="empty-action"><button class="btn btn-primary" data-route="groups">Open Groups</button></div>':'')+'</div></section>';
+    return '<section class="panel"><div class="panel-body">'+empty(can('owner','admin')?'Create or activate a group before taking attendance.':'No active group is assigned to you yet.')+(can('owner','admin')?'<div class="empty-action"><button class="btn btn-primary" data-route="groups">Open Groups</button></div>':'')+'</div></section>';
   }
   const selectedGroup=groups[0].id;
   setTimeout(()=>setupAttendance(students,groups,selectedGroup),0);
