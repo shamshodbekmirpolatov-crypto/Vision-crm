@@ -558,6 +558,9 @@ body.crm-dark .empty:before{background:#182435;border-color:#2a394c}
 .attendance-student-head .student-avatar{width:29px;height:29px;font-size:9px}
 .attendance-student-head .student-identity>div:last-child{min-width:0}
 .attendance-student-head .student-identity strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#344a5d;font-size:10px;font-weight:760}
+.attendance-student-number{display:inline-block;min-width:18px;margin-right:3px;color:#7f91a3;font-weight:850;font-variant-numeric:tabular-nums}
+body.crm-dark .attendance-student-number{color:#91a4b5}
+
 .attendance-date-head{width:72px;min-width:72px;text-align:center!important;color:#7a8997!important}
 .attendance-date-head span{display:block;font-size:10px;color:#314b5f;font-weight:800;line-height:1}
 .attendance-date-head small{display:block;margin-top:4px;font-size:8px;text-transform:uppercase;letter-spacing:.05em;line-height:1}
