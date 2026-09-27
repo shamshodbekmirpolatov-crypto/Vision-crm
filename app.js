@@ -170,6 +170,24 @@ const query = async (promise) => {
   if (error) throw error;
   return data;
 };
+async function invokeEdge(name,body,timeout=30000){
+  const {data,error}=await withTimeout(
+    sb.functions.invoke(name,{body}),
+    timeout,
+    'The server took too long to respond. Please try again.'
+  );
+  if(error){
+    let payload=null;
+    try{payload=await error.context?.json?.();}catch{}
+    const blockers=Array.isArray(payload?.blockers)&&payload.blockers.length?' '+payload.blockers.join(' • '):'';
+    throw new Error((payload?.error||error.message||'The server request failed.')+blockers);
+  }
+  if(data?.error){
+    const blockers=Array.isArray(data.blockers)&&data.blockers.length?' '+data.blockers.join(' • '):'';
+    throw new Error(data.error+blockers);
+  }
+  return data;
+}
 function toast(message,type='success'){
   toastEl.textContent=message; toastEl.className='toast show '+type;
   clearTimeout(toastEl._t); toastEl._t=setTimeout(()=>toastEl.className='toast',3200);
@@ -472,9 +490,8 @@ function renderPasswordUpdate(forced=false){
     const {error}=await sb.auth.updateUser({password:val(e.currentTarget,'password')});
     if(error) return fail(error);
     if(forced){
-      const {data,error:clearError}=await sb.functions.invoke('manage-users',{body:{action:'clear_first_login'}});
-      if(clearError) return fail(clearError);
-      if(data?.error) return fail(new Error(data.error));
+      try{await invokeEdge('manage-users',{action:'clear_first_login'});}
+      catch(error){return fail(error);}
       await loadIdentity();
     }
     toast('Password updated.');
@@ -1303,9 +1320,7 @@ function bindReadingActions(articles){
       if(!article)return;
       button.disabled=true;
       try{
-        const {data,error}=await sb.functions.invoke('reading-enrichment-worker',{body:{action:'requeue',article_id:article.id}});
-        if(error)throw error;
-        if(data?.error)throw new Error(data.error);
+        await invokeEdge('reading-enrichment-worker',{action:'requeue',article_id:article.id});
         toast('Reading preparation requeued.');
         await renderRoute(true);
       }catch(error){fail(error);}finally{button.disabled=false;}
@@ -1356,13 +1371,12 @@ async function expensesPage(){
 }
 
 async function staffPage(){
-  const [staff,payroll,userResult]=await Promise.all([
+  const [staff,payroll,userData]=await Promise.all([
     query(sb.from('staff').select('*').order('full_name')),
     query(sb.from('payroll').select('*, staff(full_name)').order('paid_at',{ascending:false}).limit(300)),
-    sb.functions.invoke('manage-users',{body:{action:'list'}})
+    invokeEdge('manage-users',{action:'list'})
   ]);
-  if(userResult.error)throw userResult.error;
-  const users=userResult.data?.users||[];
+  const users=userData?.users||[];
   const userMap=new Map(users.map(u=>[u.id,u]));
   const staffWithAccounts=staff.map(s=>({...s,account:s.user_id?userMap.get(s.user_id)||null:null}));
   const rows=staffWithAccounts.map(s=>'<tr><td><strong>'+esc(s.full_name)+'</strong><div class="muted">'+esc(s.account?.email||'No CRM login')+'</div></td><td>'+esc(s.role_title||'—')+'</td><td>'+esc(s.phone||'—')+'</td><td class="num">'+fmtMoney(s.monthly_salary)+'</td><td><span class="badge '+(s.active?'success':'')+'">'+(s.active?'Active':'Inactive')+'</span></td><td>'+actionButton('Edit','staff-edit',s.id)+'</td></tr>').join('');
@@ -1409,16 +1423,14 @@ function bindStaffActions(staff){
       if(!nextRole)throw new Error('Choose a valid staff role.');
 
       if(s.user_id){
-        const {data,error}=await sb.functions.invoke('manage-users',{body:{
+        await invokeEdge('manage-users',{
           action:'edit_account',
           user_id:s.user_id,
           full_name:fullName,
           email:val(f,'email'),
           phone,
           role:nextRole
-        }});
-        if(error)throw error;
-        if(data?.error)throw new Error(data.error);
+        });
         await query(sb.from('staff').update({
           monthly_salary:Number(val(f,'monthly_salary')||0),
           start_date:val(f,'start_date')||null
@@ -1437,23 +1449,7 @@ function bindStaffActions(staff){
     document.getElementById('staff-delete')?.addEventListener('click',()=>{
       openModal('Delete '+s.full_name+' permanently','<div class="login-error"><strong>This cannot be undone.</strong><br>The CRM will refuse the deletion if this person has any history or active assignments.</div>'+field('Type DELETE to confirm','confirm_delete','','text','required autocomplete="off"'),async form=>{
         if(val(form,'confirm_delete')!=='DELETE')throw new Error('Type DELETE exactly to confirm.');
-        const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'delete_staff',staff_id:s.id}});
-        if(error){
-          const context=error?.context;
-          let detail='';
-          try{
-            const payload=await context?.json?.();
-            if(payload?.blockers?.length)detail='\n'+payload.blockers.join(' • ');
-            throw new Error((payload?.error||error.message)+detail);
-          }catch(parseErr){
-            if(parseErr instanceof Error && parseErr.message!==error.message)throw parseErr;
-            throw error;
-          }
-        }
-        if(data?.error){
-          const detail=data.blockers?.length?' '+data.blockers.join(' • '):'';
-          throw new Error(data.error+detail);
-        }
+        await invokeEdge('manage-users',{action:'delete_staff',staff_id:s.id});
       },'Delete permanently');
     });
   });
@@ -1509,13 +1505,11 @@ async function reportsPage(){
 function reportCard(label,value){return '<div class="report-card"><h3>'+esc(label)+'</h3><div class="report-value">'+esc(value)+'</div></div>';}
 
 async function usersPage(){
-  const [userResult,staff]=await Promise.all([
-    sb.functions.invoke('manage-users',{body:{action:'list'}}),
+  const [userData,staff]=await Promise.all([
+    invokeEdge('manage-users',{action:'list'}),
     query(sb.from('staff').select('id,user_id,full_name,role_title,phone,active').order('full_name'))
   ]);
-  const {data,error}=userResult;
-  if(error) throw error;
-  const users=data?.users||[];
+  const users=userData?.users||[];
   const rows=users.map(u=>{
     const manageable=canManageAccountTarget(u.role,u.id);
     const actions=u.id===state.session.user.id
@@ -1534,17 +1528,7 @@ function bindUserActions(users,staff){
     const available=staff.filter(s=>s.active&&!s.user_id&&allowedRoleSet.has(staffTitleToRole(s.role_title)));
     const staffOptions=[['','Create a new staff record'],...available.map(s=>[s.id,s.full_name+' — '+(s.role_title||'Staff')])];
     openModal('Create login account','<div class="form-cols">'+selectField('Link staff record','staff_id',staffOptions,'')+field('Full name','full_name','','','required')+field('Email','email','','email','required')+passwordInput('Temporary password','password','required minlength="8" autocomplete="new-password"')+field('Phone','phone','','tel')+selectField('Role','role',accountRoleOptions(),'teacher')+'</div>',async f=>{
-      const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'create',full_name:val(f,'full_name'),email:val(f,'email'),password:val(f,'password'),phone:val(f,'phone'),role:val(f,'role'),staff_id:val(f,'staff_id')||null}});
-      if(error){
-        try{
-          const payload=await error.context?.json?.();
-          throw new Error(payload?.error||error.message);
-        }catch(e){
-          if(e instanceof Error && e.message!==error.message)throw e;
-          throw error;
-        }
-      }
-      if(data?.error)throw new Error(data.error);
+      await invokeEdge('manage-users',{action:'create',full_name:val(f,'full_name'),email:val(f,'email'),password:val(f,'password'),phone:val(f,'phone'),role:val(f,'role'),staff_id:val(f,'staff_id')||null});
     },'Create account');
     const staffEl=modalRoot.querySelector('[name=staff_id]');
     staffEl.onchange=()=>{
@@ -1566,24 +1550,20 @@ function bindUserActions(users,staff){
       selectField('Role','role',accountRoleOptions(),u.role)+
       '<div class="span-2 section-note">This updates the linked CRM login and staff profile together.</div>'+
     '</div>',async f=>{
-      const {data,error}=await sb.functions.invoke('manage-users',{body:{
+      await invokeEdge('manage-users',{
         action:'edit_account',
         user_id:u.id,
         full_name:val(f,'full_name'),
         email:val(f,'email'),
         phone:val(f,'phone'),
         role:val(f,'role')
-      }});
-      if(error)throw error;
-      if(data?.error)throw new Error(data.error);
+      });
     },'Save changes');
   });
   document.querySelectorAll('[data-action=user-role]').forEach(b=>b.onclick=()=>{
     const u=users.find(x=>x.id===b.dataset.id);
     openModal('Change role',selectField('Role','role',accountRoleOptions(),u.role),async f=>{
-      const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'set_role',user_id:u.id,role:val(f,'role')}});
-      if(error)throw error;
-      if(data?.error)throw new Error(data.error);
+      await invokeEdge('manage-users',{action:'set_role',user_id:u.id,role:val(f,'role')});
     },'Update role');
   });
   document.querySelectorAll('[data-action=user-status]').forEach(b=>b.onclick=()=>{
@@ -1594,9 +1574,7 @@ function bindUserActions(users,staff){
       nextActive?'Activate account':'Deactivate account',
       '<div class="section-note"><strong>'+esc(u.full_name||'Staff account')+'</strong><br>'+(nextActive?'Restore CRM access for this staff member?':'Remove CRM access for this staff member? Their staff record and history will be preserved.')+'</div>',
       async()=>{
-        const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'set_active',user_id:u.id,active:nextActive}});
-        if(error)throw error;
-        if(data?.error)throw new Error(data.error);
+        await invokeEdge('manage-users',{action:'set_active',user_id:u.id,active:nextActive});
       },
       nextActive?'Activate':'Deactivate'
     );
