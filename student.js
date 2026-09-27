@@ -232,6 +232,23 @@ async function refreshPortal(view='dashboard'){
   const refreshBtn=document.querySelector('#student-refresh, #practice-refresh');
   if(refreshBtn){refreshBtn.disabled=true;refreshBtn.textContent='Refreshing…';}
   try{
+    try{
+      const response=await fetch('./student.html?update_check='+Date.now(),{cache:'no-store'});
+      if(response.ok){
+        const html=await response.text();
+        const latestStudent=html.match(/student\.js\?v=([^"'&<]+)/)?.[1]||'';
+        const latestPractice=html.match(/student-practice\.js\?v=([^"'&<]+)/)?.[1]||'';
+        const currentStudent=document.querySelector('script[src*="student.js"]')?.src.match(/[?&]v=([^&]+)/)?.[1]||'';
+        const currentPractice=document.querySelector('script[src*="student-practice.js"]')?.src.match(/[?&]v=([^&]+)/)?.[1]||'';
+        if((latestStudent&&currentStudent&&latestStudent!==currentStudent)||
+           (latestPractice&&currentPractice&&latestPractice!==currentPractice)){
+          location.reload();
+          return;
+        }
+      }
+    }catch(updateError){
+      console.warn('Student portal update check skipped:',updateError);
+    }
     const {data,error}=await sb.functions.invoke('student-portal',{body:portalAuth});
     if(error||data?.error){
       let message=data?.error||error?.message||'Could not refresh right now.';
