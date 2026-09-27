@@ -370,7 +370,9 @@ function go(routeName){
 window.addEventListener('popstate',()=>{
   if(!state.session)return;
   const hash=(location.hash||'').replace('#','');
-  const next=allowedRoutes().some(n=>n.id===hash)?hash:'dashboard';
+  const valid=allowedRoutes().some(n=>n.id===hash);
+  const next=valid?hash:'dashboard';
+  if(!valid&&hash)history.replaceState({route:'dashboard'},'','#dashboard');
   if(next===state.route)return;
   state.route=next;
   state.sidebarOpen=false;
@@ -1200,7 +1202,25 @@ async function academicPage(){
     query(sb.from('students').select('id,full_name,status').eq('status','active').order('full_name'))
   ]);
   const rows=records.map(r=>'<tr><td>'+fmtDate(r.record_date)+'</td><td><strong>'+esc(r.students?.full_name||'Student')+'</strong></td><td>'+esc(r.record_type)+'</td><td>'+esc(r.topic||'—')+'</td><td>'+(r.score==null?'—':esc(r.score)+' / '+esc(r.max_score??'—'))+'</td><td>'+esc(r.teacher_note||'—')+'</td></tr>').join('');
-  setTimeout(()=>document.querySelector('[data-action=academic-new]')?.addEventListener('click',()=>openModal('Add academic record','<div class="form-cols">'+selectField('Student','student_id',students.map(s=>[s.id,s.full_name]))+field('Date','record_date',today(),'date','required')+field('Record type','record_type','Progress check','','required')+field('Topic','topic','')+field('Score','score','','number','min="0" step="0.01"')+field('Max score','max_score','100','number','min="0.01" step="0.01"')+textArea('Teacher note','teacher_note','')+'</div>',async f=>query(sb.from('academic_records').insert({student_id:val(f,'student_id'),record_date:val(f,'record_date'),record_type:val(f,'record_type'),topic:val(f,'topic')||null,score:val(f,'score')===''?null:Number(val(f,'score')),max_score:val(f,'max_score')===''?null:Number(val(f,'max_score')),teacher_note:val(f,'teacher_note')||null,created_by:state.session.user.id})))),0);
+  setTimeout(()=>document.querySelector('[data-action=academic-new]')?.addEventListener('click',()=>openModal('Add academic record','<div class="form-cols">'+selectField('Student','student_id',students.map(s=>[s.id,s.full_name]))+field('Date','record_date',today(),'date','required')+field('Record type','record_type','Progress check','','required')+field('Topic','topic','')+field('Score','score','','number','min="0" step="0.01"')+field('Max score','max_score','100','number','min="0.01" step="0.01"')+textArea('Teacher note','teacher_note','')+'</div>',async f=>{
+    const scoreRaw=val(f,'score');
+    const maxRaw=val(f,'max_score');
+    const score=scoreRaw===''?null:Number(scoreRaw);
+    const maxScore=maxRaw===''?null:Number(maxRaw);
+    if(score!==null&&!Number.isFinite(score))throw new Error('Enter a valid score.');
+    if(maxScore!==null&&(!Number.isFinite(maxScore)||maxScore<=0))throw new Error('Maximum score must be greater than zero.');
+    if(score!==null&&maxScore!==null&&score>maxScore)throw new Error('Score cannot be greater than the maximum score.');
+    await query(sb.from('academic_records').insert({
+      student_id:val(f,'student_id'),
+      record_date:val(f,'record_date'),
+      record_type:val(f,'record_type'),
+      topic:val(f,'topic')||null,
+      score,
+      max_score:maxScore,
+      teacher_note:val(f,'teacher_note')||null,
+      created_by:state.session.user.id
+    }));
+  })),0);
   return tablePage('Academic progress','<button class="btn btn-primary" data-action="academic-new">'+uiIcon('plus')+'Add record</button>',[['Date',''],['Student',''],['Type',''],['Topic',''],['Score',''],['Teacher note','']],rows,'No academic records yet.');
 }
 
@@ -1294,12 +1314,13 @@ function bindReadingActions(articles){
   document.querySelectorAll('[data-action=reading-delete]').forEach(button=>{
     button.addEventListener('click',async()=>{
       const article=articles.find(item=>item.id===button.dataset.id);
-      if(!article||!confirm('Delete "'+article.title+'"? This will also remove its queued Reading and audio jobs.'))return;
-      try{
-        await query(sb.from('reading_articles').delete().eq('id',article.id));
-        toast('Reading text deleted.');
-        await renderRoute(true);
-      }catch(error){fail(error);}
+      if(!article)return;
+      openModal(
+        'Delete reading text',
+        '<div class="login-error"><strong>This cannot be undone.</strong><br>Delete “'+esc(article.title)+'” and its queued Reading/audio jobs?</div>',
+        async()=>{await query(sb.from('reading_articles').delete().eq('id',article.id));},
+        'Delete'
+      );
     });
   });
 }
@@ -1565,19 +1586,20 @@ function bindUserActions(users,staff){
       if(data?.error)throw new Error(data.error);
     },'Update role');
   });
-  document.querySelectorAll('[data-action=user-status]').forEach(b=>b.onclick=async()=>{
+  document.querySelectorAll('[data-action=user-status]').forEach(b=>b.onclick=()=>{
     const u=users.find(x=>x.id===b.dataset.id);
     if(!u)return;
     const nextActive=!u.active;
-    if(!confirm((nextActive?'Activate ':'Deactivate ')+(u.full_name||'this account')+'?'))return;
-    try{
-      b.disabled=true;
-      const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'set_active',user_id:u.id,active:nextActive}});
-      if(error)throw error;
-      if(data?.error)throw new Error(data.error);
-      await renderRoute();
-      toast('Account '+(nextActive?'activated.':'deactivated.'));
-    }catch(e){fail(e);}finally{b.disabled=false;}
+    openModal(
+      nextActive?'Activate account':'Deactivate account',
+      '<div class="section-note"><strong>'+esc(u.full_name||'Staff account')+'</strong><br>'+(nextActive?'Restore CRM access for this staff member?':'Remove CRM access for this staff member? Their staff record and history will be preserved.')+'</div>',
+      async()=>{
+        const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'set_active',user_id:u.id,active:nextActive}});
+        if(error)throw error;
+        if(data?.error)throw new Error(data.error);
+      },
+      nextActive?'Activate':'Deactivate'
+    );
   });
 }
 
@@ -1638,8 +1660,13 @@ async function renderRoute(force=false,navigation=false){
   if(!state.session){renderLogin();return;}
   if(!state.profile) await loadIdentity();
   const hash=(location.hash||'').replace('#','');
-  if(hash && allowedRoutes().some(n=>n.id===hash)) state.route=hash;
-  if(!allowedRoutes().some(n=>n.id===state.route)) state.route='dashboard';
+  if(hash && allowedRoutes().some(n=>n.id===hash)){
+    state.route=hash;
+  }else if(hash){
+    state.route='dashboard';
+    history.replaceState({route:'dashboard'},'','#dashboard');
+  }
+  if(!allowedRoutes().some(n=>n.id===state.route))state.route='dashboard';
 
   const generation=++routeRenderGeneration;
   const requestedRoute=state.route;
@@ -1667,12 +1694,25 @@ async function renderRoute(force=false,navigation=false){
 let authGeneration=0;
 
 async function applySession(session,{render=true}={}){
+  const previousUserId=state.session?.user?.id||null;
+  const nextUserId=session?.user?.id||null;
   state.session=session;
   if(!session){
     state.profile=null;
     state.staff=null;
-    if(render) renderLogin();
+    state.cache={};
+    routePreloadStarted=false;
+    routeRenderGeneration++;
+    if(render)renderLogin();
     return;
+  }
+  if(previousUserId&&previousUserId!==nextUserId){
+    state.profile=null;
+    state.staff=null;
+    state.cache={};
+    routePreloadStarted=false;
+    routeRenderGeneration++;
+    state.route='dashboard';
   }
   await loadIdentity();
   if(render){
