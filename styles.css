@@ -387,6 +387,21 @@ tbody tr:hover{background:#f8fbfd}
 .action-sheet-btn strong{display:block;font-size:13px}
 .action-sheet-btn small{display:block;color:var(--muted);font-size:10px;margin-top:2px}
 
+/* Clickable group roster */
+.group-row{cursor:pointer}
+.group-row:hover{background:#f6fafc}
+.group-row:focus-visible{outline:2px solid #4d91b5;outline-offset:-2px;background:#f3f8fb}
+.group-avatar .ui-svg{width:23px;height:23px}
+.profile-card strong.profile-card-text{font-size:13px;line-height:1.35;overflow-wrap:anywhere}
+.group-roster-section{padding-bottom:16px}
+.group-roster-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.group-roster-title h4{margin:0}
+.group-roster-title p{margin:3px 0 0;color:var(--muted);font-size:10px}
+.group-roster-student{cursor:pointer}
+.group-roster-student:hover{background:#f6fafc}
+.group-roster-student:focus-visible{outline:2px solid #4d91b5;outline-offset:-2px;background:#f3f8fb}
+.group-roster-table table{min-width:620px}
+
 /* Student profile drawer */
 .drawer-backdrop{position:fixed;inset:0;background:rgba(5,23,36,.48);backdrop-filter:blur(3px);z-index:120;display:flex;justify-content:flex-end}
 .student-drawer{height:100%;width:min(760px,96vw);background:#f8fafc;box-shadow:-22px 0 60px rgba(3,24,38,.22);display:flex;flex-direction:column}
