@@ -270,6 +270,7 @@ async function refreshPortal(view='dashboard'){
     }else if(view==='practice'){
       try{await ensurePracticeReady();}catch{}
       if(window.VisionStudentPractice){
+        document.documentElement.lang='en';
         window.VisionStudentPractice.render({
           root:app,
           data:portalData,
@@ -289,6 +290,7 @@ async function refreshPortal(view='dashboard'){
 }
 
 function renderStudentPicker(portals){
+  document.documentElement.lang='en';
   app.innerHTML='<div class="portal"><header class="portal-header"><div class="portal-header-inner"><div class="portal-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision Student Progress</strong><span>VISION LEARNING CENTRE</span></div></div><button class="signout" id="picker-signout">Back</button></div></header><main class="portal-main"><section class="student-welcome"><div><small>PARENT ACCESS</small><h1>Choose a student</h1><p>This phone number is linked to more than one active student.</p></div></section><div class="student-picker-grid">'+portals.map((p,i)=>'<button class="student-picker-card" data-index="'+i+'"><div class="picker-avatar">'+esc((p.student.full_name||'?').split(' ').map(x=>x[0]).join('').slice(0,2))+'</div><div><strong>'+esc(p.student.full_name)+'</strong><span>'+esc(p.student.group||'No group')+'</span><small>'+esc(p.student.grade_or_age||'Student')+'</small></div><b>Open →</b></button>').join('')+'</div></main></div>';
   app.querySelectorAll('.student-picker-card').forEach(btn=>btn.onclick=()=>{
     const selected=portals[Number(btn.dataset.index)];
@@ -301,6 +303,7 @@ function renderStudentPicker(portals){
 function statValue(value,fallback='—'){return value===null||value===undefined?fallback:value;}
 
 function renderPortal(){
+  document.documentElement.lang='en';
   const {student,results,attendance}=portalData;
   const valid=results.filter(r=>Number.isFinite(Number(r.percentage))).map(r=>({...r,percentage:Number(r.percentage)}));
   const percentages=valid.map(r=>r.percentage);
@@ -333,6 +336,7 @@ function renderPortal(){
         '<div class="detail-row"><span>Teacher</span><strong>'+esc(student.teacher||'—')+'</strong></div>'+
         '<div class="detail-row"><span>Schedule</span><strong>'+esc(student.schedule||'—')+'</strong></div>'+
         '<div class="detail-row"><span>Room</span><strong>'+esc(student.room||'—')+'</strong></div>'+
+        '<div class="detail-row"><span>Attendance</span><strong>'+(attendance?.rate==null?'No records yet':esc(attendance.rate)+'% · '+esc(attendance.records)+' lesson'+(Number(attendance.records)===1?'':'s'))+'</strong></div>'+
       '</div><div class="feedback-block"><h3>Latest teacher feedback</h3><div class="teacher-note">'+esc(latestNote||'Teacher feedback will appear here after it is added to a test record.')+'</div></div></section>'+
     '</main>'+
   '</div>';
