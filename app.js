@@ -348,8 +348,8 @@ async function refreshStaffCRM(){
       const response=await fetch('./index.html?update_check='+Date.now(),{cache:'no-store'});
       if(response.ok){
         const html=await response.text();
-        const latest=html.match(/app\.js\?v=([^"'&<]+)/)?.[1]||'';
-        const current=document.querySelector('script[src*="app.js"]')?.src.match(/[?&]v=([^&]+)/)?.[1]||'';
+        const latest=html.match(/app-current\.js\?v=([^"'&<]+)/)?.[1]||'';
+        const current=document.querySelector('script[src*="app-current.js"]')?.src.match(/[?&]v=([^&]+)/)?.[1]||'';
         if(latest&&current&&latest!==current){
           location.reload();
           return;
