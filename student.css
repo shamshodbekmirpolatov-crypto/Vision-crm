@@ -364,3 +364,124 @@ button{cursor:pointer}
     scroll-behavior:auto!important;
   }
 }
+
+
+/* Student login language + theme controls */
+.student-login-preferences{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  margin:-4px 0 18px;
+}
+.student-language-switch{
+  display:flex;
+  align-items:center;
+  gap:2px;
+  padding:3px;
+  border-radius:11px;
+  background:rgba(235,242,248,.72);
+  border:1px solid rgba(208,221,232,.8);
+}
+.student-language-btn{
+  min-width:34px;
+  height:31px;
+  padding:0 7px;
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  color:#7b91a4;
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:.08em;
+  transition:color .14s ease,background-color .14s ease,transform .14s ease;
+}
+.student-language-btn:hover{color:#315f7e;background:rgba(255,255,255,.72)}
+.student-language-btn:active{transform:scale(.96)}
+.student-language-btn.active{
+  color:#d64e61;
+  background:#fff;
+  box-shadow:0 2px 8px rgba(31,67,95,.08);
+}
+.student-theme-toggle{
+  width:39px;
+  height:39px;
+  display:grid;
+  place-items:center;
+  border-radius:11px;
+  border:1px solid #d2deea;
+  background:linear-gradient(180deg,#fbfdff,#f3f7fb);
+  color:#456b87;
+  box-shadow:0 4px 12px rgba(28,61,88,.06);
+  transition:color .14s ease,background-color .14s ease,border-color .14s ease,transform .14s ease,box-shadow .18s ease;
+}
+.student-theme-toggle:hover{
+  color:#174f75;
+  border-color:#b9ccda;
+  box-shadow:0 6px 18px rgba(28,61,88,.10);
+}
+.student-theme-toggle:active{transform:scale(.96)}
+.student-theme-toggle svg{width:17px;height:17px;display:block}
+.student-theme-toggle .student-theme-sun{display:none}
+.student-login-dark .student-theme-toggle .student-theme-moon{display:none}
+.student-login-dark .student-theme-toggle .student-theme-sun{display:block}
+
+.student-login.student-login-dark{background:#0d122a}
+.student-login-dark .student-login-panel{
+  background:
+    radial-gradient(circle at 16% 5%,rgba(72,99,183,.16),transparent 24%),
+    radial-gradient(circle at 92% 88%,rgba(67,127,172,.10),transparent 26%),
+    linear-gradient(145deg,#0d122a 0%,#111936 52%,#0e142e 100%);
+}
+.student-login-dark .student-login-card{
+  background:rgba(17,24,54,.94);
+  border-color:rgba(102,126,171,.22);
+  box-shadow:0 35px 90px rgba(2,7,24,.34),0 2px 8px rgba(2,7,24,.22);
+}
+.student-login-dark .student-login-card .mini-brand{border-bottom-color:rgba(135,157,193,.14)}
+.student-login-dark .student-login-card .mini-brand strong,
+.student-login-dark .student-login-card h2{color:#edf5ff}
+.student-login-dark .student-login-card .mini-brand span,
+.student-login-dark .student-login-card>p{color:#899ab8}
+.student-login-dark .field label{color:#c8d5e8}
+.student-login-dark .input-shell input{
+  border-color:rgba(118,143,182,.28);
+  background:linear-gradient(180deg,#151d3b,#121936);
+  color:#edf5ff;
+}
+.student-login-dark .input-shell input::placeholder{color:#667997}
+.student-login-dark .input-shell input:focus{
+  border-color:#608fbd;
+  background:#172140;
+  box-shadow:0 0 0 4px rgba(79,135,188,.12);
+}
+.student-login-dark .login-note{
+  background:linear-gradient(135deg,rgba(31,48,84,.72),rgba(24,39,73,.78));
+  border-color:rgba(111,137,178,.18);
+  color:#8498b5;
+}
+.student-login-dark .student-language-switch{
+  background:rgba(14,21,49,.72);
+  border-color:rgba(102,126,171,.20);
+}
+.student-login-dark .student-language-btn{color:#7f90ad}
+.student-login-dark .student-language-btn:hover{color:#bac9df;background:rgba(255,255,255,.04)}
+.student-login-dark .student-language-btn.active{
+  color:#ff7184;
+  background:rgba(81,101,151,.18);
+  box-shadow:none;
+}
+.student-login-dark .student-theme-toggle{
+  border-color:rgba(99,122,169,.35);
+  background:#151e40;
+  color:#9aadd0;
+  box-shadow:0 4px 16px rgba(1,5,20,.18);
+}
+.student-login-dark .student-theme-toggle:hover{
+  border-color:rgba(124,151,198,.48);
+  color:#d4e2f7;
+}
+@media(max-width:560px){
+  .student-login-preferences{margin:-2px 0 15px}
+  .student-language-btn{min-width:32px}
+}
