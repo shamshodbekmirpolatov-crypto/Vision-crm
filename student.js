@@ -16,24 +16,148 @@ const average=arr=>arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:null;
 const round1=n=>Math.round(n*10)/10;
 function toast(message){toastEl.textContent=message;toastEl.className='student-toast show';clearTimeout(toastEl.t);toastEl.t=setTimeout(()=>toastEl.className='student-toast',2800);}
 
+const STUDENT_LOGIN_LANG_KEY='vision-crm-login-language';
+const STUDENT_LOGIN_THEME_KEY='vision-crm-login-theme';
+const STUDENT_LOGIN_COPY=Object.freeze({
+  en:{
+    heroKicker:'STUDENT PROGRESS',
+    heroLine1:'See your progress.',
+    heroLine2:'Keep moving forward.',
+    heroBody:'Your scores, percentages, attendance and academic growth — all in one clear place.',
+    miniTitle:'Student Progress',
+    welcome:'Welcome back',
+    intro:'Enter the phone number registered with Vision and your 4-digit PIN.',
+    phone:'Phone number',
+    pin:'4-digit PIN',
+    open:'Open my progress',
+    checking:'Checking…',
+    note:'Your PIN is the last four digits of the phone number registered in your Vision student profile. After 5 incorrect attempts, login is temporarily locked.',
+    dark:'Switch to dark mode',
+    light:'Switch to light mode'
+  },
+  uz:{
+    heroKicker:'O‘QUVCHI NATIJALARI',
+    heroLine1:'Natijalaringizni ko‘ring.',
+    heroLine2:'Oldinga intiling.',
+    heroBody:'Ballaringiz, foizlaringiz, davomat va o‘quvdagi o‘sishingiz — barchasi bitta aniq joyda.',
+    miniTitle:'O‘quvchi natijalari',
+    welcome:'Xush kelibsiz',
+    intro:'Vision’da ro‘yxatdan o‘tgan telefon raqamingiz va 4 xonali PIN kodingizni kiriting.',
+    phone:'Telefon raqami',
+    pin:'4 xonali PIN',
+    open:'Natijalarimni ochish',
+    checking:'Tekshirilmoqda…',
+    note:'PIN kodingiz Vision’dagi o‘quvchi profilingizga yozilgan telefon raqamining oxirgi to‘rtta raqamidir. 5 marta noto‘g‘ri urinishdan so‘ng kirish vaqtincha bloklanadi.',
+    dark:'Tungi rejimga o‘tish',
+    light:'Yorug‘ rejimga o‘tish'
+  },
+  ru:{
+    heroKicker:'ПРОГРЕСС УЧЕНИКА',
+    heroLine1:'Следите за прогрессом.',
+    heroLine2:'Двигайтесь вперёд.',
+    heroBody:'Ваши баллы, проценты, посещаемость и учебный рост — всё в одном понятном месте.',
+    miniTitle:'Прогресс ученика',
+    welcome:'С возвращением',
+    intro:'Введите номер телефона, зарегистрированный в Vision, и 4-значный PIN-код.',
+    phone:'Номер телефона',
+    pin:'4-значный PIN',
+    open:'Открыть мой прогресс',
+    checking:'Проверка…',
+    note:'Ваш PIN — последние четыре цифры номера телефона, указанного в профиле ученика Vision. После 5 неверных попыток вход временно блокируется.',
+    dark:'Включить тёмную тему',
+    light:'Включить светлую тему'
+  }
+});
+function studentLoginLanguage(){
+  try{
+    const value=localStorage.getItem(STUDENT_LOGIN_LANG_KEY);
+    return Object.prototype.hasOwnProperty.call(STUDENT_LOGIN_COPY,value)?value:'en';
+  }catch{return'en';}
+}
+function studentLoginTheme(){
+  try{return localStorage.getItem(STUDENT_LOGIN_THEME_KEY)==='dark'?'dark':'light';}
+  catch{return'light';}
+}
+function saveStudentLoginPreference(key,value){
+  try{localStorage.setItem(key,value);}catch{}
+}
+function applyStudentLoginTheme(theme){
+  const root=app.querySelector('.student-login');
+  if(!root)return;
+  const dark=theme==='dark';
+  root.classList.toggle('student-login-dark',dark);
+  const toggle=document.getElementById('student-theme-toggle');
+  const copy=STUDENT_LOGIN_COPY[studentLoginLanguage()]||STUDENT_LOGIN_COPY.en;
+  if(toggle){
+    const label=dark?copy.light:copy.dark;
+    toggle.setAttribute('aria-label',label);
+    toggle.setAttribute('title',label);
+    toggle.setAttribute('aria-pressed',dark?'true':'false');
+  }
+  const meta=document.querySelector('meta[name="theme-color"]');
+  if(meta)meta.setAttribute('content',dark?'#10162f':'#0b3655');
+}
+function applyStudentLoginLanguage(lang){
+  const copy=STUDENT_LOGIN_COPY[lang]||STUDENT_LOGIN_COPY.en;
+  document.documentElement.lang=lang;
+  app.querySelectorAll('[data-student-login-copy]').forEach(el=>{
+    const key=el.dataset.studentLoginCopy;
+    if(Object.prototype.hasOwnProperty.call(copy,key))el.textContent=copy[key];
+  });
+  app.querySelectorAll('[data-student-login-lang]').forEach(btn=>{
+    const active=btn.dataset.studentLoginLang===lang;
+    btn.classList.toggle('active',active);
+    btn.setAttribute('aria-pressed',active?'true':'false');
+  });
+  applyStudentLoginTheme(studentLoginTheme());
+}
+function bindStudentLoginPreferences(){
+  app.querySelectorAll('[data-student-login-lang]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const lang=btn.dataset.studentLoginLang;
+      if(!Object.prototype.hasOwnProperty.call(STUDENT_LOGIN_COPY,lang))return;
+      saveStudentLoginPreference(STUDENT_LOGIN_LANG_KEY,lang);
+      applyStudentLoginLanguage(lang);
+    });
+  });
+  document.getElementById('student-theme-toggle')?.addEventListener('click',()=>{
+    const next=app.querySelector('.student-login')?.classList.contains('student-login-dark')?'light':'dark';
+    saveStudentLoginPreference(STUDENT_LOGIN_THEME_KEY,next);
+    applyStudentLoginTheme(next);
+  });
+}
 function renderLogin(error=''){
-  app.innerHTML='<div class="student-login">'+
+  const selectedLang=studentLoginLanguage();
+  const selectedTheme=studentLoginTheme();
+  const moonIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.7 6.7 0 0 0 21 12.8Z"/></svg>';
+  const sunIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>';
+  app.innerHTML='<div class="student-login '+(selectedTheme==='dark'?'student-login-dark':'')+'">'+
     '<section class="student-login-hero">'+
       '<div class="student-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>VISION</strong><span>LEARNING CENTRE</span></div></div>'+
-      '<div class="student-hero-copy"><small>STUDENT PROGRESS</small><h1>See your progress.<br><em>Keep moving forward.</em></h1><p>Your scores, percentages, attendance and academic growth — all in one clear place.</p></div>'+
+      '<div class="student-hero-copy"><small data-student-login-copy="heroKicker">STUDENT PROGRESS</small><h1><span data-student-login-copy="heroLine1">See your progress.</span><br><em data-student-login-copy="heroLine2">Keep moving forward.</em></h1><p data-student-login-copy="heroBody">Your scores, percentages, attendance and academic growth — all in one clear place.</p></div>'+
     '</section>'+
     '<section class="student-login-panel"><div class="student-login-card">'+
-      '<div class="mini-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Student Progress</strong><span>Vision Learning Centre</span></div></div>'+
-      '<h2>Welcome back</h2><p>Enter the phone number registered with Vision and your 4-digit PIN.</p>'+
+      '<div class="student-login-preferences">'+
+        '<div class="student-language-switch" role="group" aria-label="Language">'+
+          '<button class="student-language-btn" type="button" data-student-login-lang="uz" aria-pressed="false">UZ</button>'+
+          '<button class="student-language-btn" type="button" data-student-login-lang="ru" aria-pressed="false">RU</button>'+
+          '<button class="student-language-btn" type="button" data-student-login-lang="en" aria-pressed="false">EN</button>'+
+        '</div>'+
+        '<button class="student-theme-toggle" id="student-theme-toggle" type="button" aria-pressed="false"><span class="student-theme-moon">'+moonIcon+'</span><span class="student-theme-sun">'+sunIcon+'</span></button>'+
+      '</div>'+
+      '<div class="mini-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong data-student-login-copy="miniTitle">Student Progress</strong><span>Vision Learning Centre</span></div></div>'+
+      '<h2 data-student-login-copy="welcome">Welcome back</h2><p data-student-login-copy="intro">Enter the phone number registered with Vision and your 4-digit PIN.</p>'+
       (error?'<div class="login-error">'+esc(error)+'</div>':'')+
       '<form id="student-login-form" class="login-form">'+
-        '<div class="field"><label for="student-login-phone">Phone number</label><div class="input-shell"><input id="student-login-phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="+998 99 123 45 67" required></div></div>'+
-        '<div class="field"><label for="student-login-pin">4-digit PIN</label><div class="input-shell"><input id="student-login-pin" class="pin-input" name="pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" type="password" placeholder="••••" required></div></div>'+
-        '<button class="login-button" type="submit"><span>Open my progress</span><span>→</span></button>'+
+        '<div class="field"><label for="student-login-phone" data-student-login-copy="phone">Phone number</label><div class="input-shell"><input id="student-login-phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="+998 99 123 45 67" required></div></div>'+
+        '<div class="field"><label for="student-login-pin" data-student-login-copy="pin">4-digit PIN</label><div class="input-shell"><input id="student-login-pin" class="pin-input" name="pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" type="password" placeholder="••••" required></div></div>'+
+        '<button class="login-button" type="submit"><span data-student-login-copy="open">Open my progress</span><span>→</span></button>'+
       '</form>'+
-      '<div class="login-note">Your PIN is the last four digits of the phone number registered in your Vision student profile. After 5 incorrect attempts, login is temporarily locked.</div>'+
+      '<div class="login-note" data-student-login-copy="note">Your PIN is the last four digits of the phone number registered in your Vision student profile. After 5 incorrect attempts, login is temporarily locked.</div>'+
     '</div></section>'+
   '</div>';
+  bindStudentLoginPreferences();
+  applyStudentLoginLanguage(selectedLang);
   document.getElementById('student-login-form').onsubmit=login;
 }
 
