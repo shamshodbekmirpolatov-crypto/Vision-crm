@@ -1282,7 +1282,7 @@ function openStudentPayment(student){
   openModal('Record payment · '+student.full_name,'<div class="form-cols">'+
     field('Course month','fee_month',currentMonth,'month','required')+
     field('Amount','amount','','number','required min="1" step="1"')+
-    field('Paid date','paid_at',today(),'date','required')+
+    field('Paid date','paid_at',today(),'date','required max="'+today()+'"')+
     selectField('Method','method',[['cash','Cash'],['card_transfer','Card / transfer'],['other','Other']],'cash')+
     field('Reference','reference','')+
     textArea('Notes','notes','')+'</div>',async form=>{
@@ -1755,6 +1755,8 @@ function bindPaymentActions(students,feeRows){
       const amount=Number(val(form,'amount'));
       if(!amount||amount<=0)throw new Error('Enter a valid payment amount.');
       if(student?.is_free_place)throw new Error('This student is marked as a free place and does not owe a monthly fee.');
+      const paidDate=val(form,'paid_at');
+      if(paidDate>today())throw new Error('Payment date cannot be in the future.');
       const m=val(form,'fee_month');
       const monthKey=m+'-01';
       const existing=await query(sb.from('payments').select('amount').eq('student_id',sid).eq('fee_month',monthKey).is('voided_at',null));
@@ -1768,25 +1770,51 @@ function bindPaymentActions(students,feeRows){
     const monthEl=modalRoot.querySelector('[name=fee_month]');
     const amountEl=modalRoot.querySelector('[name=amount]');
     const hint=modalRoot.querySelector('#payment-hint');
-    const refreshHint=()=>{
+    let hintGeneration=0;
+    const refreshHint=async()=>{
+      const generation=++hintGeneration;
       const row=feeRows.find(x=>x.id===studentEl.value);
-      if(!row){hint.textContent='';return;}
-      if(monthEl.value!==selectedMonth){
-        const s=students.find(x=>x.id===studentEl.value);
-        const due=s?.is_free_place?0:Math.max(0,Number(s?.monthly_fee||0)-Number(s?.discount_amount||0));
-        amountEl.value=due||'';
-        hint.innerHTML='<span>Different month selected.</span> Suggested full fee: <strong>'+fmtMoney(due)+'</strong>';
+      const s=students.find(x=>x.id===studentEl.value);
+      if(!s){hint.textContent='';amountEl.disabled=true;amountEl.value='';return;}
+      const due=s.is_free_place?0:Math.max(0,Number(s.monthly_fee||0)-Number(s.discount_amount||0));
+
+      if(monthEl.value===selectedMonth&&row){
+        amountEl.value=row.balance>0?row.balance:'';
+        amountEl.disabled=row.balance<=0||row.is_free_place;
+        hint.innerHTML=row.is_free_place
+          ?'<span class="badge payment-free">Free place</span> No payment is required.'
+          :row.balance<=0
+            ?'<span class="badge payment-paid">Fully paid</span> This month is already fully paid. Use payment history to correct a mistaken payment.'
+            :'Fee: <strong>'+fmtMoney(row.expected)+'</strong> · Paid: <strong>'+fmtMoney(row.paid)+'</strong> · Remaining: <strong>'+fmtMoney(row.balance)+'</strong>';
         return;
       }
-      amountEl.value=row.balance>0?row.balance:'';
-      amountEl.disabled=row.balance<=0||row.is_free_place;
-      hint.innerHTML=row.is_free_place
-        ?'<span class="badge payment-free">Free place</span> No payment is required.'
-        :row.balance<=0
-          ?'<span class="badge payment-paid">Fully paid</span> This month is already fully paid. Use payment history to correct a mistaken payment.'
-          :'Fee: <strong>'+fmtMoney(row.expected)+'</strong> · Paid: <strong>'+fmtMoney(row.paid)+'</strong> · Remaining: <strong>'+fmtMoney(row.balance)+'</strong>';
+
+      amountEl.disabled=true;
+      hint.textContent='Checking that month…';
+      try{
+        const monthKey=monthEl.value+'-01';
+        const existing=await query(sb.from('payments').select('amount').eq('student_id',s.id).eq('fee_month',monthKey).is('voided_at',null));
+        if(generation!==hintGeneration)return;
+        const paid=existing.reduce((sum,p)=>sum+Number(p.amount||0),0);
+        const remaining=Math.max(0,due-paid);
+        amountEl.value=remaining>0?remaining:'';
+        amountEl.disabled=s.is_free_place||remaining<=0;
+        hint.innerHTML=s.is_free_place
+          ?'<span class="badge payment-free">Free place</span> No payment is required.'
+          :remaining<=0
+            ?'<span class="badge payment-paid">Fully paid</span> That course month is already fully paid.'
+            :'<span>Selected month.</span> Fee: <strong>'+fmtMoney(due)+'</strong> · Paid: <strong>'+fmtMoney(paid)+'</strong> · Remaining: <strong>'+fmtMoney(remaining)+'</strong>';
+      }catch(error){
+        if(generation!==hintGeneration)return;
+        amountEl.disabled=false;
+        amountEl.value='';
+        hint.textContent='Could not check this month. You can retry by changing the month or student.';
+        fail(error);
+      }
     };
-    studentEl.onchange=refreshHint;monthEl.onchange=refreshHint;refreshHint();
+    studentEl.onchange=()=>void refreshHint();
+    monthEl.onchange=()=>void refreshHint();
+    void refreshHint();
   };
   document.querySelector('[data-action="payment-new"]')?.addEventListener('click',()=>openPayment());
   document.querySelectorAll('[data-action="payment-prefill"]').forEach(b=>b.onclick=()=>openPayment(b.dataset.id));
