@@ -7,7 +7,7 @@ on:
       - ".cloudflare/control.json"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   inspect-cloudflare:
@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Validate configured secrets
         shell: bash
@@ -31,9 +33,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p cloudflare-report
+          mkdir -p .cloudflare
 
-          verify="$(curl --fail-with-body -sS             "https://api.cloudflare.com/client/v4/user/tokens/verify"             -H "Authorization: Bearer $CF_API_TOKEN"             -H "Content-Type: application/json")"
+          verify="$(curl -sS             "https://api.cloudflare.com/client/v4/user/tokens/verify"             -H "Authorization: Bearer $CF_API_TOKEN"             -H "Content-Type: application/json")"
 
           if [ "$(jq -r '.success' <<<"$verify")" != "true" ]; then
             echo "Cloudflare token verification failed."
@@ -41,7 +43,7 @@ jobs:
             exit 1
           fi
 
-          projects="$(curl --fail-with-body -sS             "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/pages/projects"             -H "Authorization: Bearer $CF_API_TOKEN"             -H "Content-Type: application/json")"
+          projects="$(curl -sS             "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/pages/projects"             -H "Authorization: Bearer $CF_API_TOKEN"             -H "Content-Type: application/json")"
 
           if [ "$(jq -r '.success' <<<"$projects")" != "true" ]; then
             echo "Unable to list Cloudflare Pages projects."
@@ -49,7 +51,7 @@ jobs:
             exit 1
           fi
 
-          jq -n             --arg verified "$(jq -r '.result.status // "unknown"' <<<"$verify")"             --argjson projects "$(jq '[.result[] | {
+          jq -n             --arg generated_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)"             --arg token_status "$(jq -r '.result.status // "unknown"' <<<"$verify")"             --argjson projects "$(jq '[.result[] | {
               name,
               subdomain,
               production_branch,
@@ -66,18 +68,33 @@ jobs:
                 } else null end
               )
             }]' <<<"$projects")"             '{
-              token_status: $verified,
+              generated_at: $generated_at,
+              token_status: $token_status,
               pages_project_count: ($projects | length),
               pages_projects: $projects
-            }' > cloudflare-report/cloudflare-report.json
+            }' > .cloudflare/latest-report.json
 
           echo "Cloudflare connection verified."
-          jq '.' cloudflare-report/cloudflare-report.json
+          jq '.' .cloudflare/latest-report.json
+
+      - name: Commit sanitized report
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "vision-cloudflare-bot"
+          git config user.email "vision-cloudflare-bot@users.noreply.github.com"
+          git add .cloudflare/latest-report.json
+          if git diff --cached --quiet; then
+            echo "No report changes to commit."
+          else
+            git commit -m "Update Cloudflare read-only report [skip ci]"
+            git push origin HEAD:main
+          fi
 
       - name: Upload sanitized Cloudflare report
         uses: actions/upload-artifact@v4
         with:
           name: cloudflare-readonly-report
-          path: cloudflare-report/cloudflare-report.json
+          path: .cloudflare/latest-report.json
           if-no-files-found: error
           retention-days: 7
