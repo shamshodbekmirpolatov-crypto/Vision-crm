@@ -806,7 +806,7 @@ function detailRow(label,value){return '<div class="detail-row"><span>'+esc(labe
 async function groupsPage(){
   const [groups,staff,students]=await Promise.all([
     query(sb.from('groups').select('*, staff(full_name)').order('name')),
-    can('owner','admin')?query(sb.from('staff').select('id,full_name,role_title,active').eq('active',true).order('full_name')):Promise.resolve([]),
+    can('owner','admin')?query(sb.from('staff').select('id,full_name,role_title,active').eq('active',true).eq('role_title','Teacher').order('full_name')):Promise.resolve([]),
     query(sb.from('students').select('id,group_id,status').eq('status','active'))
   ]);
   const rows=groups.map(g=>{const n=students.filter(s=>s.group_id===g.id).length;return '<tr><td><strong>'+esc(g.name)+'</strong><div class="muted">'+esc(g.level||'')+'</div></td><td>'+esc(formattedGroupSchedule(g))+'</td><td>'+esc(g.staff?.full_name||'—')+'</td><td>'+n+' / '+g.capacity+'</td><td class="num">'+fmtMoney(g.default_monthly_fee)+'</td><td><span class="badge '+(g.active?'success':'')+'">'+(g.active?'Active':'Inactive')+'</span></td><td>'+(can('owner','admin')?actionButton('Edit','group-edit',g.id):'')+'</td></tr>';}).join('');
