@@ -125,7 +125,7 @@ button{cursor:pointer}
 .empty-progress strong{display:block;color:#36566d;font-size:16px;margin-bottom:5px}
 .empty-progress p{margin:0;max-width:390px;font-size:11px;line-height:1.6}
 .teacher-note{padding:13px 14px;border-radius:12px;background:#f3f8fb;border:1px solid #e1eaf0;color:#536f82;font-size:10px;line-height:1.6}
-.student-toast{position:fixed;right:18px;bottom:18px;background:#0c3b5b;color:#fff;padding:11px 14px;border-radius:10px;box-shadow:var(--shadow);opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none;font-size:11px}
+.student-toast{position:fixed;right:18px;bottom:18px;background:#0c3b5b;color:#fff;padding:11px 14px;border-radius:10px;box-shadow:var(--shadow);opacity:0;transform:translateY(8px);transition:var(--motion-base) var(--ease-standard);pointer-events:none;font-size:11px}
 .student-toast.show{opacity:1;transform:translateY(0)}
 @media(max-width:950px){
   .student-login{display:block}.student-login-hero{display:none}.student-login-panel{min-height:100vh}
@@ -164,7 +164,7 @@ button{cursor:pointer}
   gap:13px;
   text-align:left;
   box-shadow:0 5px 20px rgba(18,45,70,.05);
-  transition:.18s ease;
+  transition:var(--motion-base) var(--ease-standard);
 }
 .student-picker-card:hover{
   transform:translateY(-2px);
