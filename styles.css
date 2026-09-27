@@ -2,7 +2,9 @@
   --bg:#f4f7fb;--panel:#fff;--panel-2:#f9fbfd;--text:#17212b;--muted:#687789;
   --line:#e4eaf1;--brand:#0f3d5e;--brand-2:#146c94;--accent:#e7f4fb;--success:#147d64;
   --danger:#c33a3a;--warn:#a66a00;--shadow:0 10px 30px rgba(18,45,70,.08);
-  --radius:16px;--sidebar:250px
+  --radius:16px;--sidebar:250px;--primary:var(--brand);
+  --motion-fast:120ms;--motion-base:180ms;--motion-slow:240ms;
+  --ease-premium:cubic-bezier(.22,1,.36,1);--ease-standard:cubic-bezier(.2,.8,.2,1)
 }
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
@@ -59,8 +61,6 @@ a{color:inherit}
 .content{max-width:1600px;margin:0 auto}
 .route-page[hidden]{display:none!important}
 .route-page.active{display:block}
-.route-page.route-panel-in{animation:routePanelIn .09s ease-out}
-@keyframes routePanelIn{from{opacity:.88}to{opacity:1}}
 .cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
 .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:0 4px 14px rgba(18,45,70,.04)}
 .stat-top{display:flex;justify-content:space-between;gap:10px;align-items:center}.stat-label{font-size:12px;color:var(--muted);font-weight:700}.stat-icon{width:34px;height:34px;border-radius:10px;background:var(--accent);display:grid;place-items:center;color:var(--brand)}
@@ -389,8 +389,7 @@ tbody tr:hover{background:#f8fbfd}
 
 /* Student profile drawer */
 .drawer-backdrop{position:fixed;inset:0;background:rgba(5,23,36,.48);backdrop-filter:blur(3px);z-index:120;display:flex;justify-content:flex-end}
-.student-drawer{height:100%;width:min(760px,96vw);background:#f8fafc;box-shadow:-22px 0 60px rgba(3,24,38,.22);display:flex;flex-direction:column;animation:drawerIn .18s ease-out}
-@keyframes drawerIn{from{transform:translateX(30px);opacity:.5}to{transform:translateX(0);opacity:1}}
+.student-drawer{height:100%;width:min(760px,96vw);background:#f8fafc;box-shadow:-22px 0 60px rgba(3,24,38,.22);display:flex;flex-direction:column}
 .drawer-loading{margin:auto;color:var(--muted)}
 .drawer-head{padding:20px 22px 15px;background:#fff;border-bottom:1px solid #e5ebf0}
 .drawer-close{position:absolute;right:18px;top:16px}
@@ -899,13 +898,6 @@ tbody tr:hover{background:#f8fbfd}
 
 
 /* Vision unified premium motion system */
-:root{
-  --motion-fast:120ms;
-  --motion-base:180ms;
-  --motion-slow:240ms;
-  --ease-premium:cubic-bezier(.22,1,.36,1);
-  --ease-standard:cubic-bezier(.2,.8,.2,1);
-}
 .route-page.route-panel-in{animation:visionRouteIn var(--motion-base) var(--ease-premium) both}
 @keyframes visionRouteIn{
   from{opacity:0;transform:translate3d(0,5px,0)}
@@ -980,8 +972,8 @@ tbody tr:hover{background:#f8fbfd}
 /* Smooth feedback while an uncached route is loading */
 .content{position:relative}
 .content.route-pending .route-page.active{
-  opacity:.62;
-  transform:translate3d(0,2px,0);
+  opacity:.94;
+  transform:translate3d(0,1px,0);
   pointer-events:none;
 }
 .content.route-pending::before{
