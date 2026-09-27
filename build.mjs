@@ -6,4 +6,6 @@ for (const file of ["index.html", "styles.css", "app.js", "vision-logo.jpg", "vi
   await copyFile(file, `dist/${file}`);
 }
 
+await copyFile("app.js", "dist/app-current.js");
+
 console.log("Vision CRM static build complete — student practice live refresh enabled.");
