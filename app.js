@@ -1400,7 +1400,10 @@ async function staffPage(){
   const users=userData?.users||[];
   const userMap=new Map(users.map(u=>[u.id,u]));
   const staffWithAccounts=staff.map(s=>({...s,account:s.user_id?userMap.get(s.user_id)||null:null}));
-  const rows=staffWithAccounts.map(s=>'<tr><td><strong>'+esc(s.full_name)+'</strong><div class="muted">'+esc(s.account?.email||'No CRM login')+'</div></td><td>'+esc(s.role_title||'—')+'</td><td>'+esc(s.phone||'—')+'</td><td class="num">'+fmtMoney(s.monthly_salary)+'</td><td><span class="badge '+(s.active?'success':'')+'">'+(s.active?'Active':'Inactive')+'</span></td><td>'+actionButton('Edit','staff-edit',s.id)+'</td></tr>').join('');
+  const rows=staffWithAccounts.map(s=>{
+    const action=canManageStaffRecord(s)?actionButton('Edit','staff-edit',s.id):'<span class="muted">Protected</span>';
+    return '<tr><td><strong>'+esc(s.full_name)+'</strong><div class="muted">'+esc(s.account?.email||'No CRM login')+'</div></td><td>'+esc(s.role_title||'—')+'</td><td>'+esc(s.phone||'—')+'</td><td class="num">'+fmtMoney(s.monthly_salary)+'</td><td><span class="badge '+(s.active?'success':'')+'">'+(s.active?'Active':'Inactive')+'</span></td><td>'+action+'</td></tr>';
+  }).join('');
   setTimeout(()=>bindStaffActions(staffWithAccounts),0);
   const staffTable=tablePage('Staff records','<button class="btn btn-primary" data-action="staff-new">'+uiIcon('plus')+'Add staff</button>',[['Name',''],['Role',''],['Phone',''],['Monthly salary','num'],['Status',''],['','']],rows,'No staff records.');
   const pRows=payroll.map(p=>'<tr><td>'+fmtDate(p.paid_at)+'</td><td>'+esc(p.staff?.full_name||'Staff')+'</td><td>'+new Date(p.salary_month+'T00:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'})+'</td><td class="num">'+fmtMoney(p.amount)+'</td><td>'+esc(p.notes||'—')+'</td></tr>').join('');
