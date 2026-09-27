@@ -197,6 +197,12 @@ function fail(err){
   console.error(err);
   toast(err?.message || 'Something went wrong.','error');
 }
+function invalidateCachedRoutes(exceptRoute=state.route){
+  app.querySelectorAll('.route-page').forEach(panel=>{
+    if(panel.dataset.routePage!==exceptRoute)panel.remove();
+  });
+  routePreloadStarted=false;
+}
 function closeModal(immediate=false){
   clearTimeout(modalRoot._closeTimer);
   const layer=modalRoot.firstElementChild;
@@ -227,8 +233,17 @@ function openModal(title, body, onSubmit, submitLabel='Save'){
   modalRoot.querySelector('#modal-form').onsubmit=async e=>{
     e.preventDefault();
     const btn=e.currentTarget.querySelector('[type=submit]'); btn.disabled=true; btn.textContent='Saving…';
-    try{ await onSubmit(e.currentTarget); closeModal(); await renderRoute(); toast('Saved successfully.'); }
-    catch(err){ fail(err); btn.disabled=false; btn.textContent=submitLabel; }
+    try{
+      await onSubmit(e.currentTarget);
+      invalidateCachedRoutes();
+      closeModal();
+      await renderRoute();
+      toast('Saved successfully.');
+    }catch(err){
+      fail(err);
+      btn.disabled=false;
+      btn.textContent=submitLabel;
+    }
   };
 }
 document.addEventListener('keydown',e=>{
@@ -1268,7 +1283,10 @@ function setupAttendance(students,groups,groupId){
     save.disabled=true;save.textContent='Saving…';
     try{
       const payload=rows.map(r=>({student_id:r.dataset.student,lesson_date:dateEl.value,status:r.querySelector('.att-status').value,notes:r.querySelector('.att-note').value||null,marked_by:state.session.user.id}));
-      await query(sb.from('attendance').upsert(payload,{onConflict:'student_id,lesson_date'})); toast('Attendance saved.');
+      await query(sb.from('attendance').upsert(payload,{onConflict:'student_id,lesson_date'}));
+      invalidateCachedRoutes('attendance');
+      scheduleRoutePreload();
+      toast('Attendance saved.');
     }catch(e){fail(e);}finally{save.disabled=false;save.textContent='Save attendance';}
   };
 }
