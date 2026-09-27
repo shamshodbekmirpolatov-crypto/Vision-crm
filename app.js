@@ -38,6 +38,16 @@ const state = {
   },
 };
 
+const ROLE_DEFS = Object.freeze({
+  owner:{label:'Owner',staffTitle:'Owner',ownerLevel:true},
+  senior_manager:{label:'Senior Manager',staffTitle:'Senior Manager',ownerLevel:true},
+  admin:{label:'Administrator',staffTitle:'Administrator',ownerLevel:false},
+  teacher:{label:'Teacher',staffTitle:'Teacher',ownerLevel:false},
+  cashier:{label:'Cashier',staffTitle:'Cashier',ownerLevel:false}
+});
+const ROLE_ORDER = Object.freeze(['owner','senior_manager','admin','teacher','cashier']);
+const GROUP_LEVELS = Object.freeze(['Beginner','Elementary','Pre-Intermediate','Intermediate','Pre-IELTS','IELTS','CEFR']);
+
 const NAV = [
   { id:'dashboard', label:'Dashboard', icon:'⌂', roles:['owner','admin','teacher','cashier'], group:'Overview' },
   { id:'leads', label:'Leads', icon:'◎', roles:['owner','admin'], group:'Students' },
@@ -66,7 +76,7 @@ const PAGE_META = {
   expenses:['Expenses','Operating costs and centre spending'],
   staff:['Staff & Payroll','Team records and salary payments'],
   reports:['Reports','Revenue, costs and operational indicators'],
-  users:['User Accounts','Create administrator, teacher and cashier logins'],
+  users:['User Accounts','Manage Owner, Senior Manager, Administrator, Teacher and Cashier logins'],
   settings:['Settings','Centre name, currency and default fees'],
 };
 
@@ -121,8 +131,27 @@ function uiIcon(name){
 }
 const val = (form, name) => form.elements[name]?.value?.trim?.() ?? form.elements[name]?.value ?? '';
 const checked = (form,name) => !!form.elements[name]?.checked;
-const role = () => state.profile?.role || 'teacher';
-const can = (...roles) => roles.includes(role()) || (role()==='senior_manager' && roles.includes('owner'));
+const role = () => state.profile?.role || 'unknown';
+const isOwnerLevel = (r=role()) => ROLE_DEFS[r]?.ownerLevel === true;
+const can = (...roles) => roles.includes(role()) || (isOwnerLevel() && roles.includes('owner'));
+const roleLabel = r => ROLE_DEFS[r]?.label || humanize(r || 'unknown');
+const roleToStaffTitle = r => ROLE_DEFS[r]?.staffTitle || null;
+const staffTitleToRole = title => ROLE_ORDER.find(r=>ROLE_DEFS[r].staffTitle===title) || null;
+const accountRoleOptions = () => (isOwnerLevel()?ROLE_ORDER:['teacher','cashier']).map(r=>[r,ROLE_DEFS[r].label]);
+const staffRoleOptionsFor = (staff={}) => {
+  if(isOwnerLevel()) return ROLE_ORDER.map(r=>[ROLE_DEFS[r].staffTitle,ROLE_DEFS[r].staffTitle]);
+  const currentRole=staffTitleToRole(staff.role_title);
+  if(staff.user_id && currentRole && !['teacher','cashier'].includes(currentRole)){
+    return [[staff.role_title,staff.role_title]];
+  }
+  return ['teacher','cashier'].map(r=>[ROLE_DEFS[r].staffTitle,ROLE_DEFS[r].staffTitle]);
+};
+const canManageAccountTarget = (targetRole,userId='') => {
+  if(!targetRole || targetRole==='owner' || userId===state.session?.user?.id) return false;
+  return isOwnerLevel()
+    ? ['senior_manager','admin','teacher','cashier'].includes(targetRole)
+    : ['teacher','cashier'].includes(targetRole);
+};
 const withTimeout = (promise, ms=20000, message='The request took too long. Please try again.') => {
   let timer;
   return Promise.race([
@@ -143,16 +172,33 @@ function fail(err){
   console.error(err);
   toast(err?.message || 'Something went wrong.','error');
 }
-function closeModal(){ modalRoot.innerHTML=''; }
+function closeModal(immediate=false){
+  clearTimeout(modalRoot._closeTimer);
+  const layer=modalRoot.firstElementChild;
+  if(!layer)return;
+  const reduceMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  if(immediate||reduceMotion){modalRoot.innerHTML='';return;}
+  layer.classList.add('is-closing');
+  layer.style.pointerEvents='none';
+  modalRoot._closeTimer=setTimeout(()=>{
+    if(modalRoot.firstElementChild===layer)modalRoot.innerHTML='';
+  },180);
+}
+function setModalContent(html){
+  clearTimeout(modalRoot._closeTimer);
+  modalRoot.innerHTML=html;
+}
 function openModal(title, body, onSubmit, submitLabel='Save'){
-  modalRoot.innerHTML = '<div class="modal-backdrop"><div class="modal"><form id="modal-form">'+
-    '<div class="modal-head"><h3>'+esc(title)+'</h3><button class="icon-btn" type="button" data-close>×</button></div>'+
+  setModalContent('<div class="modal-backdrop"><div class="modal" role="dialog" aria-modal="true" aria-label="'+esc(title)+'"><form id="modal-form">'+
+    '<div class="modal-head"><h3>'+esc(title)+'</h3><button class="icon-btn" type="button" data-close aria-label="Close dialog">×</button></div>'+
     '<div class="modal-body">'+body+'</div>'+
     '<div class="modal-foot"><button class="btn btn-secondary" type="button" data-close>Cancel</button><button class="btn btn-primary" type="submit">'+esc(submitLabel)+'</button></div>'+
-    '</form></div></div>';
+    '</form></div></div>');
   bindPasswordToggle(modalRoot);
-  modalRoot.querySelectorAll('[data-close]').forEach(b=>b.onclick=closeModal);
+  modalRoot.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal());
   modalRoot.querySelector('.modal-backdrop').onclick=e=>{ if(e.target.classList.contains('modal-backdrop')) closeModal(); };
+  const firstControl=modalRoot.querySelector('.modal-body input:not([type="hidden"]):not(:disabled),.modal-body select:not(:disabled),.modal-body textarea:not(:disabled)');
+  if(firstControl)requestAnimationFrame(()=>firstControl.focus({preventScroll:true}));
   modalRoot.querySelector('#modal-form').onsubmit=async e=>{
     e.preventDefault();
     const btn=e.currentTarget.querySelector('[type=submit]'); btn.disabled=true; btn.textContent='Saving…';
@@ -160,16 +206,22 @@ function openModal(title, body, onSubmit, submitLabel='Save'){
     catch(err){ fail(err); btn.disabled=false; btn.textContent=submitLabel; }
   };
 }
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&modalRoot.firstElementChild)closeModal();
+});
 function field(label,name,value='',type='text',extra=''){
-  return '<div class="field"><label>'+esc(label)+'</label><input class="input" type="'+type+'" name="'+name+'" value="'+esc(value)+'" '+extra+'></div>';
+  const id='field-'+name;
+  return '<div class="field"><label for="'+esc(id)+'">'+esc(label)+'</label><input id="'+esc(id)+'" class="input" type="'+type+'" name="'+name+'" value="'+esc(value)+'" '+extra+'></div>';
 }
 function selectField(label,name,options,value=''){
-  return '<div class="field"><label>'+esc(label)+'</label><select class="select" name="'+name+'">'+options.map(o=>{
+  const id='field-'+name;
+  return '<div class="field"><label for="'+esc(id)+'">'+esc(label)+'</label><select id="'+esc(id)+'" class="select" name="'+name+'">'+options.map(o=>{
     const [v,l]=Array.isArray(o)?o:[o,o]; return '<option value="'+esc(v)+'" '+(String(v)===String(value)?'selected':'')+'>'+esc(l)+'</option>';
   }).join('')+'</select></div>';
 }
 function textArea(label,name,value=''){
-  return '<div class="field span-2"><label>'+esc(label)+'</label><textarea class="textarea" name="'+name+'">'+esc(value)+'</textarea></div>';
+  const id='field-'+name;
+  return '<div class="field span-2"><label for="'+esc(id)+'">'+esc(label)+'</label><textarea id="'+esc(id)+'" class="textarea" name="'+name+'">'+esc(value)+'</textarea></div>';
 }
 function actionButton(label,action,id,kind='secondary'){
   return '<button class="btn btn-sm btn-'+kind+'" data-action="'+action+'" data-id="'+esc(id)+'">'+esc(label)+'</button>';
@@ -183,11 +235,17 @@ async function loadIdentity(){
     query(sb.from('profiles').select('*').eq('id',uid).maybeSingle()),
     query(sb.from('staff').select('*').eq('user_id',uid).maybeSingle())
   ]);
-  state.profile=profile || {id:uid,full_name:state.session.user.email,role:'teacher'};
+  if(!profile || !ROLE_DEFS[profile.role]){
+    throw new Error('This account does not have a valid Vision CRM access profile. Contact the Owner.');
+  }
+  if(!staff || staff.active!==true){
+    throw new Error('This CRM account is inactive or is not linked to an active staff record.');
+  }
+  state.profile=profile;
   state.staff=staff;
 }
 function allowedRoutes(){
-  return NAV.filter(n=>n.roles.includes(role()) || (role()==='senior_manager' && n.roles.includes('owner')));
+  return NAV.filter(n=>n.roles.includes(role()) || (isOwnerLevel() && n.roles.includes('owner')));
 }
 function shellContext(){
   const meta=PAGE_META[state.route]||['Vision CRM',''];
@@ -819,7 +877,7 @@ function groupForm(g={},staff=[]){
   const dayChecks='<div class="field span-2"><label>Teaching days</label><div class="weekday-checks">'+days.map(d=>'<label class="inline-check weekday-check"><input type="checkbox" name="meeting_days" value="'+d+'" '+(selected.has(d)?'checked':'')+'> '+d+'</label>').join('')+'</div></div>';
   return '<div class="form-cols">'+
     field('Group name','name',g.name||'','','required')+
-    selectField('Level','level',[['','Not set'],['Beginner','Beginner'],['Elementary','Elementary'],['Pre-Intermediate','Pre-Intermediate'],['Intermediate','Intermediate'],['Pre-IELTS','Pre-IELTS'],['IELTS','IELTS'],['CEFR','CEFR']],g.level||'')+
+    selectField('Level','level',[['','Not set'],...GROUP_LEVELS.map(level=>[level,level])],g.level||'')+
     dayChecks+
     field('Start time','start_time',g.start_time?String(g.start_time).slice(0,5):'','time','required')+
     field('End time','end_time',g.end_time?String(g.end_time).slice(0,5):'','time','required')+
@@ -1129,7 +1187,7 @@ async function academicPage(){
 }
 
 
-const READING_TARGET_LEVELS=['Elementary','Pre-Intermediate','CEFR','Intermediate','Pre-IELTS','IELTS'];
+const READING_TARGET_LEVELS=GROUP_LEVELS.filter(level=>level!=='Beginner');
 const READING_US_VOICES=[
   ['af_heart','Heart — American female'],
   ['af_bella','Bella — American female'],
