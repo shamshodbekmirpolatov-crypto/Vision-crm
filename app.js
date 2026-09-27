@@ -331,8 +331,8 @@ function renderShell(content,routeName=state.route,activate=true){
           '<div class="app-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision CRM</strong><span>Vision Learning Centre</span></div></div>'+
           '<div class="app-user">'+
             '<button type="button" class="btn btn-secondary desktop-only" id="refresh">'+uiIcon('refresh')+'<span>Refresh</span></button>'+
-            '<span class="role-chip desktop-only">'+esc(humanize(role()))+'</span>'+
-            '<div class="user-chip"><div class="avatar">'+esc(initials(state.profile?.full_name))+'</div><div class="user-chip-copy"><strong>'+esc(state.profile?.full_name||'User')+'</strong><span>'+esc(humanize(role()))+'</span></div></div>'+
+            '<span class="role-chip desktop-only">'+esc(roleLabel(role()))+'</span>'+
+            '<div class="user-chip"><div class="avatar">'+esc(initials(state.profile?.full_name))+'</div><div class="user-chip-copy"><strong>'+esc(state.profile?.full_name||'User')+'</strong><span>'+esc(roleLabel(role()))+'</span></div></div>'+
             '<button type="button" id="signout" class="icon-btn signout-icon" title="Sign out" aria-label="Sign out">'+uiIcon('logout')+'</button>'+
           '</div>'+
         '</div>'+
@@ -350,7 +350,7 @@ function go(routeName){
   if(!allowedRoutes().some(n=>n.id===routeName)) routeName='dashboard';
   if(state.route===routeName && app.querySelector('.top-shell')) return;
   state.route=routeName; state.sidebarOpen=false;
-  history.replaceState(null,'','#'+routeName);
+  history.pushState({route:routeName},'','#'+routeName);
   updateShellChrome();
   const cached=routePanel(routeName);
   if(cached){
@@ -361,9 +361,21 @@ function go(routeName){
   }
   void renderRoute(false,true);
 }
+window.addEventListener('popstate',()=>{
+  if(!state.session)return;
+  const hash=(location.hash||'').replace('#','');
+  const next=allowedRoutes().some(n=>n.id===hash)?hash:'dashboard';
+  if(next===state.route)return;
+  state.route=next;
+  state.sidebarOpen=false;
+  updateShellChrome();
+  if(routePanel(next))activateRoutePanel(next);
+  else void renderRoute(false,true);
+});
 
 function passwordInput(label,name,extra=''){
-  return '<div class="field"><label>'+esc(label)+'</label><div class="password-wrap"><input class="input password-input" type="password" name="'+name+'" '+extra+'><button class="password-toggle" type="button" aria-label="Show password" title="Show password"><span class="eye-open">◉</span><span class="eye-closed">—</span></button></div></div>';
+  const id='field-'+name;
+  return '<div class="field"><label for="'+esc(id)+'">'+esc(label)+'</label><div class="password-wrap"><input id="'+esc(id)+'" class="input password-input" type="password" name="'+name+'" '+extra+'><button class="password-toggle" type="button" aria-label="Show password" title="Show password"><span class="eye-open">◉</span><span class="eye-closed">—</span></button></div></div>';
 }
 function bindPasswordToggle(root=document){
   root.querySelectorAll('.password-toggle').forEach(btn=>{
@@ -803,7 +815,7 @@ function openStudentPayment(student){
 }
 async function openStudentProfile(studentId,tab='overview',groups=[]){
   try{
-    modalRoot.innerHTML='<div class="drawer-backdrop"><aside class="student-drawer"><div class="drawer-loading">Loading student profile…</div></aside></div>';
+    setModalContent('<div class="drawer-backdrop"><aside class="student-drawer" role="dialog" aria-modal="true" aria-label="Student profile"><div class="drawer-loading">Loading student profile…</div></aside></div>');
     modalRoot.querySelector('.drawer-backdrop').onclick=e=>{if(e.target.classList.contains('drawer-backdrop'))closeModal();};
     const monthFirst=monthStart();
     const ninety=new Date();ninety.setDate(ninety.getDate()-90);
@@ -847,12 +859,12 @@ async function openStudentProfile(studentId,tab='overview',groups=[]){
     }else{
       body='<div class="profile-notes">'+(student.notes?'<p>'+esc(student.notes).replace(/\n/g,'<br>')+'</p>':empty('No student notes yet.'))+'</div>';
     }
-    modalRoot.innerHTML='<div class="drawer-backdrop"><aside class="student-drawer">'+
+    setModalContent('<div class="drawer-backdrop"><aside class="student-drawer" role="dialog" aria-modal="true" aria-label="'+esc(student.full_name)+' profile">'+
       '<div class="drawer-head"><button class="icon-btn drawer-close" aria-label="Close">×</button><div class="profile-hero"><div class="student-avatar large">'+esc(initials(student.full_name))+'</div><div><h3>'+esc(student.full_name)+'</h3><p>'+esc(student.groups?.name||'Unassigned')+' · '+esc(student.grade_or_age||'Student')+'</p><div class="profile-badges"><span class="badge '+(student.status==='active'?'success':student.status==='paused'?'warn':'')+'">'+humanize(student.status)+'</span>'+(can('owner','admin','cashier')?'<span class="badge payment-'+paymentStatus+'">'+humanize(paymentStatus)+'</span>':'')+'</div></div></div>'+
       '<div class="drawer-actions">'+(can('owner','admin','cashier')&&!student.is_free_place?'<button class="btn btn-primary" data-profile-action="payment">'+uiIcon('payments')+'Payment</button>':'')+(can('owner','admin','cashier')?'<button class="btn btn-secondary" data-profile-action="edit">Edit</button>':'')+'</div></div>'+
       '<nav class="drawer-tabs">'+tabNav+'</nav><div class="drawer-body">'+body+'</div>'+
-    '</aside></div>';
-    modalRoot.querySelector('.drawer-close').onclick=closeModal;
+    '</aside></div>');
+    modalRoot.querySelector('.drawer-close').onclick=()=>closeModal();
     modalRoot.querySelector('.drawer-backdrop').onclick=e=>{if(e.target.classList.contains('drawer-backdrop'))closeModal();};
     modalRoot.querySelectorAll('[data-profile-tab]').forEach(b=>b.onclick=()=>openStudentProfile(student.id,b.dataset.profileTab,groups));
     modalRoot.querySelector('[data-profile-action="payment"]')?.addEventListener('click',()=>{closeModal();openStudentPayment(student);});
@@ -1322,7 +1334,8 @@ async function staffPage(){
     query(sb.from('payroll').select('*, staff(full_name)').order('paid_at',{ascending:false}).limit(300)),
     sb.functions.invoke('manage-users',{body:{action:'list'}})
   ]);
-  const users=userResult.error?[]:(userResult.data?.users||[]);
+  if(userResult.error)throw userResult.error;
+  const users=userResult.data?.users||[];
   const userMap=new Map(users.map(u=>[u.id,u]));
   const staffWithAccounts=staff.map(s=>({...s,account:s.user_id?userMap.get(s.user_id)||null:null}));
   const rows=staffWithAccounts.map(s=>'<tr><td><strong>'+esc(s.full_name)+'</strong><div class="muted">'+esc(s.account?.email||'No CRM login')+'</div></td><td>'+esc(s.role_title||'—')+'</td><td>'+esc(s.phone||'—')+'</td><td class="num">'+fmtMoney(s.monthly_salary)+'</td><td><span class="badge '+(s.active?'success':'')+'">'+(s.active?'Active':'Inactive')+'</span></td><td>'+actionButton('Edit','staff-edit',s.id)+'</td></tr>').join('');
@@ -1333,40 +1346,41 @@ async function staffPage(){
   return staffTable+'<div style="height:16px"></div>'+tablePage('Payroll history',staff.some(s=>s.active)?'<button class="btn btn-primary" data-action="payroll-new">'+uiIcon('plus')+'Record salary</button>':'<button class="btn btn-primary" disabled>No active staff</button>',[['Paid on',''],['Staff',''],['Salary month',''],['Amount','num'],['Notes','']],pRows,'No payroll entries.');
 }
 function staffForm(s={}){
-  const staffRoleOptions=(can('owner')||s.role_title==='Owner'||s.role_title==='Senior Manager')
-    ? [['Owner','Owner'],['Senior Manager','Senior Manager'],['Administrator','Administrator'],['Teacher','Teacher'],['Cashier','Cashier']]
-    : [['Administrator','Administrator'],['Teacher','Teacher'],['Cashier','Cashier']];
+  const isCurrentLinked=s.user_id&&s.user_id===state.session?.user?.id;
+  const roleOptions=isCurrentLinked&&s.role_title
+    ? [[s.role_title,s.role_title]]
+    : staffRoleOptionsFor(s);
   const accountSection=s.user_id
-    ? '<div class="span-2 linked-account-box"><div><strong>Linked CRM account</strong><span>This staff member can sign in to Vision CRM.</span></div><span class="badge info">'+esc(humanize(s.account?.role||''))+'</span></div>'+
+    ? '<div class="span-2 linked-account-box"><div><strong>Linked CRM account</strong><span>CRM access follows the Role field automatically, so the two cannot contradict each other.</span></div><span class="badge info">'+esc(roleLabel(s.account?.role||staffTitleToRole(s.role_title)))+'</span></div>'+
       field('Email address','email',s.account?.email||'','email','required')+
-      selectField('CRM access role','account_role',can('owner')?[['owner','Owner'],['senior_manager','Senior Manager'],['admin','Administrator'],['teacher','Teacher'],['cashier','Cashier']]:[['teacher','Teacher'],['cashier','Cashier']],s.account?.role||((s.role_title||'').toLowerCase().includes('owner')?'owner':(s.role_title||'').toLowerCase().includes('senior manager')?'senior_manager':(s.role_title||'').toLowerCase().includes('admin')?'admin':(s.role_title||'').toLowerCase().includes('cash')?'cashier':'teacher'))
+      '<div class="field span-2"><div class="section-note" style="margin:0">Login status is managed centrally in <strong>User Accounts</strong>. This prevents a staff record from being inactive while its login remains active, or vice versa.</div></div>'
     : '<div class="span-2 linked-account-box muted-account"><div><strong>No CRM login linked</strong><span>This staff profile does not currently have a login account.</span></div></div>';
+  const statusField=s.user_id
+    ? '<div class="field"><label>Status</label><div class="account-status-readonly"><span class="badge '+(s.active?'success':'danger')+'">'+(s.active?'Active':'Inactive')+'</span><small>Managed in User Accounts</small></div></div>'
+    : '<div class="field"><label>Status</label><label class="inline-check"><input type="checkbox" name="active" '+(s.active!==false?'checked':'')+'> Active staff member</label></div>';
   return '<div class="form-cols">'+
     field('Full name','full_name',s.full_name||'','','required')+
-    selectField('Role','role_title',staffRoleOptions,s.role_title||'Teacher')+
+    selectField('Role','role_title',roleOptions,s.role_title||'Teacher')+
     field('Phone','phone',s.phone||'','tel')+
     field('Monthly salary','monthly_salary',s.monthly_salary??0,'number','min="0"')+
     field('Start date','start_date',s.start_date||'','date')+
-    '<div class="field"><label>Status</label><label class="inline-check"><input type="checkbox" name="active" '+(s.active!==false?'checked':'')+'> Active staff member</label></div>'+
+    statusField+
     accountSection+
   '</div>';
 }
 function bindStaffActions(staff){
-  document.querySelector('[data-action=staff-new]')?.addEventListener('click',()=>openModal('Add staff member',staffForm(),async f=>query(sb.from('staff').insert({full_name:val(f,'full_name'),role_title:val(f,'role_title')||null,phone:val(f,'phone')||null,monthly_salary:Number(val(f,'monthly_salary')||0),start_date:val(f,'start_date')||null,active:checked(f,'active')}))));
+  document.querySelector('[data-action="staff-new"]')?.addEventListener('click',()=>openModal('Add staff member',staffForm(),async f=>query(sb.from('staff').insert({full_name:val(f,'full_name'),role_title:val(f,'role_title')||null,phone:val(f,'phone')||null,monthly_salary:Number(val(f,'monthly_salary')||0),start_date:val(f,'start_date')||null,active:checked(f,'active')}))));
   document.querySelectorAll('[data-action=staff-edit]').forEach(b=>b.onclick=()=>{
     const s=staff.find(x=>x.id===b.dataset.id);
-    const footer='<div class="danger-zone"><div><strong>Permanent deletion</strong><span>Only available if this person has no CRM history or active assignments.</span></div><button type="button" class="btn btn-danger" id="staff-delete">Delete permanently</button></div>';
+    const canDelete=!s.user_id||canManageAccountTarget(s.account?.role,s.user_id);
+    const footer=canDelete?'<div class="danger-zone"><div><strong>Permanent deletion</strong><span>Only available if this person has no CRM history or active assignments.</span></div><button type="button" class="btn btn-danger" id="staff-delete">Delete permanently</button></div>':'';
     openModal('Edit staff member',staffForm(s)+footer,async f=>{
       const fullName=val(f,'full_name');
       const phone=val(f,'phone')||null;
-      await query(sb.from('staff').update({
-        full_name:fullName,
-        role_title:val(f,'role_title')||null,
-        phone,
-        monthly_salary:Number(val(f,'monthly_salary')||0),
-        start_date:val(f,'start_date')||null,
-        active:checked(f,'active')
-      }).eq('id',s.id));
+      const nextTitle=val(f,'role_title')||null;
+      const nextRole=staffTitleToRole(nextTitle);
+      if(!nextRole)throw new Error('Choose a valid staff role.');
+
       if(s.user_id){
         const {data,error}=await sb.functions.invoke('manage-users',{body:{
           action:'edit_account',
@@ -1374,10 +1388,23 @@ function bindStaffActions(staff){
           full_name:fullName,
           email:val(f,'email'),
           phone,
-          role:val(f,'account_role')
+          role:nextRole
         }});
         if(error)throw error;
         if(data?.error)throw new Error(data.error);
+        await query(sb.from('staff').update({
+          monthly_salary:Number(val(f,'monthly_salary')||0),
+          start_date:val(f,'start_date')||null
+        }).eq('id',s.id));
+      }else{
+        await query(sb.from('staff').update({
+          full_name:fullName,
+          role_title:nextTitle,
+          phone,
+          monthly_salary:Number(val(f,'monthly_salary')||0),
+          start_date:val(f,'start_date')||null,
+          active:checked(f,'active')
+        }).eq('id',s.id));
       }
     });
     document.getElementById('staff-delete')?.addEventListener('click',()=>{
@@ -1462,15 +1489,24 @@ async function usersPage(){
   const {data,error}=userResult;
   if(error) throw error;
   const users=data?.users||[];
-  const rows=users.map(u=>'<tr><td><strong>'+esc(u.full_name||'—')+'</strong><div class="muted">'+esc(u.email||'')+'</div></td><td><span class="badge info">'+esc(humanize(u.role))+'</span></td><td><span class="badge '+(u.active?'success':'danger')+'">'+(u.active?'Active':'Inactive')+'</span></td><td>'+fmtDate((u.last_sign_in_at||'').slice(0,10))+'</td><td>'+(u.id!==state.session.user.id?'<div class="action-row">'+actionButton('Edit','user-edit',u.id)+actionButton('Change role','user-role',u.id)+(u.active?actionButton('Deactivate','user-deactivate',u.id,'danger'):'<span class="muted">Deactivated</span>')+'</div>':'<span class="muted">Current user</span>')+'</td></tr>').join('');
+  const rows=users.map(u=>{
+    const manageable=canManageAccountTarget(u.role,u.id);
+    const actions=u.id===state.session.user.id
+      ? '<span class="muted">Current user</span>'
+      : manageable
+        ? '<div class="action-row">'+actionButton('Edit','user-edit',u.id)+actionButton('Change role','user-role',u.id)+(u.active?actionButton('Deactivate','user-status',u.id,'danger'):actionButton('Activate','user-status',u.id,'secondary'))+'</div>'
+        : '<span class="muted">Protected account</span>';
+    return '<tr><td><strong>'+esc(u.full_name||'—')+'</strong><div class="muted">'+esc(u.email||'')+'</div></td><td><span class="badge info">'+esc(roleLabel(u.role))+'</span></td><td><span class="badge '+(u.active?'success':'danger')+'">'+(u.active?'Active':'Inactive')+'</span></td><td>'+fmtDate((u.last_sign_in_at||'').slice(0,10))+'</td><td>'+actions+'</td></tr>';
+  }).join('');
   setTimeout(()=>bindUserActions(users,staff),0);
   return '<div class="section-note"><strong>Staff access</strong><br>Create Owner, Senior Manager, Administrator, Teacher or Cashier login accounts and link them to an existing staff record when possible. Owner-level users can assign Owner, Senior Manager or Administrator access.</div>'+tablePage('Login accounts','<button class="btn btn-primary" data-action="user-new">'+uiIcon('plus')+'Create account</button>',[['User',''],['Role',''],['Status',''],['Last sign-in',''],['','']],rows,'No accounts found.');
 }
 function bindUserActions(users,staff){
   document.querySelector('[data-action=user-new]')?.addEventListener('click',()=>{
-    const available=staff.filter(s=>s.active&&!s.user_id);
+    const allowedRoleSet=new Set(accountRoleOptions().map(([value])=>value));
+    const available=staff.filter(s=>s.active&&!s.user_id&&allowedRoleSet.has(staffTitleToRole(s.role_title)));
     const staffOptions=[['','Create a new staff record'],...available.map(s=>[s.id,s.full_name+' — '+(s.role_title||'Staff')])];
-    openModal('Create login account','<div class="form-cols">'+selectField('Link staff record','staff_id',staffOptions,'')+field('Full name','full_name','','','required')+field('Email','email','','email','required')+passwordInput('Temporary password','password','required minlength="8" autocomplete="new-password"')+field('Phone','phone','','tel')+selectField('Role','role',can('owner')?[['owner','Owner'],['senior_manager','Senior Manager'],['admin','Administrator'],['teacher','Teacher'],['cashier','Cashier']]:[['teacher','Teacher'],['cashier','Cashier']],'teacher')+'</div>',async f=>{
+    openModal('Create login account','<div class="form-cols">'+selectField('Link staff record','staff_id',staffOptions,'')+field('Full name','full_name','','','required')+field('Email','email','','email','required')+passwordInput('Temporary password','password','required minlength="8" autocomplete="new-password"')+field('Phone','phone','','tel')+selectField('Role','role',accountRoleOptions(),'teacher')+'</div>',async f=>{
       const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'create',full_name:val(f,'full_name'),email:val(f,'email'),password:val(f,'password'),phone:val(f,'phone'),role:val(f,'role'),staff_id:val(f,'staff_id')||null}});
       if(error){
         try{
@@ -1489,8 +1525,8 @@ function bindUserActions(users,staff){
       if(!s)return;
       modalRoot.querySelector('[name=full_name]').value=s.full_name||'';
       modalRoot.querySelector('[name=phone]').value=s.phone||'';
-      const rt=(s.role_title||'').toLowerCase();
-      modalRoot.querySelector('[name=role]').value=rt.includes('owner')&&can('owner')?'owner':rt.includes('senior manager')&&can('owner')?'senior_manager':rt.includes('admin')&&can('owner')?'admin':rt.includes('cash')?'cashier':'teacher';
+      const linkedRole=staffTitleToRole(s.role_title);
+      if(linkedRole&&allowedRoleSet.has(linkedRole))modalRoot.querySelector('[name=role]').value=linkedRole;
     };
   });
   document.querySelectorAll('[data-action=user-edit]').forEach(b=>b.onclick=()=>{
@@ -1500,7 +1536,7 @@ function bindUserActions(users,staff){
       field('Full name','full_name',u.full_name||'','','required')+
       field('Email address','email',u.email||'','email','required')+
       field('Phone','phone',s?.phone||'','tel')+
-      selectField('Role','role',can('owner')?[['owner','Owner'],['senior_manager','Senior Manager'],['admin','Administrator'],['teacher','Teacher'],['cashier','Cashier']]:[['teacher','Teacher'],['cashier','Cashier']],u.role)+
+      selectField('Role','role',accountRoleOptions(),u.role)+
       '<div class="span-2 section-note">This updates the linked CRM login and staff profile together.</div>'+
     '</div>',async f=>{
       const {data,error}=await sb.functions.invoke('manage-users',{body:{
@@ -1515,8 +1551,28 @@ function bindUserActions(users,staff){
       if(data?.error)throw new Error(data.error);
     },'Save changes');
   });
-  document.querySelectorAll('[data-action=user-role]').forEach(b=>b.onclick=()=>{const u=users.find(x=>x.id===b.dataset.id);openModal('Change role',selectField('Role','role',can('owner')?[['owner','Owner'],['senior_manager','Senior Manager'],['admin','Administrator'],['teacher','Teacher'],['cashier','Cashier']]:[['teacher','Teacher'],['cashier','Cashier']],u.role),async f=>{const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'set_role',user_id:u.id,role:val(f,'role')}});if(error)throw error;if(data?.error)throw new Error(data.error);},'Update role');});
-  document.querySelectorAll('[data-action=user-deactivate]').forEach(b=>b.onclick=async()=>{if(!confirm('Deactivate this user account?'))return;try{const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'deactivate',user_id:b.dataset.id}});if(error)throw error;if(data?.error)throw new Error(data.error);await renderRoute();toast('Account deactivated.');}catch(e){fail(e);}});
+  document.querySelectorAll('[data-action=user-role]').forEach(b=>b.onclick=()=>{
+    const u=users.find(x=>x.id===b.dataset.id);
+    openModal('Change role',selectField('Role','role',accountRoleOptions(),u.role),async f=>{
+      const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'set_role',user_id:u.id,role:val(f,'role')}});
+      if(error)throw error;
+      if(data?.error)throw new Error(data.error);
+    },'Update role');
+  });
+  document.querySelectorAll('[data-action=user-status]').forEach(b=>b.onclick=async()=>{
+    const u=users.find(x=>x.id===b.dataset.id);
+    if(!u)return;
+    const nextActive=!u.active;
+    if(!confirm((nextActive?'Activate ':'Deactivate ')+(u.full_name||'this account')+'?'))return;
+    try{
+      b.disabled=true;
+      const {data,error}=await sb.functions.invoke('manage-users',{body:{action:'set_active',user_id:u.id,active:nextActive}});
+      if(error)throw error;
+      if(data?.error)throw new Error(data.error);
+      await renderRoute();
+      toast('Account '+(nextActive?'activated.':'deactivated.'));
+    }catch(e){fail(e);}finally{b.disabled=false;}
+  });
 }
 
 async function settingsPage(){
