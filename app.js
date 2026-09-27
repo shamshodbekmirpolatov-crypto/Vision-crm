@@ -1124,23 +1124,22 @@ async function studentsPage(){
     const payment_status=s.is_free_place?'free':paid<=0?'unpaid':balance>0?'partial':'paid';
     return {...s,due,paid,balance,payment_status};
   });
-  const visible=decorated.filter(s=>{
-    const matchesStatus=statusFilter==='all'||s.status===statusFilter;
-    const hay=[s.full_name,s.phone,s.mother_phone,s.father_phone,s.grade_or_age,s.groups?.name].filter(Boolean).join(' ').toLowerCase();
-    return matchesStatus&&(!search||hay.includes(search));
-  });
+  const visible=decorated.filter(s=>statusFilter==='all'||s.status===statusFilter);
   const activeCount=decorated.filter(s=>s.status==='active').length;
   const attention=decorated.filter(s=>s.status==='active'&&(s.payment_status==='partial'||s.payment_status==='unpaid')).length;
   const freeCount=decorated.filter(s=>s.status==='active'&&s.is_free_place).length;
   const add=can('owner','admin')?'<button class="btn btn-primary" data-action="student-new">'+uiIcon('plus')+'Add student</button>':'';
-  const rows=visible.map(s=>'<tr class="student-row" data-student-open="'+s.id+'">'+
+  const rows=visible.map(s=>{
+    const searchText=[s.full_name,s.phone,s.mother_phone,s.father_phone,s.grade_or_age,s.groups?.name,s.groups?.staff?.full_name].filter(Boolean).join(' ').toLowerCase();
+    return '<tr class="student-row" data-student-open="'+s.id+'" data-student-search="'+esc(searchText)+'">'+
     '<td><div class="student-identity"><div class="student-avatar">'+esc(initials(s.full_name))+'</div><div><strong>'+esc(s.full_name)+'</strong><span>'+esc(s.phone||s.mother_phone||s.father_phone||'No phone')+'</span></div></div></td>'+
     '<td><span class="course-pill">'+esc(s.groups?.name||'Unassigned')+'</span><div class="muted row-sub">'+esc(s.groups?.staff?.full_name||'No teacher')+'</div></td>'+
     '<td>'+fmtDate(s.join_date)+'</td>'+
     (can('owner','admin','cashier')?'<td class="num"><strong class="'+(s.balance>0?'balance-due':'balance-clear')+'">'+(s.is_free_place?'—':fmtMoney(s.balance))+'</strong><div class="muted row-sub">'+(s.is_free_place?'Free place':s.payment_status==='paid'?'Paid this month':humanize(s.payment_status))+'</div></td>':'')+
     '<td><span class="badge '+(s.status==='active'?'success':s.status==='paused'?'warn':'')+'">'+esc(humanize(s.status))+'</span></td>'+
     '<td class="student-actions"><button class="kebab-btn" data-student-menu="'+s.id+'" title="Student actions" aria-label="Student actions">•••</button></td>'+
-  '</tr>').join('');
+  '</tr>';
+  }).join('');
   setTimeout(()=>bindStudentActions(decorated,groups),0);
   const headers=[['Student',''],['Group',''],['Joined',''],...(can('owner','admin','cashier')?[['Balance','num']]:[]),['Status',''],['','']];
   return '<div class="student-summary">'+
@@ -1157,7 +1156,7 @@ async function studentsPage(){
         '<button class="status-chip '+(statusFilter==='left'?'active':'')+'" data-student-status="left">Left</button>'+
         '<button class="status-chip '+(statusFilter==='all'?'active':'')+'" data-student-status="all">All</button>'+
       '</div></div>'+
-      (rows?'<div class="table-wrap student-table"><table><thead><tr>'+headers.map(h=>'<th class="'+(h[1]||'')+'">'+esc(h[0])+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table></div>':empty('No students match these filters.'))+
+      (rows?'<div class="table-wrap student-table"><table><thead><tr>'+headers.map(h=>'<th class="'+(h[1]||'')+'">'+esc(h[0])+'</th>').join('')+'</tr></thead><tbody>'+rows+'<tr class="student-search-empty" hidden><td colspan="'+headers.length+'"><div class="student-search-empty-message">No students match your search.</div></td></tr></tbody></table></div>':empty('No students match this status filter.'))+
     '</div></section>';
 }
 function studentForm(s={},groups=[]){
@@ -1197,8 +1196,20 @@ function bindStudentActions(students,groups){
   });
   const searchEl=document.getElementById('student-search');
   if(searchEl){
-    let timer;
-    searchEl.oninput=()=>{clearTimeout(timer);timer=setTimeout(()=>{state.filters.studentSearch=searchEl.value;renderRoute();},250);};
+    const applyStudentSearch=()=>{
+      const queryText=searchEl.value.trim().toLowerCase();
+      state.filters.studentSearch=searchEl.value;
+      let shown=0;
+      document.querySelectorAll('.student-table tbody .student-row').forEach(row=>{
+        const matches=!queryText||String(row.dataset.studentSearch||'').includes(queryText);
+        row.hidden=!matches;
+        if(matches)shown++;
+      });
+      const emptyRow=document.querySelector('.student-search-empty');
+      if(emptyRow)emptyRow.hidden=shown!==0;
+    };
+    searchEl.oninput=applyStudentSearch;
+    applyStudentSearch();
   }
   document.querySelectorAll('[data-student-status]').forEach(b=>b.onclick=()=>{state.filters.studentStatus=b.dataset.studentStatus;renderRoute();});
 }
