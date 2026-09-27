@@ -1075,3 +1075,33 @@
     font-size:12px;
   }
 }
+
+
+/* Vision Practice unified motion */
+.practice-view{animation:practicePremiumIn var(--motion-slow,240ms) var(--ease-premium,cubic-bezier(.22,1,.36,1)) both}
+@keyframes practicePremiumIn{
+  from{opacity:0;transform:translate3d(0,4px,0)}
+  to{opacity:1;transform:translate3d(0,0,0)}
+}
+.student-section-tab,.practice-category-row,.practice-category-arrow,.reading-list-row,
+.back-to-practice,.back-to-reading,.translation-toggle,.highlight-button,.article-player-play,
+.article-skip-button,.article-gender-options button,.exercise-options button,.check-answers,
+.retry-exercises,.vocab-word,.vocab-popover{
+  transition:
+    background-color var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,.8,.2,1)),
+    border-color var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,.8,.2,1)),
+    color var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,.8,.2,1)),
+    box-shadow var(--motion-base,180ms) var(--ease-standard,cubic-bezier(.2,.8,.2,1)),
+    opacity var(--motion-fast,120ms) var(--ease-standard,cubic-bezier(.2,.8,.2,1)),
+    transform var(--motion-base,180ms) var(--ease-premium,cubic-bezier(.22,1,.36,1));
+}
+.practice-category-row:active,.reading-list-row:active,.exercise-options button:active,
+.check-answers:active,.retry-exercises:active{transform:translate3d(0,1px,0) scale(.995)}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+    scroll-behavior:auto!important;
+  }
+}
