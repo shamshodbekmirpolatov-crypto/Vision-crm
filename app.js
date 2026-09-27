@@ -80,7 +80,7 @@ const PAGE_META = {
   staff:['Staff & Payroll','Team records and salary payments'],
   reports:['Reports','Revenue, costs and operational indicators'],
   users:['User Accounts','Manage Owner, Senior Manager, Administrator, Teacher and Cashier logins'],
-  settings:['Settings','Centre name, currency and default fees'],
+  settings:['Settings','Centre name, currency and reference fees'],
 };
 
 const fmtMoney = n => new Intl.NumberFormat('en-US',{maximumFractionDigits:0}).format(Number(n||0)) + ' ' + (state.settings?.currency||'so‘m');
@@ -486,10 +486,12 @@ function updateShellChrome(){
   const subnav=document.querySelector('.subnav');
   const title=document.querySelector('.page-title h1');
   const subtitle=document.querySelector('.page-title p');
+  const centreName=document.querySelector('.app-brand span');
   if(category) category.innerHTML=ctx.categoryNav;
   if(subnav) subnav.innerHTML=ctx.subNav;
   if(title) title.textContent=ctx.meta[0];
   if(subtitle) subtitle.textContent=ctx.meta[1];
+  if(centreName)centreName.textContent=state.settings?.centre_name||'Vision Learning Centre';
   bindShellNavigation(ctx);
 }
 function routePanel(routeName){
@@ -539,7 +541,7 @@ function renderShell(content,routeName=state.route,activate=true){
     '<div class="shell top-shell">'+
       '<header class="app-header">'+
         '<div class="app-header-main">'+
-          '<div class="app-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision CRM</strong><span>Vision Learning Centre</span></div></div>'+
+          '<div class="app-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>Vision CRM</strong><span>'+esc(state.settings?.centre_name||'Vision Learning Centre')+'</span></div></div>'+
           '<div class="app-user">'+
             '<button type="button" class="btn btn-secondary desktop-only" id="refresh">'+uiIcon('refresh')+'<span>Refresh</span></button>'+
             '<div class="account-menu-wrap">'+
@@ -2535,7 +2537,7 @@ async function settingsPage(){
       finally{b.disabled=false;b.textContent='Save settings';}
     };
   },0);
-  return '<section class="panel"><div class="panel-head"><div><h2>Centre settings</h2><p>Core values used across the CRM</p></div></div><div class="panel-body"><form id="settings-form"><div class="form-cols">'+
+  return '<section class="panel"><div class="panel-head"><div><h2>Centre settings</h2><p>Centre identity, currency and fee references</p></div></div><div class="panel-body"><form id="settings-form"><div class="form-cols">'+
     field('Centre name','centre_name',s.centre_name,'','required')+
     field('Currency','currency',s.currency,'','required maxlength="12"')+
     field('Grades 3–6 default fee','junior_default_fee',s.junior_default_fee,'number','min="0"')+
