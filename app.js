@@ -388,6 +388,8 @@ function applyCRMTheme(theme=currentCRMTheme()){
   const next=theme==='dark'?'dark':'light';
   document.body.classList.toggle('crm-dark',next==='dark');
   try{localStorage.setItem(CRM_THEME_KEY,next);}catch{}
+  const meta=document.querySelector('meta[name="theme-color"]');
+  if(meta)meta.setAttribute('content',next==='dark'?'#0e1521':'#0f3d5e');
   document.querySelectorAll('[data-crm-theme]').forEach(button=>{
     const active=button.dataset.crmTheme===next;
     button.classList.toggle('active',active);
@@ -510,6 +512,7 @@ function activateRoutePanel(routeName){
   return found;
 }
 function renderShell(content,routeName=state.route,activate=true){
+  document.documentElement.lang='en';
   const ctx=shellContext();
   const existing=app.querySelector('.top-shell');
   if(existing){
@@ -809,6 +812,7 @@ function bindLoginPreferences(){
 }
 function renderLogin(error=''){
   app.className='';
+  document.body.classList.remove('crm-dark');
   const mailIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>';
   const lockIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
   const moonIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.7 6.7 0 0 0 21 12.8Z"/></svg>';
@@ -1873,6 +1877,10 @@ function setupAttendance(students,groups){
     if(button.disabled)return;
     const studentId=button.dataset.student;
     const date=button.dataset.date;
+    if(date>today()){
+      toast('Future lessons cannot be marked yet.','error');
+      return;
+    }
     const key=recordKey(studentId,date);
     const oldRecord=statusMap.get(key)||null;
     const oldStatus=oldRecord?.status||null;
@@ -1964,7 +1972,10 @@ function setupAttendance(students,groups){
           const view=attendanceStatusView(status);
           const d=localCalendarDate(date);
           const displayDate=d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-          return '<td class="attendance-status-cell"><button type="button" class="attendance-cell '+(status||'empty')+'" data-student="'+student.id+'" data-student-name="'+esc(student.full_name)+'" data-date="'+date+'" data-display-date="'+esc(displayDate)+'" data-status="'+status+'" aria-label="'+esc(student.full_name)+' on '+esc(displayDate)+': '+view.label+'. Click to change." title="'+view.label+' · click to change">'+(status?view.label:'—')+'</button></td>';
+          const isFuture=date>todayValue;
+          const futureAttrs=isFuture?' disabled aria-disabled="true"':'';
+          const labelText=isFuture?'Future lesson — not available yet':view.label+'. Click to change';
+          return '<td class="attendance-status-cell"><button type="button" class="attendance-cell '+(status||'empty')+(isFuture?' future':'')+'" data-student="'+student.id+'" data-student-name="'+esc(student.full_name)+'" data-date="'+date+'" data-display-date="'+esc(displayDate)+'" data-status="'+status+'" aria-label="'+esc(student.full_name)+' on '+esc(displayDate)+': '+esc(labelText)+'" title="'+esc(labelText)+'"'+futureAttrs+'>'+(status?view.label:'—')+'</button></td>';
         }).join('');
         return '<tr><th class="attendance-student-head"><div class="student-identity"><div class="student-avatar">'+esc(initials(student.full_name))+'</div><div><strong><span class="attendance-student-number">'+(index+1)+'.</span> '+esc(student.full_name)+'</strong></div></div></th>'+cells+'</tr>';
       }).join('');
