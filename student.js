@@ -288,7 +288,8 @@ async function refreshPortal(view='dashboard'){
       try{await ensurePracticeReady();}catch{}
       if(window.VisionStudentPractice){
         document.documentElement.lang='en';
-        window.VisionStudentPractice.render({
+        const renderer=window.VisionStudentPractice.refresh||window.VisionStudentPractice.render;
+        renderer({
           root:app,
           data:portalData,
           onDashboard:renderPortal,
