@@ -612,9 +612,9 @@ body.crm-dark .attendance-student-number{color:#91a4b5}
 .attendance-cell.late{background:#fff3df;border-color:#eac783;color:#8d5c09}
 .attendance-cell.absent{background:#fdebec;border-color:#e7a5ab;color:#a53640}
 .attendance-cell.saving{opacity:.62;cursor:wait}
-.attendance-cell.future,.attendance-cell:disabled:not(.saving){cursor:not-allowed}
-.attendance-cell.future{background:#f5f7f9;border-color:#e4e9ed;color:#b2bcc5;opacity:.7}
-body.crm-dark .attendance-cell.future{background:#111a27;border-color:#253244;color:#536577;opacity:.72}
+.attendance-cell.future,.attendance-cell.unavailable,.attendance-cell:disabled:not(.saving){cursor:not-allowed}
+.attendance-cell.future,.attendance-cell.unavailable{background:#f5f7f9;border-color:#e4e9ed;color:#b2bcc5;opacity:.7}
+body.crm-dark .attendance-cell.future,body.crm-dark .attendance-cell.unavailable{background:#111a27;border-color:#253244;color:#536577;opacity:.72}
 
 .attendance-grid tbody tr:hover .attendance-student-head{background:#fff!important}
 .attendance-grid tbody tr:focus-within .attendance-student-head{background:#fff!important}
