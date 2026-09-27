@@ -1607,8 +1607,39 @@ function bindUserActions(users,staff){
 
 async function settingsPage(){
   const s=await query(sb.from('centre_settings').select('*').eq('id',1).single());
-  setTimeout(()=>{document.getElementById('settings-form').onsubmit=async e=>{e.preventDefault();const b=e.currentTarget.querySelector('button');b.disabled=true;try{await query(sb.from('centre_settings').update({centre_name:val(e.currentTarget,'centre_name'),currency:val(e.currentTarget,'currency'),junior_default_fee:Number(val(e.currentTarget,'junior_default_fee')||0),senior_default_fee:Number(val(e.currentTarget,'senior_default_fee')||0),updated_at:new Date().toISOString()}).eq('id',1));toast('Settings updated.');}catch(err){fail(err);}finally{b.disabled=false;}};},0);
-  return '<section class="panel"><div class="panel-head"><div><h2>Centre settings</h2><p>Core values used across the CRM</p></div></div><div class="panel-body"><form id="settings-form"><div class="form-cols">'+field('Centre name','centre_name',s.centre_name,'','required')+field('Currency','currency',s.currency,'','required')+field('Grades 3–6 default fee','junior_default_fee',s.junior_default_fee,'number','min="0"')+field('Grades 7–11 & adults default fee','senior_default_fee',s.senior_default_fee,'number','min="0"')+'</div><div style="margin-top:16px"><button class="btn btn-primary" type="submit">Save settings</button></div></form></div></section>';
+  setTimeout(()=>{
+    document.getElementById('settings-form').onsubmit=async e=>{
+      e.preventDefault();
+      const form=e.currentTarget;
+      const b=form.querySelector('button');
+      b.disabled=true;
+      b.textContent='Saving…';
+      try{
+        const payload={
+          centre_name:val(form,'centre_name'),
+          currency:val(form,'currency'),
+          junior_default_fee:Number(val(form,'junior_default_fee')||0),
+          senior_default_fee:Number(val(form,'senior_default_fee')||0),
+          updated_at:new Date().toISOString()
+        };
+        await query(sb.from('centre_settings').update(payload).eq('id',1));
+        state.settings={...(state.settings||{}),...payload};
+        app.querySelectorAll('.route-page').forEach(panel=>{
+          if(panel.dataset.routePage!=='settings')panel.remove();
+        });
+        routePreloadStarted=false;
+        toast('Settings updated across the CRM.');
+        scheduleRoutePreload();
+      }catch(err){fail(err);}
+      finally{b.disabled=false;b.textContent='Save settings';}
+    };
+  },0);
+  return '<section class="panel"><div class="panel-head"><div><h2>Centre settings</h2><p>Core values used across the CRM</p></div></div><div class="panel-body"><form id="settings-form"><div class="form-cols">'+
+    field('Centre name','centre_name',s.centre_name,'','required')+
+    field('Currency','currency',s.currency,'','required maxlength="12"')+
+    field('Grades 3–6 default fee','junior_default_fee',s.junior_default_fee,'number','min="0"')+
+    field('Grades 7–11 & adults default fee','senior_default_fee',s.senior_default_fee,'number','min="0"')+
+    '</div><div style="margin-top:16px"><button class="btn btn-primary" type="submit">Save settings</button></div></form></div></section>';
 }
 
 function tablePage(title,actions,headers,rows,emptyMessage){
