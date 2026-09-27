@@ -21,7 +21,7 @@ BUCKET = "reading-audio"
 POLL_SECONDS = 8
 
 OLLAMA_URL = os.environ.get("VISION_OLLAMA_URL", "http://127.0.0.1:11434")
-OLLAMA_MODEL = os.environ.get("VISION_OLLAMA_MODEL", "qwen2.5:7b")
+OLLAMA_MODEL = os.environ.get("VISION_OLLAMA_MODEL", "qwen3:4b-instruct")
 
 APP_DIR = Path(os.environ.get("APPDATA") or Path.home()) / "VisionTTS"
 SESSION_FILE = APP_DIR / "session.json"
