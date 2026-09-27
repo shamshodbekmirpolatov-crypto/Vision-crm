@@ -383,7 +383,9 @@ function go(routeName){
     if(age>60000) void renderRoute(true,true);
     return;
   }
-  void renderRoute(false,true);
+  const contentEl=app.querySelector('.content');
+  contentEl?.classList.add('route-pending');
+  void renderRoute(false,true).finally(()=>app.querySelector('.content')?.classList.remove('route-pending'));
 }
 window.addEventListener('popstate',()=>{
   if(!state.session)return;
@@ -395,8 +397,12 @@ window.addEventListener('popstate',()=>{
   state.route=next;
   state.sidebarOpen=false;
   updateShellChrome();
-  if(routePanel(next))activateRoutePanel(next);
-  else void renderRoute(false,true);
+  if(routePanel(next)){
+    activateRoutePanel(next);
+  }else{
+    app.querySelector('.content')?.classList.add('route-pending');
+    void renderRoute(false,true).finally(()=>app.querySelector('.content')?.classList.remove('route-pending'));
+  }
 });
 
 function passwordInput(label,name,extra=''){
