@@ -975,3 +975,33 @@ tbody tr:hover{background:#f8fbfd}
     scroll-behavior:auto!important;
   }
 }
+
+
+/* Smooth feedback while an uncached route is loading */
+.content{position:relative}
+.content.route-pending .route-page.active{
+  opacity:.62;
+  transform:translate3d(0,2px,0);
+  pointer-events:none;
+}
+.content.route-pending::before{
+  content:"";
+  position:absolute;
+  z-index:12;
+  top:-3px;
+  left:0;
+  width:100%;
+  height:2px;
+  border-radius:999px;
+  background:linear-gradient(90deg,transparent,currentColor,transparent);
+  color:var(--primary);
+  transform:scaleX(.22);
+  transform-origin:left center;
+  animation:visionRouteProgress .85s var(--ease-premium) infinite;
+  opacity:.65;
+}
+@keyframes visionRouteProgress{
+  0%{transform:translateX(-35%) scaleX(.18);opacity:.28}
+  55%{transform:translateX(35%) scaleX(.5);opacity:.7}
+  100%{transform:translateX(110%) scaleX(.2);opacity:.2}
+}
