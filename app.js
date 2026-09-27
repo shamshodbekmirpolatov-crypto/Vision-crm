@@ -1251,11 +1251,81 @@ async function groupsPage(){
   const [groups,staff,students]=await Promise.all([
     query(sb.from('groups').select('*, staff(full_name)').order('name')),
     can('owner','admin')?query(sb.from('staff').select('id,full_name,role_title,active').eq('active',true).eq('role_title','Teacher').order('full_name')):Promise.resolve([]),
-    query(sb.from('students').select('id,group_id,status').eq('status','active'))
+    query(sb.from('students').select('id,full_name,group_id,status,phone,mother_phone,father_phone,grade_or_age,join_date').order('full_name'))
   ]);
-  const rows=groups.map(g=>{const n=students.filter(s=>s.group_id===g.id).length;return '<tr><td><strong>'+esc(g.name)+'</strong><div class="muted">'+esc(g.level||'')+'</div></td><td>'+esc(formattedGroupSchedule(g))+'</td><td>'+esc(g.staff?.full_name||'—')+'</td><td>'+n+' / '+g.capacity+'</td><td class="num">'+fmtMoney(g.default_monthly_fee)+'</td><td><span class="badge '+(g.active?'success':'')+'">'+(g.active?'Active':'Inactive')+'</span></td><td>'+(can('owner','admin')?actionButton('Edit','group-edit',g.id):'')+'</td></tr>';}).join('');
-  setTimeout(()=>bindGroupActions(groups,staff),0);
+  const rows=groups.map(g=>{
+    const n=students.filter(s=>s.group_id===g.id&&s.status==='active').length;
+    return '<tr class="group-row" data-group-open="'+g.id+'" tabindex="0" role="button" aria-label="Open '+esc(g.name)+' group students">'+
+      '<td><strong>'+esc(g.name)+'</strong><div class="muted">'+esc(g.level||'')+'</div></td>'+
+      '<td>'+esc(formattedGroupSchedule(g))+'</td>'+
+      '<td>'+esc(g.staff?.full_name||'—')+'</td>'+
+      '<td><strong>'+n+' / '+g.capacity+'</strong><div class="muted row-sub">Open roster</div></td>'+
+      '<td class="num">'+fmtMoney(g.default_monthly_fee)+'</td>'+
+      '<td><span class="badge '+(g.active?'success':'')+'">'+(g.active?'Active':'Inactive')+'</span></td>'+
+      '<td>'+(can('owner','admin')?actionButton('Edit','group-edit',g.id):'')+'</td>'+
+    '</tr>';
+  }).join('');
+  setTimeout(()=>bindGroupActions(groups,staff,students),0);
   return tablePage('Class groups',can('owner','admin')?'<button class="btn btn-primary" data-action="group-new">'+uiIcon('plus')+'Add group</button>':'',[['Group',''],['Schedule',''],['Teacher',''],['Students',''],['Default fee','num'],['Status',''],['','']],rows,'No groups found.');
+}
+function openGroupRoster(group,students,groups=[]){
+  const roster=students
+    .filter(s=>s.group_id===group.id)
+    .sort((a,b)=>String(a.full_name||'').localeCompare(String(b.full_name||'')));
+  const activeCount=roster.filter(s=>s.status==='active').length;
+  const pausedCount=roster.filter(s=>s.status==='paused').length;
+  const rosterRows=roster.map(s=>{
+    const phone=s.phone||s.mother_phone||s.father_phone||'—';
+    return '<tr class="group-roster-student" data-group-student-open="'+s.id+'" tabindex="0" role="button" aria-label="Open '+esc(s.full_name)+' student profile">'+
+      '<td><div class="student-identity"><div class="student-avatar">'+esc(initials(s.full_name))+'</div><div><strong>'+esc(s.full_name)+'</strong><span>'+esc(phone)+'</span></div></div></td>'+
+      '<td>'+esc(s.grade_or_age||'—')+'</td>'+
+      '<td>'+fmtDate(s.join_date)+'</td>'+
+      '<td><span class="badge '+(s.status==='active'?'success':s.status==='paused'?'warn':'')+'">'+esc(humanize(s.status))+'</span></td>'+
+    '</tr>';
+  }).join('');
+
+  const body=
+    '<div class="profile-grid">'+
+      '<div class="profile-card"><span>Active students</span><strong>'+activeCount+'</strong><small>'+esc(group.capacity||0)+' capacity</small></div>'+
+      '<div class="profile-card"><span>Total assigned</span><strong>'+roster.length+'</strong><small>'+(pausedCount?pausedCount+' paused':'Current roster')+'</small></div>'+
+      '<div class="profile-card"><span>Teacher</span><strong class="profile-card-text">'+esc(group.staff?.full_name||'Unassigned')+'</strong><small>'+esc(group.level||'Level not set')+'</small></div>'+
+      '<div class="profile-card"><span>Room</span><strong class="profile-card-text">'+esc(group.room||'—')+'</strong><small>'+esc(formattedGroupSchedule(group))+'</small></div>'+
+    '</div>'+
+    '<div class="profile-section"><h4>Class information</h4><div class="detail-list">'+
+      detailRow('Schedule',formattedGroupSchedule(group))+
+      detailRow('Teacher',group.staff?.full_name||'—')+
+      detailRow('Level',group.level||'—')+
+      detailRow('Room',group.room||'—')+
+      detailRow('Start date',fmtDate(group.start_date))+
+      detailRow('Default fee',fmtMoney(group.default_monthly_fee))+
+    '</div></div>'+
+    '<div class="profile-section group-roster-section"><div class="group-roster-title"><div><h4>Students</h4><p>'+activeCount+' active · '+roster.length+' assigned</p></div></div>'+
+      (rosterRows
+        ? '<div class="table-wrap drawer-table group-roster-table"><table><thead><tr><th>Student</th><th>Grade / age</th><th>Joined</th><th>Status</th></tr></thead><tbody>'+rosterRows+'</tbody></table></div>'
+        : empty('No students are assigned to this group yet.'))+
+    '</div>';
+
+  setModalContent('<div class="drawer-backdrop"><aside class="student-drawer group-roster-drawer" role="dialog" aria-modal="true" aria-label="'+esc(group.name)+' students">'+
+    '<div class="drawer-head"><button class="icon-btn drawer-close" aria-label="Close">×</button><div class="profile-hero"><div class="student-avatar large group-avatar">'+uiIcon('groups')+'</div><div><h3>'+esc(group.name)+'</h3><p>'+esc(group.level||'Level not set')+' · '+esc(group.staff?.full_name||'No teacher assigned')+'</p><div class="profile-badges"><span class="badge '+(group.active?'success':'')+'">'+(group.active?'Active':'Inactive')+'</span><span class="badge info">'+activeCount+' active student'+(activeCount===1?'':'s')+'</span></div></div></div></div>'+
+    '<div class="drawer-body">'+body+'</div>'+
+  '</aside></div>');
+
+  const close=modalRoot.querySelector('.drawer-close');
+  if(close){
+    close.onclick=()=>closeModal();
+    requestAnimationFrame(()=>close.focus({preventScroll:true}));
+  }
+  modalRoot.querySelector('.drawer-backdrop').onclick=e=>{if(e.target.classList.contains('drawer-backdrop'))closeModal();};
+  const openStudent=id=>openStudentProfile(id,'overview',groups);
+  modalRoot.querySelectorAll('[data-group-student-open]').forEach(row=>{
+    row.onclick=()=>openStudent(row.dataset.groupStudentOpen);
+    row.onkeydown=e=>{
+      if(e.key==='Enter'||e.key===' '){
+        e.preventDefault();
+        openStudent(row.dataset.groupStudentOpen);
+      }
+    };
+  });
 }
 function groupForm(g={},staff=[]){
   const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
@@ -1284,7 +1354,7 @@ function formattedGroupSchedule(g){
   const time=start&&end?start+'–'+end:(start||end);
   return [days,time].filter(Boolean).join(' · ') || g.schedule || '—';
 }
-function bindGroupActions(groups,staff){
+function bindGroupActions(groups,staff,students=[]){
   document.querySelector('[data-action="group-new"]')?.addEventListener('click',()=>openModal('Add group',groupForm({},staff),async f=>{
     const meeting_days=selectedGroupDays(f);
     if(!meeting_days.length) throw new Error('Choose at least one teaching day.');
@@ -1293,14 +1363,34 @@ function bindGroupActions(groups,staff){
     if(start_time && end_time && end_time<=start_time) throw new Error('End time must be later than start time.');
     await query(sb.from('groups').insert({name:val(f,'name'),level:val(f,'level')||null,meeting_days,start_time:start_time||null,end_time:end_time||null,schedule:null,room:val(f,'room')||null,teacher_id:val(f,'teacher_id')||null,capacity:Number(val(f,'capacity')||20),default_monthly_fee:Number(val(f,'default_monthly_fee')||0),start_date:val(f,'start_date')||null,active:checked(f,'active')}));
   }));
-  document.querySelectorAll('[data-action="group-edit"]').forEach(b=>b.onclick=()=>{const g=groups.find(x=>x.id===b.dataset.id);openModal('Edit group',groupForm(g,staff),async f=>{
-    const meeting_days=selectedGroupDays(f);
-    if(!meeting_days.length) throw new Error('Choose at least one teaching day.');
-    const start_time=val(f,'start_time');
-    const end_time=val(f,'end_time');
-    if(start_time && end_time && end_time<=start_time) throw new Error('End time must be later than start time.');
-    await query(sb.from('groups').update({name:val(f,'name'),level:val(f,'level')||null,meeting_days,start_time:start_time||null,end_time:end_time||null,schedule:null,room:val(f,'room')||null,teacher_id:val(f,'teacher_id')||null,capacity:Number(val(f,'capacity')||20),default_monthly_fee:Number(val(f,'default_monthly_fee')||0),start_date:val(f,'start_date')||null,active:checked(f,'active')}).eq('id',g.id));
-  });});
+  document.querySelectorAll('[data-action="group-edit"]').forEach(b=>b.onclick=e=>{
+    e.stopPropagation();
+    const g=groups.find(x=>x.id===b.dataset.id);
+    openModal('Edit group',groupForm(g,staff),async f=>{
+      const meeting_days=selectedGroupDays(f);
+      if(!meeting_days.length) throw new Error('Choose at least one teaching day.');
+      const start_time=val(f,'start_time');
+      const end_time=val(f,'end_time');
+      if(start_time && end_time && end_time<=start_time) throw new Error('End time must be later than start time.');
+      await query(sb.from('groups').update({name:val(f,'name'),level:val(f,'level')||null,meeting_days,start_time:start_time||null,end_time:end_time||null,schedule:null,room:val(f,'room')||null,teacher_id:val(f,'teacher_id')||null,capacity:Number(val(f,'capacity')||20),default_monthly_fee:Number(val(f,'default_monthly_fee')||0),start_date:val(f,'start_date')||null,active:checked(f,'active')}).eq('id',g.id));
+    });
+  });
+  document.querySelectorAll('[data-group-open]').forEach(row=>{
+    const open=()=>{
+      const g=groups.find(x=>String(x.id)===String(row.dataset.groupOpen));
+      if(g)openGroupRoster(g,students,groups);
+    };
+    row.onclick=e=>{
+      if(e.target.closest('[data-action]'))return;
+      open();
+    };
+    row.onkeydown=e=>{
+      if(e.key!=='Enter'&&e.key!==' ')return;
+      if(e.target.closest('button,input,select,textarea,a'))return;
+      e.preventDefault();
+      open();
+    };
+  });
 }
 
 async function leadsPage(){
