@@ -439,6 +439,9 @@ body.crm-dark .empty:before{background:#182435;border-color:#2a394c}
 .student-status-chips{margin-left:auto}
 .student-table tbody tr.student-row{cursor:pointer}
 .student-table tbody tr.student-row:hover{background:#f6fafc}
+.student-search-empty td{padding:0!important}
+.student-search-empty-message{padding:28px 16px;text-align:center;color:var(--muted);font-size:11px;background:transparent}
+
 .student-identity{display:flex;align-items:center;gap:10px}
 .student-avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#eef4f8;color:#0d476a;font-size:11px;font-weight:800;border:1px solid #dce7ed;flex:0 0 auto}
 .student-avatar.large{width:54px;height:54px;font-size:16px}
