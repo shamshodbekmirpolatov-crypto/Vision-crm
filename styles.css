@@ -361,6 +361,38 @@ body.crm-dark .section-note,body.crm-dark .payment-hint{background:#172334;borde
 body.crm-dark .status-chip{background:#172130;border-color:#2a394c;color:#aebdca}
 body.crm-dark .course-pill{background:#1c2a3c;color:#a9cce0}
 body.crm-dark .empty:before{background:#182435;border-color:#2a394c}
+/* Scoped dark surfaces outside the main shell */
+body.crm-dark .modal{background:#151e2c;color:#e6edf4}
+body.crm-dark .modal-head,body.crm-dark .modal-foot{border-color:#2a3748}
+body.crm-dark .modal .inline-check{color:#c2cfda}
+body.crm-dark .modal .login-error{background:#351e28;border-color:#60303a;color:#f3a1aa}
+body.crm-dark .modal .action-sheet-btn{background:#121b28;border-color:#2b394b;color:#dce6ee}
+body.crm-dark .modal .action-sheet-btn:hover{background:#1a2636;border-color:#3a4a5d}
+body.crm-dark .modal .action-sheet-btn>span{background:#1e2c3d;color:#9fc9df}
+body.crm-dark .linked-account-box{background:#172334;border-color:#2a394c}
+body.crm-dark .linked-account-box.muted-account{background:#111a27}
+body.crm-dark .account-status-readonly{background:#111a27;border-color:#2a394c}
+body.crm-dark .danger-zone{background:#301e25;border-color:#60333c}
+body.crm-dark .danger-zone strong{color:#f09aa4}
+body.crm-dark .danger-zone span{color:#c88c93}
+
+/* Dark-mode coverage for finance and reports */
+body.crm-dark .report-toolbar{background:#151e2c;border-color:#283548;color:#e6edf4}
+body.crm-dark .report-toolbar .internal-eyebrow,body.crm-dark .report-toolbar p{color:#92a2b1}
+body.crm-dark .payment-space{background:#151e2c;border-color:#2a394c;color:#c5d2dd;box-shadow:none}
+body.crm-dark .payment-space:hover{background:#1a2636;border-color:#3a4a5d}
+body.crm-dark .payment-space.active{background:#203044;border-color:#456079;color:#e4eef6}
+body.crm-dark .payment-space.attention.active{background:#3b2d18;border-color:#755725;color:#efc77c}
+body.crm-dark .payment-space.paid.active{background:#17382f;border-color:#2c6b58;color:#8cd8bd}
+body.crm-dark .payment-space.free.active{background:#292541;border-color:#514a72;color:#c1b8eb}
+body.crm-dark .payment-space.correction.active{background:#3a271c;border-color:#74482d;color:#e9b38d}
+body.crm-dark .payment-space-icon{background:#1d2b3d}
+body.crm-dark .payment-space.active .payment-space-icon{background:rgba(255,255,255,.07)}
+body.crm-dark .queue-count{background:#3b2d18;border-color:#725525;color:#efc77c}
+body.crm-dark .completed-label{background:#17382f;color:#8cd8bd}
+body.crm-dark .correction-label{background:#3a271c;color:#e9b38d}
+body.crm-dark .correction-note{background:#302219;border-color:#69412b;color:#dcb08f}
+
 
 /* Finance status board */
 .finance-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
