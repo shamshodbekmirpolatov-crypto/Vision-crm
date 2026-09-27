@@ -849,55 +849,94 @@ function openStudentPayment(student){
 }
 async function openStudentProfile(studentId,tab='overview',groups=[]){
   try{
+    const canViewFinance=can('owner','admin','cashier');
+    const canViewTeaching=can('owner','admin','teacher');
+    const allowedTabs=['overview',...(canViewFinance?['payments']:[]),...(canViewTeaching?['attendance','academic']:[]),'notes'];
+    if(!allowedTabs.includes(tab))tab='overview';
+
     setModalContent('<div class="drawer-backdrop"><aside class="student-drawer" role="dialog" aria-modal="true" aria-label="Student profile"><div class="drawer-loading">Loading student profile…</div></aside></div>');
     modalRoot.querySelector('.drawer-backdrop').onclick=e=>{if(e.target.classList.contains('drawer-backdrop'))closeModal();};
+
     const monthFirst=monthStart();
-    const ninety=new Date();ninety.setDate(ninety.getDate()-90);
+    const ninety=new Date();
+    ninety.setDate(ninety.getDate()-90);
     const ninetyDate=localYMD(ninety);
+
     const [student,payments,attendance,academic]=await Promise.all([
       query(sb.from('students').select('*, groups(name,level,schedule,room,staff(full_name))').eq('id',studentId).single()),
-      query(sb.from('payments').select('*').eq('student_id',studentId).is('voided_at',null).order('fee_month',{ascending:false}).order('paid_at',{ascending:false}).limit(60)),
-      query(sb.from('attendance').select('*').eq('student_id',studentId).gte('lesson_date',ninetyDate).order('lesson_date',{ascending:false}).limit(100)),
-      query(sb.from('academic_records').select('*').eq('student_id',studentId).order('record_date',{ascending:false}).limit(50))
+      canViewFinance
+        ? query(sb.from('payments').select('*').eq('student_id',studentId).is('voided_at',null).order('fee_month',{ascending:false}).order('paid_at',{ascending:false}).limit(60))
+        : Promise.resolve([]),
+      canViewTeaching
+        ? query(sb.from('attendance').select('*').eq('student_id',studentId).gte('lesson_date',ninetyDate).order('lesson_date',{ascending:false}).limit(100))
+        : Promise.resolve([]),
+      canViewTeaching
+        ? query(sb.from('academic_records').select('*').eq('student_id',studentId).order('record_date',{ascending:false}).limit(50))
+        : Promise.resolve([])
     ]);
+
     const monthPaid=payments.filter(p=>p.fee_month===monthFirst).reduce((a,p)=>a+Number(p.amount||0),0);
     const due=student.is_free_place?0:Math.max(0,Number(student.monthly_fee||0)-Number(student.discount_amount||0));
     const balance=Math.max(0,due-monthPaid);
     const paymentStatus=student.is_free_place?'free':monthPaid<=0?'unpaid':balance>0?'partial':'paid';
     const present=attendance.filter(a=>a.status==='present'||a.status==='late').length;
     const attendanceRate=attendance.length?Math.round(present/attendance.length*100):0;
-    const tabs=['overview','payments','attendance','academic','notes'];
+
     const tabLabels={overview:'Overview',payments:'Payments',attendance:'Attendance',academic:'Academic',notes:'Notes'};
-    const tabNav=tabs.map(t=>'<button class="drawer-tab '+(tab===t?'active':'')+'" data-profile-tab="'+t+'">'+tabLabels[t]+'</button>').join('');
+    const tabNav=allowedTabs.map(t=>'<button class="drawer-tab '+(tab===t?'active':'')+'" data-profile-tab="'+t+'">'+tabLabels[t]+'</button>').join('');
+
     let body='';
     if(tab==='overview'){
-      body='<div class="profile-grid">'+
-        '<div class="profile-card"><span>Group</span><strong>'+esc(student.groups?.name||'Unassigned')+'</strong><small>'+esc(student.groups?.staff?.full_name||'No teacher')+'</small></div>'+
-        '<div class="profile-card"><span>Monthly fee</span><strong>'+fmtMoney(due)+'</strong><small>'+(student.discount_amount?fmtMoney(student.discount_amount)+' discount':'No discount')+'</small></div>'+
-        '<div class="profile-card"><span>Current balance</span><strong class="'+(balance>0?'balance-due':'balance-clear')+'">'+(student.is_free_place?'Free':fmtMoney(balance))+'</strong><small>'+humanize(paymentStatus)+'</small></div>'+
-        '<div class="profile-card"><span>Attendance · 90 days</span><strong>'+attendanceRate+'%</strong><small>'+attendance.length+' recorded lessons</small></div>'+
-      '</div>'+
-      '<div class="profile-section"><h4>Contact & enrolment</h4><div class="detail-list">'+
-        detailRow('Student phone',student.phone||'—')+detailRow('Parent phone',student.parent_phone||'—')+detailRow('Grade / age',student.grade_or_age||'—')+detailRow('Joined',fmtDate(student.join_date))+detailRow('Status',humanize(student.status))+
-      '</div></div>'+
-      '<div class="profile-section"><h4>Class information</h4><div class="detail-list">'+detailRow('Schedule',student.groups?.schedule||'—')+detailRow('Room',student.groups?.room||'—')+detailRow('Level',student.groups?.level||'—')+'</div></div>';
-    }else if(tab==='payments'){
+      const summaryCards=[
+        '<div class="profile-card"><span>Group</span><strong>'+esc(student.groups?.name||'Unassigned')+'</strong><small>'+esc(student.groups?.staff?.full_name||'No teacher')+'</small></div>',
+        ...(canViewFinance?[
+          '<div class="profile-card"><span>Monthly fee</span><strong>'+fmtMoney(due)+'</strong><small>'+(student.discount_amount?fmtMoney(student.discount_amount)+' discount':'No discount')+'</small></div>',
+          '<div class="profile-card"><span>Current balance</span><strong class="'+(balance>0?'balance-due':'balance-clear')+'">'+(student.is_free_place?'Free':fmtMoney(balance))+'</strong><small>'+humanize(paymentStatus)+'</small></div>'
+        ]:[]),
+        ...(canViewTeaching?[
+          '<div class="profile-card"><span>Attendance · 90 days</span><strong>'+attendanceRate+'%</strong><small>'+attendance.length+' recorded lessons</small></div>'
+        ]:[])
+      ].join('');
+
+      body='<div class="profile-grid">'+summaryCards+'</div>'+
+        '<div class="profile-section"><h4>Contact & enrolment</h4><div class="detail-list">'+
+          detailRow('Student phone',student.phone||'—')+
+          detailRow('Parent phone',student.parent_phone||'—')+
+          detailRow('Grade / age',student.grade_or_age||'—')+
+          detailRow('Joined',fmtDate(student.join_date))+
+          detailRow('Status',humanize(student.status))+
+        '</div></div>'+
+        '<div class="profile-section"><h4>Class information</h4><div class="detail-list">'+
+          detailRow('Schedule',student.groups?.schedule||'—')+
+          detailRow('Room',student.groups?.room||'—')+
+          detailRow('Level',student.groups?.level||'—')+
+        '</div></div>';
+    }else if(tab==='payments'&&canViewFinance){
       const rows=payments.map(p=>'<tr><td>'+new Date(p.fee_month+'T00:00:00').toLocaleDateString('en-GB',{month:'short',year:'numeric'})+'</td><td>'+fmtDate(p.paid_at)+'</td><td class="num">'+fmtMoney(p.amount)+'</td><td>'+paymentMethodLabel(p.method)+'</td></tr>').join('');
-      body=rows?'<div class="table-wrap drawer-table"><table><thead><tr><th>Course month</th><th>Paid on</th><th class="num">Amount</th><th>Method</th></tr></thead><tbody>'+rows+'</tbody></table></div>':empty('No payments recorded for this student.');
-    }else if(tab==='attendance'){
+      body=rows
+        ? '<div class="table-wrap drawer-table"><table><thead><tr><th>Course month</th><th>Paid on</th><th class="num">Amount</th><th>Method</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+        : empty('No payments recorded for this student.');
+    }else if(tab==='attendance'&&canViewTeaching){
       const rows=attendance.map(a=>'<tr><td>'+fmtDate(a.lesson_date)+'</td><td><span class="badge '+(a.status==='present'?'success':a.status==='late'?'warn':'danger')+'">'+humanize(a.status)+'</span></td><td>'+esc(a.notes||'—')+'</td></tr>').join('');
-      body='<div class="drawer-summary-line"><span>90-day attendance rate</span><strong>'+attendanceRate+'%</strong></div>'+(rows?'<div class="table-wrap drawer-table"><table><thead><tr><th>Date</th><th>Status</th><th>Note</th></tr></thead><tbody>'+rows+'</tbody></table></div>':empty('No attendance records yet.'));
-    }else if(tab==='academic'){
+      body='<div class="drawer-summary-line"><span>90-day attendance rate</span><strong>'+attendanceRate+'%</strong></div>'+
+        (rows
+          ? '<div class="table-wrap drawer-table"><table><thead><tr><th>Date</th><th>Status</th><th>Note</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+          : empty('No attendance records yet.'));
+    }else if(tab==='academic'&&canViewTeaching){
       const rows=academic.map(r=>'<tr><td>'+fmtDate(r.record_date)+'</td><td>'+esc(r.record_type)+'</td><td>'+esc(r.topic||'—')+'</td><td>'+(r.score==null?'—':esc(r.score)+' / '+esc(r.max_score??'—'))+'</td></tr>').join('');
-      body=rows?'<div class="table-wrap drawer-table"><table><thead><tr><th>Date</th><th>Type</th><th>Topic</th><th>Score</th></tr></thead><tbody>'+rows+'</tbody></table></div>':empty('No academic records yet.');
+      body=rows
+        ? '<div class="table-wrap drawer-table"><table><thead><tr><th>Date</th><th>Type</th><th>Topic</th><th>Score</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+        : empty('No academic records yet.');
     }else{
       body='<div class="profile-notes">'+(student.notes?'<p>'+esc(student.notes).replace(/\n/g,'<br>')+'</p>':empty('No student notes yet.'))+'</div>';
     }
+
     setModalContent('<div class="drawer-backdrop"><aside class="student-drawer" role="dialog" aria-modal="true" aria-label="'+esc(student.full_name)+' profile">'+
-      '<div class="drawer-head"><button class="icon-btn drawer-close" aria-label="Close">×</button><div class="profile-hero"><div class="student-avatar large">'+esc(initials(student.full_name))+'</div><div><h3>'+esc(student.full_name)+'</h3><p>'+esc(student.groups?.name||'Unassigned')+' · '+esc(student.grade_or_age||'Student')+'</p><div class="profile-badges"><span class="badge '+(student.status==='active'?'success':student.status==='paused'?'warn':'')+'">'+humanize(student.status)+'</span>'+(can('owner','admin','cashier')?'<span class="badge payment-'+paymentStatus+'">'+humanize(paymentStatus)+'</span>':'')+'</div></div></div>'+
-      '<div class="drawer-actions">'+(can('owner','admin','cashier')&&!student.is_free_place?'<button class="btn btn-primary" data-profile-action="payment">'+uiIcon('payments')+'Payment</button>':'')+(can('owner','admin','cashier')?'<button class="btn btn-secondary" data-profile-action="edit">Edit</button>':'')+'</div></div>'+
+      '<div class="drawer-head"><button class="icon-btn drawer-close" aria-label="Close">×</button><div class="profile-hero"><div class="student-avatar large">'+esc(initials(student.full_name))+'</div><div><h3>'+esc(student.full_name)+'</h3><p>'+esc(student.groups?.name||'Unassigned')+' · '+esc(student.grade_or_age||'Student')+'</p><div class="profile-badges"><span class="badge '+(student.status==='active'?'success':student.status==='paused'?'warn':'')+'">'+humanize(student.status)+'</span>'+(canViewFinance?'<span class="badge payment-'+paymentStatus+'">'+humanize(paymentStatus)+'</span>':'')+'</div></div></div>'+
+      '<div class="drawer-actions">'+(canViewFinance&&!student.is_free_place?'<button class="btn btn-primary" data-profile-action="payment">'+uiIcon('payments')+'Payment</button>':'')+(canViewFinance?'<button class="btn btn-secondary" data-profile-action="edit">Edit</button>':'')+'</div></div>'+
       '<nav class="drawer-tabs">'+tabNav+'</nav><div class="drawer-body">'+body+'</div>'+
     '</aside></div>');
+
     modalRoot.querySelector('.drawer-close').onclick=()=>closeModal();
     modalRoot.querySelector('.drawer-backdrop').onclick=e=>{if(e.target.classList.contains('drawer-backdrop'))closeModal();};
     modalRoot.querySelectorAll('[data-profile-tab]').forEach(b=>b.onclick=()=>openStudentProfile(student.id,b.dataset.profileTab,groups));
