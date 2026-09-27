@@ -3426,7 +3426,7 @@ function listeningHtml(data){
       '<section class="practice-hero"><div><small>PRACTICE</small><h1>Listening</h1><p>Listen, understand, and build useful vocabulary.</p></div><div class="practice-student">'+esc(student.full_name||'Student')+'</div></section>'+
       '<section class="reading-library listening-empty">'+
         '<div class="section-title-row"><div><span>LISTENING MATERIALS</span><h2>Listening</h2></div><small>0 materials</small></div>'+
-        '<div class="practice-empty-state"><strong>Listening materials will appear here.</strong><p>We are building Reading first, then we can add the Listening system in this section.</p></div>'+
+        '<div class="practice-empty-state"><strong>No listening materials are available yet.</strong><p>Published listening activities will appear here automatically.</p></div>'+
       '</section>'+
     '</main></div>';
 }
