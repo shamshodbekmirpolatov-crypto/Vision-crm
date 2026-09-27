@@ -1000,15 +1000,19 @@ function bindLeadActions(leads,groups){
       const monthlyFee=Number(feeRaw||group?.default_monthly_fee||0);
       const discountAmount=Number(val(form,'discount_amount')||0);
       if(discountAmount>monthlyFee)throw new Error('Discount cannot be greater than the monthly fee.');
-      await query(sb.from('students').insert({
-        full_name:val(form,'full_name'),grade_or_age:val(form,'grade_or_age')||null,
-        phone:val(form,'phone')||null,parent_phone:val(form,'parent_phone')||null,
-        group_id:gid||null,join_date:val(form,'join_date')||today(),
-        monthly_fee:monthlyFee,
-        discount_amount:discountAmount,
-        is_free_place:checked(form,'is_free_place'),status:'active',notes:val(form,'notes')||null
+      await query(sb.rpc('enroll_lead',{
+        p_lead_id:l.id,
+        p_full_name:val(form,'full_name'),
+        p_grade_or_age:val(form,'grade_or_age')||null,
+        p_phone:val(form,'phone')||null,
+        p_parent_phone:val(form,'parent_phone')||null,
+        p_group_id:gid||null,
+        p_join_date:val(form,'join_date')||today(),
+        p_monthly_fee:monthlyFee,
+        p_discount_amount:discountAmount,
+        p_is_free_place:checked(form,'is_free_place'),
+        p_notes:val(form,'notes')||null
       }));
-      await query(sb.from('leads').update({status:'enrolled',next_follow_up:null}).eq('id',l.id));
     },'Enroll student');
     const groupEl=modalRoot.querySelector('[name=group_id]');
     const feeEl=modalRoot.querySelector('[name=monthly_fee]');
