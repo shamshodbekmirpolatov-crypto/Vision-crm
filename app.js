@@ -1286,6 +1286,8 @@ function openStudentPayment(student){
     selectField('Method','method',[['cash','Cash'],['card_transfer','Card / transfer'],['other','Other']],'cash')+
     field('Reference','reference','')+
     textArea('Notes','notes','')+'</div>',async form=>{
+      const paidDate=val(form,'paid_at');
+      if(paidDate>today())throw new Error('Payment date cannot be in the future.');
       const m=val(form,'fee_month');
       const monthKey=m+'-01';
       const existing=await query(sb.from('payments').select('amount,voided_at').eq('student_id',student.id).eq('fee_month',monthKey).is('voided_at',null));
@@ -1298,15 +1300,26 @@ function openStudentPayment(student){
     },'Save payment');
   const monthEl=modalRoot.querySelector('[name=fee_month]');
   const amountEl=modalRoot.querySelector('[name=amount]');
+  let recalcGeneration=0;
   const recalc=async()=>{
+    const generation=++recalcGeneration;
     const m=monthEl.value;
     const monthKey=m+'-01';
-    const existing=await query(sb.from('payments').select('amount,voided_at').eq('student_id',student.id).eq('fee_month',monthKey).is('voided_at',null));
-    const paid=existing.reduce((a,p)=>a+Number(p.amount||0),0);
-    const remaining=Math.max(0,due-paid);
-    amountEl.value=remaining>0?remaining:'';
-    amountEl.disabled=remaining<=0;
-    if(remaining<=0) toast('This course month is already fully paid.','error');
+    amountEl.disabled=true;
+    try{
+      const existing=await query(sb.from('payments').select('amount').eq('student_id',student.id).eq('fee_month',monthKey).is('voided_at',null));
+      if(generation!==recalcGeneration)return;
+      const paid=existing.reduce((a,p)=>a+Number(p.amount||0),0);
+      const remaining=Math.max(0,due-paid);
+      amountEl.value=remaining>0?remaining:'';
+      amountEl.disabled=remaining<=0;
+      if(remaining<=0) toast('This course month is already fully paid.','error');
+    }catch(error){
+      if(generation!==recalcGeneration)return;
+      amountEl.value='';
+      amountEl.disabled=false;
+      fail(error);
+    }
   };
   monthEl.onchange=()=>void recalc();
   void recalc();
@@ -1744,7 +1757,7 @@ function bindPaymentActions(students,feeRows){
       selectField('Student','student_id',students.map(s=>[s.id,s.full_name]),initialId)+
       field('Course month','fee_month',selectedMonth,'month','required')+
       field('Amount','amount','','number','required min="1" step="1"')+
-      field('Paid date','paid_at',today(),'date','required')+
+      field('Paid date','paid_at',today(),'date','required max="'+today()+'"')+
       selectField('Method','method',[['cash','Cash'],['card_transfer','Card / transfer'],['other','Other']],'cash')+
       field('Reference','reference','')+
       '<div class="span-2 payment-hint" id="payment-hint"></div>'+
