@@ -1763,7 +1763,7 @@ async function attendancePage(){
     '<div class="panel-head attendance-head"><div><h2>Attendance</h2><p>Click a cell to cycle: Present → Late → Absent → Empty.</p></div><div class="attendance-legend" aria-label="Attendance status legend"><span class="att-legend-item present"><i></i>Present</span><span class="att-legend-item late"><i></i>Late</span><span class="att-legend-item absent"><i></i>Absent</span></div></div>'+
     '<div class="panel-body">'+
       '<div class="attendance-controls">'+
-        '<select class="select attendance-group-select" id="att-group">'+groups.map(g=>'<option value="'+g.id+'" '+(g.id===selectedGroup?'selected':'')+'>'+esc(g.name)+'</option>').join('')+'</select>'+
+        '<select class="select attendance-group-select" id="att-group">'+groups.map(g=>{const count=students.filter(s=>s.group_id===g.id).length;return '<option value="'+g.id+'" '+(g.id===selectedGroup?'selected':'')+'>'+esc(g.name)+' ('+count+')</option>';}).join('')+'</select>'+
         '<div class="attendance-month-nav">'+
           '<button class="btn btn-secondary attendance-nav-btn" type="button" id="att-prev-month" aria-label="Previous month">‹</button>'+
           '<button class="btn btn-secondary" type="button" id="att-today">Today</button>'+
@@ -1923,7 +1923,7 @@ function setupAttendance(students,groups){
         return '<th class="attendance-date-head '+(isToday?'today':'')+'"><span>'+day+'</span><small>'+esc(weekday)+'</small>'+(isToday?'<b>Today</b>':'')+'</th>';
       }).join('');
 
-      const rows=members.map(student=>{
+      const rows=members.map((student,index)=>{
         const cells=dates.map(date=>{
           const record=statusMap.get(recordKey(student.id,date));
           const status=record?.status||'';
@@ -1932,7 +1932,7 @@ function setupAttendance(students,groups){
           const displayDate=d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
           return '<td class="attendance-status-cell"><button type="button" class="attendance-cell '+(status||'empty')+'" data-student="'+student.id+'" data-student-name="'+esc(student.full_name)+'" data-date="'+date+'" data-display-date="'+esc(displayDate)+'" data-status="'+status+'" aria-label="'+esc(student.full_name)+' on '+esc(displayDate)+': '+view.label+'. Click to change." title="'+view.label+' · click to change">'+(status?view.label:'—')+'</button></td>';
         }).join('');
-        return '<tr><th class="attendance-student-head"><div class="student-identity"><div class="student-avatar">'+esc(initials(student.full_name))+'</div><div><strong>'+esc(student.full_name)+'</strong></div></div></th>'+cells+'</tr>';
+        return '<tr><th class="attendance-student-head"><div class="student-identity"><div class="student-avatar">'+esc(initials(student.full_name))+'</div><div><strong><span class="attendance-student-number">'+(index+1)+'.</span> '+esc(student.full_name)+'</strong></div></div></th>'+cells+'</tr>';
       }).join('');
 
       list.innerHTML='<div class="attendance-grid-wrap"><table class="attendance-grid"><thead><tr><th class="attendance-student-head attendance-student-title">Student</th>'+headers+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
