@@ -1,0 +1,40 @@
+name: Deploy Current Vision CRM
+
+on:
+  push:
+    paths:
+      - ".cloudflare/current-site-trigger.txt"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PROJECT_NAME: vision-crm-4qd
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build Vision CRM
+        run: |
+          set -euo pipefail
+          npm run build
+          test -f dist/app-current.js
+          test -f dist/telegram-manager.js
+          test -f dist/telegram-manager.css
+          grep -q "Telegram Manager" dist/app-current.js
+          grep -q "VisionTelegramManager" dist/telegram-manager.js
+          grep -q "telegram-manager.js?v=" dist/index.html
+
+      - name: Deploy current Pages project
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 pages deploy dist --project-name "$PROJECT_NAME" --branch main
