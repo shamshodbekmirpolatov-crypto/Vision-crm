@@ -63,6 +63,7 @@ const NAV = [
   { id:'expenses', label:'Expenses', icon:'↘', roles:['owner','admin'], group:'Finance' },
   { id:'staff', label:'Staff & Payroll', icon:'♙', roles:['owner','admin'], group:'Management' },
   { id:'reports', label:'Reports', icon:'▥', roles:['owner','admin'], group:'Management' },
+  { id:'telegram', label:'Telegram Manager', icon:'✦', roles:['owner','admin'], group:'Management' },
   { id:'users', label:'User Accounts', icon:'⚙', roles:['owner','admin'], group:'Management' },
   { id:'settings', label:'Settings', icon:'◌', roles:['owner','admin'], group:'Management' },
 ];
@@ -79,6 +80,7 @@ const PAGE_META = {
   expenses:['Expenses','Operating costs and centre spending'],
   staff:['Staff & Payroll','Team records and salary payments'],
   reports:['Reports','Revenue, costs and operational indicators'],
+  telegram:['Telegram Manager','Reusable classroom media, post approvals and Telegram publishing'],
   users:['User Accounts','Manage Owner, Senior Manager, Administrator, Teacher and Cashier logins'],
   settings:['Settings','Centre name, currency and reference fees'],
 };
@@ -122,6 +124,7 @@ function uiIcon(name){
     expenses:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z"/><path d="M9 8h6M9 12h6"/>',
     staff:'<circle cx="9" cy="8" r="3.5"/><path d="M3 20c.7-4 2.8-6 6-6s5.3 2 6 6"/><path d="M18 8h3M19.5 6.5v3"/>',
     reports:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+    telegram:'<path d="M21 4 3.8 10.6c-.9.3-.9 1.6.1 1.9l4.4 1.5 1.7 5c.3.9 1.5 1 2 .2l2.5-3.4 4.4 3.3c.7.5 1.7.1 1.9-.8L23 5.8c.2-1.1-.8-2.1-2-1.8Z"/><path d="m8.3 14 9.8-6.4"/>',
     users:'<path d="M12 3 4.5 6v5c0 4.8 3.1 8.1 7.5 10 4.4-1.9 7.5-5.2 7.5-10V6L12 3Z"/><circle cx="12" cy="10" r="2.5"/><path d="M8.5 16c.8-2 2-3 3.5-3s2.7 1 3.5 3"/>',
     settings:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M2 12h3M19 12h3M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/>',
     refresh:'<path d="M20 6v5h-5"/><path d="M20 11a8 8 0 1 0 1 5"/>',
@@ -2572,6 +2575,11 @@ function tablePage(title,actions,headers,rows,emptyMessage){
 
 let routeRenderGeneration=0;
 let routePreloadStarted=false;
+async function telegramPage(){
+  if(!window.VisionTelegramManager) throw new Error('Telegram Manager module did not load. Refresh the CRM.');
+  return await window.VisionTelegramManager.page({sb,state,query,invokeEdge,toast,fail,esc,localYMD,openModal,renderRoute});
+}
+
 async function routeContent(routeName){
   switch(routeName){
     case 'dashboard': return await dashboardPage();
@@ -2585,6 +2593,7 @@ async function routeContent(routeName){
     case 'expenses': return await expensesPage();
     case 'staff': return await staffPage();
     case 'reports': return await reportsPage();
+    case 'telegram': return await telegramPage();
     case 'users': return await usersPage();
     case 'settings': return await settingsPage();
     default: return await dashboardPage();
