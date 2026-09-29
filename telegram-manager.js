@@ -138,6 +138,7 @@ function postCard(post,media,esc){
     (post.error_message?'<div class="tgm-post-error">'+esc(post.error_message)+'</div>':'')+
     '<div class="tgm-post-actions">'+
       (!isPublished?'<button class="btn btn-sm btn-secondary" type="button" data-tgm-action="edit-post" data-id="'+esc(post.id)+'">Edit</button>':'')+
+      (!isPublished&&post.agent_generated?'<button class="btn btn-sm btn-secondary" type="button" data-tgm-action="regenerate-visual" data-id="'+esc(post.id)+'">Regenerate visual</button>':'')+
       (post.status==='draft'?'<button class="btn btn-sm btn-primary" type="button" data-tgm-action="approve-post" data-id="'+esc(post.id)+'">Approve</button>':'')+
       (post.status==='approved'||(!post.approval_required&&post.status==='draft')?'<button class="btn btn-sm btn-primary" type="button" data-tgm-action="publish-post" data-id="'+esc(post.id)+'">Publish now</button>':'')+
       (!isPublished&&post.status!=='skipped'?'<button class="btn btn-sm btn-ghost" type="button" data-tgm-action="skip-post" data-id="'+esc(post.id)+'">Skip</button>':'')+
@@ -521,6 +522,20 @@ function bind(ctx,model){
       if(action==='preview-media'&&asset){await showAssetPreview(ctx,asset);return;}
       if(action==='review-media'&&asset){assetEditor(ctx,model,asset);return;}
       if(action==='edit-post'&&post){postEditor(ctx,model,post);return;}
+      if(action==='regenerate-visual'&&post){
+        button.disabled=true;
+        const original=button.textContent;
+        button.textContent='Creating…';
+        try{
+          await invokeEdge('jarvis-agent',{action:'regenerate_visual',post_id:post.id},150000);
+          toast('A new Vision visual is attached. Open Edit → View attached image to review it.');
+          await renderRoute(true);
+        }catch(error){fail(error);}
+        finally{
+          if(button?.isConnected){button.disabled=false;button.textContent=original;}
+        }
+        return;
+      }
       if(action==='approve-post'&&post){
         await query(sb.from('telegram_posts').update({
           status:'approved',
