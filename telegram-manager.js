@@ -134,14 +134,18 @@ function postCard(post,media,esc){
   const generatedVisual=post.agent_generated&&post.generation_meta?.media_outcome==='generate_image';
   const visualQaOk=generatedVisual&&post.generation_meta?.visual_validation?.approved===true&&post.generation_meta?.logo_overlay_exact===true;
   const visualQaBadge=generatedVisual?(visualQaOk?badge('Visual QA passed','good'):badge('Visual QA needed','warn')):'';
+  const postFormat=post.generation_meta?.post_format||'standard';
+  const pillar=post.generation_meta?.content_pillar||'';
+  const pollOptions=postFormat==='poll'&&Array.isArray(post.generation_meta?.poll_options)?post.generation_meta.poll_options:[];
   return '<article class="tgm-post-card" data-post-id="'+esc(post.id)+'">'+
     '<div class="tgm-post-top"><div><span class="tgm-post-date">'+esc(fmtWhen(post.scheduled_for))+'</span><h3>'+esc(post.title||prettyStatus(post.category))+'</h3></div>'+badge(prettyStatus(post.status),statusKind)+'</div>'+
-    '<div class="tgm-post-meta">'+badge(prettyStatus(post.category))+badge(post.target_level||'all')+(linked?badge('Media attached','good'):'')+visualQaBadge+'</div>'+
+    '<div class="tgm-post-meta">'+badge(prettyStatus(post.category))+badge(post.target_level||'all')+(pillar?badge(prettyStatus(pillar)):'')+(postFormat==='poll'?badge('Telegram poll','good'):'')+(linked?badge('Media attached','good'):'')+visualQaBadge+'</div>'+
     '<p>'+esc((post.content_text||'No text yet.').slice(0,260))+(String(post.content_text||'').length>260?'…':'')+'</p>'+
+    (pollOptions.length?'<div class="tgm-tags">'+pollOptions.map(x=>'<span>'+esc(x)+'</span>').join('')+'</div>':'')+
     (post.error_message?'<div class="tgm-post-error">'+esc(post.error_message)+'</div>':'')+
     '<div class="tgm-post-actions">'+
       (!isPublished?'<button class="btn btn-sm btn-secondary" type="button" data-tgm-action="edit-post" data-id="'+esc(post.id)+'">Edit</button>':'')+
-      (!isPublished&&post.agent_generated?'<button class="btn btn-sm btn-secondary" type="button" data-tgm-action="regenerate-visual" data-id="'+esc(post.id)+'">Regenerate visual</button>':'')+
+      (!isPublished&&post.agent_generated&&postFormat!=='poll'?'<button class="btn btn-sm btn-secondary" type="button" data-tgm-action="regenerate-visual" data-id="'+esc(post.id)+'">Regenerate visual</button>':'')+
       (post.status==='draft'?'<button class="btn btn-sm btn-primary" type="button" data-tgm-action="approve-post" data-id="'+esc(post.id)+'">Approve</button>':'')+
       (post.status==='approved'||(!post.approval_required&&post.status==='draft')?'<button class="btn btn-sm btn-primary" type="button" data-tgm-action="publish-post" data-id="'+esc(post.id)+'">Publish now</button>':'')+
       (!isPublished&&post.status!=='skipped'?'<button class="btn btn-sm btn-ghost" type="button" data-tgm-action="skip-post" data-id="'+esc(post.id)+'">Skip</button>':'')+
@@ -231,8 +235,12 @@ function settingsPanel(model,esc){
         '<div><strong>5-post visual memory</strong><span>Jarvis compares the last 3–5 Vision visuals and hard-rotates repeated composition, visual family, palette, focal subject, scene mode and headline treatment. Successful styles can return after a cooldown.</span></div>'+
         '<div><strong>Value-first channel strategy</strong><span>Jarvis borrows concise hooks and clear contact paths from strong channels, while avoiding their repetitive promotion, CTA fatigue and result-only feeds.</span></div>'+
         '<div><strong>Smart enrolment footer</strong><span>Promotional posts can automatically add the Vision phone number and a clickable “Kurslarimizga qo‘shilish uchun” admin link. Pure educational posts are kept cleaner so the channel does not feel like constant advertising.</span></div>'+
+        '<div><strong>Revive Vision’s strongest ideas</strong><span>Jarvis can bring back native polls, Useful Classroom English-style micro-lessons, authentic classroom/teacher media, individual verified student stories, concrete “Why Vision?” posts and genuine countdowns.</span></div>'+
+        '<div><strong>No certificate dumps</strong><span>Student achievements are treated one at a time as meaningful stories. Jarvis will not create a stream of near-identical result posts or invent achievements.</span></div>'+
+        '<div><strong>Authenticity rotation</strong><span>After repeated generated visuals, Jarvis is encouraged to use a relevant approved real photo/video, a poll or a clean text post instead of another poster.</span></div>'+
+        '<div><strong>Native Telegram polls</strong><span>Jarvis can now prepare real anonymous Telegram polls with 2–6 options for learning goals, difficulties, quick checks and community interaction.</span></div>'+
       '</div>'+
-      '<div class="section-note tgm-note">Automatic videos are intentionally not part of this first agent version. We are making daily text + image quality reliable first.</div>'+
+      '<div class="section-note tgm-note">Jarvis now supports native polls, real-media reuse and generated images. Automatic AI video generation is intentionally not enabled.</div>'+
     '</div></section>'+
   '</div>';
 }
