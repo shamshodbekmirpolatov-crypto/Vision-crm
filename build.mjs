@@ -4,8 +4,9 @@ import { createHash } from "node:crypto";
 await mkdir("dist", { recursive: true });
 
 const hashFile = async path => createHash("sha256").update(await readFile(path)).digest("hex").slice(0, 12);
-const [appVersion, studentVersion, practiceVersion, telegramVersion, telegramCssVersion] = await Promise.all([
+const [appVersion, stylesVersion, studentVersion, practiceVersion, telegramVersion, telegramCssVersion] = await Promise.all([
   hashFile("app.js"),
+  hashFile("styles.css"),
   hashFile("student.js"),
   hashFile("student-practice.js"),
   hashFile("telegram-manager.js"),
@@ -18,6 +19,7 @@ for (const file of ["styles.css", "app.js", "telegram-manager.css", "telegram-ma
 
 let indexHtml = await readFile("index.html", "utf8");
 indexHtml = indexHtml
+  .replace(/\.\/styles\.css(?:\?v=[^"'<>\s]+)?/, `./styles.css?v=${stylesVersion}`)
   .replace(/\.\/telegram-manager\.css(?:\?v=[^"'<>\s]+)?/, `./telegram-manager.css?v=${telegramCssVersion}`)
   .replace(/\.\/telegram-manager\.js(?:\?v=[^"'<>\s]+)?/, `./telegram-manager.js?v=${telegramVersion}`)
   .replace(/\.\/app-current\.js(?:\?v=[^"'<>\s]+)?/, `./app-current.js?v=${appVersion}`);
@@ -31,4 +33,4 @@ await writeFile("dist/student.html", studentHtml);
 
 await copyFile("app.js", "dist/app-current.js");
 
-console.log(`Vision CRM static build complete — app ${appVersion}, telegram ${telegramVersion}, student ${studentVersion}, practice ${practiceVersion}.`);
+console.log(`Vision CRM static build complete — app ${appVersion}, styles ${stylesVersion}, telegram ${telegramVersion}, student ${studentVersion}, practice ${practiceVersion}.`);
