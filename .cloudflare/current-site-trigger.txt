@@ -1,1 +1,1 @@
-Deploy core Telegram dark-theme fix and hashed styles
+Deploy Jarvis daily content agent controls
