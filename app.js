@@ -2583,44 +2583,58 @@ async function telegramPage(){
 }
 
 async function trendScoutPage(){
-  const [settings,posts]=await Promise.all([
-    query(sb.from('telegram_settings').select('content_rules,daily_post_time,timezone').eq('id',1).single()),
-    query(sb.from('telegram_posts').select('*').order('created_at',{ascending:false}).limit(120))
+  const [settings,runs,items]=await Promise.all([
+    query(sb.from('telegram_settings').select('content_rules').eq('id',1).single()),
+    query(sb.from('trend_scout_runs').select('*').order('created_at',{ascending:false}).limit(12)),
+    query(sb.from('trend_scout_items').select('*').order('created_at',{ascending:false}).limit(80))
   ]);
   const rule=settings?.content_rules?.trend_scout||{};
-  const candidates=(posts||[]).filter(p=>p.generation_meta?.trend_scout===true);
-  const pending=candidates.filter(p=>p.status==='draft');
-  const approved=candidates.filter(p=>p.status==='approved');
-  const published=candidates.filter(p=>p.status==='published');
-  const rejected=candidates.filter(p=>p.status==='skipped');
+  const completed=(runs||[]).filter(r=>r.status==='completed');
+  const latestRun=completed[0]||(runs||[])[0]||null;
+  const currentItems=latestRun?(items||[]).filter(i=>i.run_id===latestRun.id).sort((a,b)=>a.rank-b.rank):[];
+  const shortlisted=(items||[]).filter(i=>['shortlisted','filming'].includes(i.status)).length;
+  const used=(items||[]).filter(i=>i.status==='used').length;
+  const cadence=Number(rule.cadence_days||15);
+  const lastCompleted=completed[0]?.completed_at?new Date(completed[0].completed_at):null;
+  const nextDue=lastCompleted?new Date(lastCompleted.getTime()+cadence*86400000):new Date();
+  const dateTime=value=>value?new Intl.DateTimeFormat('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(value)):'—';
+  const nextText=Date.now()>=nextDue.getTime()?'Due now':dateTime(nextDue);
 
   setTimeout(()=>{
+    const scan=document.getElementById('trend-scout-scan-now');
+    if(scan)scan.onclick=async()=>{
+      const original=scan.textContent;
+      scan.disabled=true;
+      scan.textContent='Scanning the web…';
+      try{
+        const result=await invokeEdge('trend-scout',{action:'scan',force:true},150000);
+        if(result?.skipped)toast(result.reason||'Trend Scout is not due yet.');
+        else toast('Trend Scout found '+Number(result?.found||0)+' current video ideas.');
+        await renderRoute(true);
+      }catch(error){fail(error);}
+      finally{if(scan?.isConnected){scan.disabled=false;scan.textContent=original;}}
+    };
+
     document.querySelectorAll('[data-trend-action]').forEach(button=>{
       button.onclick=async()=>{
         const id=button.dataset.id;
         const action=button.dataset.trendAction;
-        const post=candidates.find(p=>p.id===id);
-        if(!post)return;
+        const item=(items||[]).find(x=>x.id===id);
+        if(!item)return;
+        const map={shortlist:'shortlisted',filming:'filming',used:'used',dismiss:'dismissed',restore:'new'};
+        const next=map[action];
+        if(!next)return;
         button.disabled=true;
         try{
-          if(action==='approve'){
-            await query(sb.from('telegram_posts').update({
-              status:'approved',
-              approved_by:state.session.user.id,
-              approved_at:new Date().toISOString(),
-              error_message:null,
-              updated_at:new Date().toISOString()
-            }).eq('id',id));
-            toast('Trend post approved. It can now publish through the normal Telegram schedule.');
-          }else if(action==='reject'){
-            await query(sb.from('telegram_posts').update({
-              status:'skipped',
-              updated_at:new Date().toISOString()
-            }).eq('id',id));
-            toast('Trend candidate rejected.');
-          }else if(action==='open-source' && post.generation_meta?.trend_source_url){
-            window.open(post.generation_meta.trend_source_url,'_blank','noopener,noreferrer');
-          }
+          await query(sb.from('trend_scout_items').update({status:next,updated_at:new Date().toISOString()}).eq('id',id));
+          const messages={
+            shortlisted:'Added to your shortlist.',
+            filming:'Marked as ready for filming.',
+            used:'Marked as used.',
+            dismissed:'Trend dismissed.',
+            new:'Trend restored.'
+          };
+          toast(messages[next]||'Trend updated.');
           await renderRoute(true);
         }catch(error){fail(error);}
         finally{if(button?.isConnected)button.disabled=false;}
@@ -2628,56 +2642,79 @@ async function trendScoutPage(){
     });
   },0);
 
-  const statusBadge=p=>{
-    const kind=p.status==='published'?'good':p.status==='approved'?'good':p.status==='skipped'?'warn':'';
-    return '<span class="tgm-badge '+kind+'">'+esc(humanize(p.status))+'</span>';
+  const statusBadge=status=>{
+    const kind=status==='used'?'good':status==='shortlisted'||status==='filming'?'good':status==='dismissed'?'warn':'';
+    return '<span class="tgm-badge '+kind+'">'+esc(humanize(status))+'</span>';
   };
-  const card=p=>{
-    const m=p.generation_meta||{};
-    const fit=m.vision_fit_score!=null?Math.round(Number(m.vision_fit_score))+'/100':'Not scored yet';
-    const source=m.trend_source_platform||'Public web';
-    const sourceBtn=m.trend_source_url?'<button class="btn btn-sm btn-secondary" type="button" data-trend-action="open-source" data-id="'+esc(p.id)+'">View source</button>':'';
-    const actions=p.status==='draft'
-      ? '<button class="btn btn-sm btn-primary" type="button" data-trend-action="approve" data-id="'+esc(p.id)+'">Approve for Telegram</button><button class="btn btn-sm btn-ghost" type="button" data-trend-action="reject" data-id="'+esc(p.id)+'">Reject</button>'
-      : '';
+  const sourcesMarkup=item=>{
+    const sources=Array.isArray(item.sources)?item.sources:[];
+    if(!sources.length)return '';
+    return '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">'+sources.slice(0,5).map((s,index)=>
+      '<a class="btn btn-sm btn-secondary" href="'+esc(s.url||'#')+'" target="_blank" rel="noopener noreferrer">Source '+(index+1)+(s.title?' · '+esc(String(s.title).slice(0,36)):'')+'</a>'
+    ).join('')+'</div>';
+  };
+  const listMarkup=(title,values)=>{
+    const arr=Array.isArray(values)?values:[];
+    return arr.length?'<div style="margin-top:14px"><strong>'+esc(title)+'</strong><ol style="margin:8px 0 0 20px">'+arr.map(x=>'<li style="margin:5px 0">'+esc(x)+'</li>').join('')+'</ol></div>':'';
+  };
+  const card=item=>{
+    const actions=item.status==='new'
+      ? '<button class="btn btn-sm btn-primary" type="button" data-trend-action="shortlist" data-id="'+esc(item.id)+'">Shortlist</button><button class="btn btn-sm btn-ghost" type="button" data-trend-action="dismiss" data-id="'+esc(item.id)+'">Dismiss</button>'
+      : item.status==='shortlisted'
+        ? '<button class="btn btn-sm btn-primary" type="button" data-trend-action="filming" data-id="'+esc(item.id)+'">Ready to film</button><button class="btn btn-sm btn-ghost" type="button" data-trend-action="dismiss" data-id="'+esc(item.id)+'">Dismiss</button>'
+        : item.status==='filming'
+          ? '<button class="btn btn-sm btn-primary" type="button" data-trend-action="used" data-id="'+esc(item.id)+'">Mark used</button><button class="btn btn-sm btn-secondary" type="button" data-trend-action="shortlist" data-id="'+esc(item.id)+'">Back to shortlist</button>'
+          : item.status==='dismissed'
+            ? '<button class="btn btn-sm btn-secondary" type="button" data-trend-action="restore" data-id="'+esc(item.id)+'">Restore</button>'
+            : '';
     return '<article class="panel" style="margin:0">'+
-      '<div class="panel-head"><div><span class="eyebrow">'+esc(source)+'</span><h2>'+esc(p.title||'Trend candidate')+'</h2></div>'+statusBadge(p)+'</div>'+
+      '<div class="panel-head"><div><span class="eyebrow">#'+esc(item.rank)+' · '+esc(humanize(item.category))+'</span><h2>'+esc(item.title)+'</h2></div>'+statusBadge(item.status)+'</div>'+
       '<div class="panel-body">'+
-        '<div class="tgm-post-meta"><span class="tgm-badge">Vision fit '+esc(fit)+'</span>'+(m.trend_category?'<span class="tgm-badge">'+esc(humanize(m.trend_category))+'</span>':'')+(p.target_level?'<span class="tgm-badge">'+esc(p.target_level)+'</span>':'')+'</div>'+
-        (m.trend_summary?'<p><strong>What is trending:</strong> '+esc(m.trend_summary)+'</p>':'')+
-        (m.vision_reason?'<p><strong>Why it fits Vision:</strong> '+esc(m.vision_reason)+'</p>':'')+
-        (m.vision_adaptation?'<p><strong>Vision angle:</strong> '+esc(m.vision_adaptation)+'</p>':'')+
-        '<div class="section-note" style="margin:14px 0 0"><strong>Prepared post</strong><br>'+esc(p.content_text||'No post copy prepared yet.').replace(/\n/g,'<br>')+'</div>'+
-        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px">'+sourceBtn+actions+'</div>'+
+        '<div class="tgm-post-meta"><span class="tgm-badge good">Vision fit '+esc(item.vision_fit_score)+'/100</span><span class="tgm-badge">Trend '+esc(item.trend_strength_score)+'/100</span><span class="tgm-badge">Confidence '+esc(item.confidence_score)+'/100</span><span class="tgm-badge">'+esc(item.target_audience)+'</span><span class="tgm-badge">'+esc(humanize(item.video_type))+'</span></div>'+
+        '<p><strong>What is trending:</strong> '+esc(item.trend_summary)+'</p>'+
+        '<p><strong>Why it is moving now:</strong> '+esc(item.why_trending)+'</p>'+
+        '<div class="section-note" style="margin-top:12px"><strong>Uzbekistan signal</strong><br>'+esc(item.uzbekistan_signal)+(item.tashkent_signal?'<br><br><strong>Tashkent signal</strong><br>'+esc(item.tashkent_signal):'')+'</div>'+
+        '<div class="section-note" style="margin-top:12px"><strong>Your opening hook</strong><br>'+esc(item.video_hook)+'</div>'+
+        '<p><strong>Original Vision video idea:</strong> '+esc(item.video_concept)+'</p>'+
+        listMarkup('Shot plan',item.shot_plan)+
+        listMarkup('Script outline',item.script_outline)+
+        (item.caption_angle?'<p><strong>Caption angle:</strong> '+esc(item.caption_angle)+'</p>':'')+
+        (item.why_now?'<p><strong>Why film it now:</strong> '+esc(item.why_now)+'</p>':'')+
+        (item.do_not_copy?'<div class="section-note" style="margin-top:12px"><strong>Do not copy</strong><br>'+esc(item.do_not_copy)+'</div>':'')+
+        sourcesMarkup(item)+
+        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">'+actions+'</div>'+
       '</div>'+
     '</article>';
   };
 
-  const allCards=candidates.length
-    ? '<div style="display:grid;gap:16px">'+candidates.map(card).join('')+'</div>'
-    : '<div class="empty"><strong>No trend candidates yet</strong>Trend Scout is reserved for rare, high-fit English trends. The search engine will add candidates here only when something genuinely matches Vision.</div>';
+  const runNote=latestRun
+    ? '<div class="section-note" style="margin-bottom:16px"><strong>Latest scan:</strong> '+esc(dateTime(latestRun.completed_at||latestRun.created_at))+' · '+esc(latestRun.found_count||0)+' ideas · '+esc(latestRun.source_count||0)+' public sources'+(latestRun.search_summary?'<br>'+esc(latestRun.search_summary):'')+(latestRun.status==='failed'&&latestRun.error_message?'<br><strong>Scan error:</strong> '+esc(latestRun.error_message):'')+'</div>'
+    : '';
+
+  const cards=currentItems.length
+    ? '<div style="display:grid;gap:16px">'+currentItems.map(card).join('')+'</div>'
+    : '<div class="empty"><strong>No research batch yet</strong>Run Trend Scout now. It will search for 3–5 current English-related trends with Uzbekistan and Tashkent signals, then turn them into original video ideas for you to film.</div>';
 
   return '<div class="tgm-page">'+
-    '<section class="tgm-hero"><div><span>VISION TREND SCOUT</span><h2>Trend Scout</h2><p>Rare English-learning trends, filtered for Vision values and prepared for your approval before anything can publish.</p></div></section>'+
+    '<section class="tgm-hero"><div><span>VISION TREND SCOUT</span><h2>Trend Scout</h2><p>Every 15 days, Jarvis researches 3–5 English-related trends with real Uzbekistan relevance and turns them into original video ideas for you to film personally.</p></div><button class="btn btn-primary" type="button" id="trend-scout-scan-now">Scan now</button></section>'+
     '<div class="tgm-stats">'+
-      '<div class="tgm-stat"><span>Cadence</span><strong>'+esc(String(rule.cadence_days_min||35))+'–'+esc(String(rule.cadence_days_max||40))+' days</strong><small>Maximum one trend-inspired post per window</small></div>'+
-      '<div class="tgm-stat"><span>Awaiting approval</span><strong>'+pending.length+'</strong><small>Nothing publishes without approval</small></div>'+
-      '<div class="tgm-stat"><span>Approved</span><strong>'+approved.length+'</strong><small>Queued through normal Telegram publishing</small></div>'+
-      '<div class="tgm-stat"><span>Published</span><strong>'+published.length+'</strong><small>'+rejected.length+' rejected</small></div>'+
+      '<div class="tgm-stat"><span>Automatic scan</span><strong>Every 15 days</strong><small>Next: '+esc(nextText)+'</small></div>'+
+      '<div class="tgm-stat"><span>Ideas per scan</span><strong>3–5</strong><small>Quality over filler</small></div>'+
+      '<div class="tgm-stat"><span>Shortlisted / filming</span><strong>'+shortlisted+'</strong><small>Your current video queue</small></div>'+
+      '<div class="tgm-stat"><span>Used ideas</span><strong>'+used+'</strong><small>Already filmed or published by you</small></div>'+
     '</div>'+
-    '<section class="panel tgm-section"><div class="panel-head"><div><h2>What Jarvis is allowed to bring here</h2><p>Trend momentum alone is never enough.</p></div></div><div class="panel-body">'+
+    '<section class="panel tgm-section"><div class="panel-head"><div><h2>How this section works</h2><p>This is a research and video-idea board — not an automatic publisher.</p></div></div><div class="panel-body">'+
       '<div class="tgm-rule-list">'+
-        '<div><strong>Vision fit first</strong><span>Every candidate must match Vision values, learners, teaching goals and brand tone.</span></div>'+
-        '<div><strong>No competitor people/content</strong><span>No videos featuring staff, teachers, students, classrooms or branding from other learning centres.</span></div>'+
-        '<div><strong>Original Vision execution</strong><span>Jarvis may learn from a trend mechanism, but should create an original Vision version rather than reposting unclear copyrighted media.</span></div>'+
-        '<div><strong>Rare by design</strong><span>Normally one candidate every 35–40 days, and Jarvis should skip the cycle entirely when nothing is strong enough.</span></div>'+
-        '<div><strong>Approval gate</strong><span>A trend candidate remains a draft until you approve it here. Only then can normal Telegram publishing take over.</span></div>'+
+        '<div><strong>Uzbekistan first</strong><span>Searches prioritize what is gaining momentum in Uzbekistan, with Tashkent used as the local signal.</span></div>'+
+        '<div><strong>3–5 different trends</strong><span>Each scan looks for distinct ideas across pronunciation, speaking, vocabulary, grammar, IELTS/CEFR, student humor and study culture.</span></div>'+
+        '<div><strong>You film the video</strong><span>Trend Scout gives you the hook, concept, shot plan and script outline. It does not publish or impersonate you.</span></div>'+
+        '<div><strong>No competitor people</strong><span>Videos built around another learning centre’s teachers, staff, students, classrooms or branding are rejected.</span></div>'+
+        '<div><strong>Trend mechanism only</strong><span>Another creator’s footage is never the asset. Vision makes an original version from the underlying trend.</span></div>'+
       '</div>'+
     '</div></section>'+
-    '<section class="tgm-section"><div class="panel-head"><div><h2>Trend candidates</h2><p>Source context, Vision fit and the proposed Vision adaptation are shown together.</p></div></div>'+allCards+'</section>'+
+    '<section class="tgm-section"><div class="panel-head"><div><h2>Latest trend batch</h2><p>Review the evidence, shortlist the ones you like, then film them yourself.</p></div></div>'+runNote+cards+'</section>'+
   '</div>';
 }
-
 async function routeContent(routeName){
   switch(routeName){
     case 'dashboard': return await dashboardPage();
