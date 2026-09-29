@@ -192,7 +192,7 @@ function pageMarkup(model,esc){
 }
 
 function assetEditor(ctx,model,asset){
-  const {openModal,query,sb,renderRoute,esc}=ctx;
+  const {openModal,query,sb,esc}=ctx;
   const levels=new Set(asset.target_levels||['all']);
   openModal('Review media',
     '<div class="form-cols">'+
@@ -221,7 +221,7 @@ function assetEditor(ctx,model,asset){
 }
 
 function postEditor(ctx,model,post=null){
-  const {openModal,query,sb,renderRoute,esc,state}=ctx;
+  const {openModal,query,sb,esc,state}=ctx;
   const linked=model.links.find(l=>l.post_id===post?.id);
   const usable=model.assets.filter(a=>a.review_status==='approved'&&a.privacy_status==='public_safe');
   openModal(post?'Edit Telegram post':'Create Telegram post',
