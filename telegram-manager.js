@@ -15,6 +15,18 @@ const CATEGORIES=[
 const LEVELS=['all','Beginner','Elementary','Pre-Intermediate','Intermediate','Pre-IELTS','IELTS','CEFR'];
 
 const cleanTag=v=>String(v||'').trim().replace(/\s+/g,' ');
+const normalizeChannelInput=value=>{
+  const raw=String(value||'').trim();
+  if(!raw)return '';
+  if(/^-?\d+$/.test(raw))return raw;
+  const cleaned=raw
+    .replace(/^https?:\/\/(?:www\.)?(?:t\.me|telegram\.me)\//i,'')
+    .replace(/^(?:t\.me|telegram\.me)\//i,'')
+    .split(/[?/#]/)[0]
+    .replace(/^@/,'')
+    .trim();
+  return cleaned?'@'+cleaned:'';
+};
 const tagsFrom=v=>[...new Set(String(v||'').split(',').map(cleanTag).filter(Boolean))].slice(0,24);
 const safeName=name=>String(name||'media').normalize('NFKD').replace(/[^a-zA-Z0-9._-]+/g,'-').replace(/-+/g,'-').slice(-120);
 const fileSize=n=>{
@@ -332,7 +344,7 @@ function bind(ctx,model){
     if(btn)btn.disabled=true;
     try{
       await query(sb.from('telegram_settings').update({
-        channel_username:form.channel_username.value.trim()||null,
+        channel_username:normalizeChannelInput(form.channel_username.value)||null,
         daily_post_time:form.daily_post_time.value||'19:00',
         approval_required:form.approval_required.checked,
         updated_by:state.session.user.id,
