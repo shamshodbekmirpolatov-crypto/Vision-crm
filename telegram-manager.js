@@ -226,7 +226,6 @@ function assetEditor(ctx,model,asset){
         description:form.description.value.trim()||null,
         updated_at:new Date().toISOString()
       }).eq('id',asset.id));
-      await renderRoute(true);
     },
     'Save media'
   );
@@ -271,7 +270,6 @@ function postEditor(ctx,model,post=null){
       if(form.asset_id.value){
         await query(sb.from('telegram_post_media').insert({post_id:id,asset_id:form.asset_id.value,position:0,role:'source'}));
       }
-      await renderRoute(true);
     },
     post?'Save changes':'Create draft'
   );
@@ -317,17 +315,21 @@ async function uploadFiles(ctx,files){
 
 function bind(ctx,model){
   const root=document.querySelector('[data-route-page="telegram"]');
-  if(!root||root.dataset.tgmBound==='true')return;
-  root.dataset.tgmBound='true';
+  if(!root)return;
   const {sb,state,query,invokeEdge,toast,fail,renderRoute}=ctx;
 
+  // This route panel is reused by the CRM. Reassign DOM handler properties on every render
+  // so freshly replaced controls never inherit stale/unbound listeners.
   const newPost=()=>postEditor(ctx,model,null);
-  root.querySelector('#tgm-new-post')?.addEventListener('click',newPost);
-  root.querySelector('#tgm-new-post-2')?.addEventListener('click',newPost);
+  const newPostBtn=root.querySelector('#tgm-new-post');
+  const newPostBtn2=root.querySelector('#tgm-new-post-2');
+  if(newPostBtn)newPostBtn.onclick=newPost;
+  if(newPostBtn2)newPostBtn2.onclick=newPost;
 
   const fileInput=root.querySelector('#tgm-upload-input');
-  root.querySelector('#tgm-upload')?.addEventListener('click',()=>fileInput?.click());
-  fileInput?.addEventListener('change',async()=>{
+  const uploadBtn=root.querySelector('#tgm-upload');
+  if(uploadBtn)uploadBtn.onclick=()=>fileInput?.click();
+  if(fileInput)fileInput.onchange=async()=>{
     try{
       const files=[...fileInput.files];
       fileInput.value='';
@@ -335,9 +337,10 @@ function bind(ctx,model){
       await renderRoute(true);
       toast('Media uploaded. Review it before public use.');
     }catch(error){fail(error);}
-  });
+  };
 
-  root.querySelector('#tgm-settings-form')?.addEventListener('submit',async e=>{
+  const settingsForm=root.querySelector('#tgm-settings-form');
+  if(settingsForm)settingsForm.onsubmit=async e=>{
     e.preventDefault();
     const form=e.currentTarget;
     const btn=form.querySelector('[type="submit"]');
@@ -354,9 +357,10 @@ function bind(ctx,model){
       await renderRoute(true);
     }catch(error){fail(error);}
     finally{if(btn)btn.disabled=false;}
-  });
+  };
 
-  root.querySelector('#tgm-check-connection')?.addEventListener('click',async e=>{
+  const connectionBtn=root.querySelector('#tgm-check-connection');
+  if(connectionBtn)connectionBtn.onclick=async e=>{
     const btn=e.currentTarget;
     btn.disabled=true;btn.textContent='Checking…';
     try{
@@ -366,12 +370,14 @@ function bind(ctx,model){
       else toast(status.error||'Bot exists, but channel permissions are not ready.','error');
       await renderRoute(true);
     }catch(error){fail(error);}
-    finally{btn.disabled=false;btn.textContent='Check connection';}
-  });
+    finally{
+      if(btn?.isConnected){btn.disabled=false;btn.textContent='Check connection';}
+    }
+  };
 
-  root.addEventListener('click',async e=>{
+  root.onclick=async e=>{
     const button=e.target.closest('[data-tgm-action]');
-    if(!button)return;
+    if(!button||!root.contains(button))return;
     const action=button.dataset.tgmAction,id=button.dataset.id;
     const post=model.posts.find(p=>p.id===id);
     const asset=model.assets.find(a=>a.id===id);
@@ -403,8 +409,11 @@ function bind(ctx,model){
         await renderRoute(true);
         return;
       }
-    }catch(error){fail(error);}
-  });
+    }catch(error){
+      fail(error);
+      if(button?.isConnected)button.disabled=false;
+    }
+  };
 
   const search=root.querySelector('#tgm-media-search');
   const filter=root.querySelector('#tgm-media-filter');
@@ -423,8 +432,8 @@ function bind(ctx,model){
       card.hidden=!(textOk&&statusOk);
     });
   };
-  search?.addEventListener('input',applyMediaFilter);
-  filter?.addEventListener('change',applyMediaFilter);
+  if(search)search.oninput=applyMediaFilter;
+  if(filter)filter.onchange=applyMediaFilter;
 }
 
 window.VisionTelegramManager={
