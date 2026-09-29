@@ -122,7 +122,7 @@ function mediaCard(asset,esc){
       '<div class="tgm-media-title"><strong>'+esc(asset.title||asset.file_name)+'</strong><span>'+esc(fileSize(asset.size_bytes))+(asset.orientation?' · '+esc(asset.orientation):'')+'</span></div>'+
       '<div class="tgm-badges">'+badge(prettyStatus(asset.review_status),reviewKind)+badge(prettyStatus(asset.privacy_status),privacyKind)+'</div>'+
       (asset.tags?.length?'<div class="tgm-tags">'+asset.tags.slice(0,5).map(t=>'<span>#'+esc(t)+'</span>').join('')+'</div>':'')+
-      '<div class="tgm-media-meta"><span>Used '+Number(asset.usage_count||0)+'×</span><button class="btn btn-sm btn-secondary" type="button" data-tgm-action="review-media" data-id="'+esc(asset.id)+'">Review</button></div>'+
+      '<div class="tgm-media-meta"><span>Used '+Number(asset.usage_count||0)+'×</span><div class="tgm-media-card-actions"><button class="btn btn-sm btn-secondary" type="button" data-tgm-action="preview-media" data-id="'+esc(asset.id)+'">View</button><button class="btn btn-sm btn-secondary" type="button" data-tgm-action="review-media" data-id="'+esc(asset.id)+'">Review</button></div></div>'+
     '</div>'+
   '</article>';
 }
@@ -241,6 +241,37 @@ function pageMarkup(model,esc){
   '</div>';
 }
 
+async function showAssetPreview(ctx,asset){
+  if(!asset)return;
+  const {sb,esc,fail}=ctx;
+  let src=asset._preview||'';
+  if(!src)src=await signedPreview(sb,asset);
+  if(!src){
+    fail(new Error('Could not open this media preview. Please try again.'));
+    return;
+  }
+  document.querySelector('.tgm-preview-overlay')?.remove();
+  const overlay=document.createElement('div');
+  overlay.className='tgm-preview-overlay';
+  overlay.setAttribute('role','dialog');
+  overlay.setAttribute('aria-modal','true');
+  overlay.setAttribute('aria-label','Media preview');
+  const title=asset.title||asset.file_name||'Media preview';
+  const visual=asset.media_type==='video'
+    ? '<video class="tgm-preview-media" src="'+esc(src)+'" controls autoplay playsinline></video>'
+    : '<img class="tgm-preview-media" src="'+esc(src)+'" alt="'+esc(title)+'">';
+  overlay.innerHTML=
+    '<div class="tgm-preview-shell">'+
+      '<div class="tgm-preview-head"><div><strong>'+esc(title)+'</strong><span>'+esc(prettyStatus(asset.media_type))+(asset.orientation?' · '+esc(asset.orientation):'')+'</span></div><button class="icon-btn tgm-preview-close" type="button" aria-label="Close preview">×</button></div>'+
+      '<div class="tgm-preview-stage">'+visual+'</div>'+
+    '</div>';
+  const close=()=>overlay.remove();
+  overlay.querySelector('.tgm-preview-close').onclick=close;
+  overlay.onclick=e=>{if(e.target===overlay)close();};
+  document.body.appendChild(overlay);
+  overlay.querySelector('.tgm-preview-close')?.focus({preventScroll:true});
+}
+
 function assetEditor(ctx,model,asset){
   const {openModal,query,sb,esc}=ctx;
   const levels=new Set(asset.target_levels||['all']);
@@ -279,7 +310,7 @@ function postEditor(ctx,model,post=null){
       '<div class="field"><label>Category</label><select class="select" name="category">'+CATEGORIES.map(([v,l])=>'<option value="'+esc(v)+'" '+((post?.category||'educational')===v?'selected':'')+'>'+esc(l)+'</option>').join('')+'</select></div>'+
       '<div class="field"><label>Target level</label><select class="select" name="target_level">'+LEVELS.map(v=>'<option value="'+esc(v)+'" '+((post?.target_level||'all')===v?'selected':'')+'>'+esc(v)+'</option>').join('')+'</select></div>'+
       '<div class="field span-2"><label>Schedule</label><input class="input" type="datetime-local" name="scheduled_for" value="'+esc(localInputValue(post?.scheduled_for))+'"></div>'+
-      '<div class="field span-2"><label>Reuse media <span class="muted">(optional)</span></label><select class="select" name="asset_id"><option value="">No media / text only</option>'+usable.map(a=>'<option value="'+esc(a.id)+'" '+(linked?.asset_id===a.id?'selected':'')+'>'+esc(a.title||a.file_name)+' · '+esc(a.media_type)+'</option>').join('')+'</select><small class="muted">Only media already marked Approved + Public-safe appears here.</small></div>'+
+      '<div class="field span-2"><label>Reuse media <span class="muted">(optional)</span></label><div class="tgm-media-select-row"><select class="select" name="asset_id"><option value="">No media / text only</option>'+usable.map(a=>'<option value="'+esc(a.id)+'" '+(linked?.asset_id===a.id?'selected':'')+'>'+esc(a.title||a.file_name)+' · '+esc(a.media_type)+'</option>').join('')+'</select><button class="btn btn-secondary tgm-view-selected-media" type="button">View attached media</button></div><small class="muted">Only media already marked Approved + Public-safe appears here. Preview it before approving the post.</small></div>'+
       '<div class="field span-2"><label>Post text</label><textarea class="textarea tgm-post-text" name="content_text" maxlength="4096" placeholder="Write the Telegram post here…">'+esc(post?.content_text||'')+'</textarea><small class="muted">Keep media captions concise. Long text-only posts can be up to 4,096 characters.</small></div>'+
     '</div>',
     async form=>{
@@ -311,6 +342,25 @@ function postEditor(ctx,model,post=null){
     },
     post?'Save changes':'Create draft'
   );
+
+  setTimeout(()=>{
+    const form=document.querySelector('#modal-form');
+    if(!form)return;
+    const select=form.querySelector('[name="asset_id"]');
+    const viewBtn=form.querySelector('.tgm-view-selected-media');
+    if(!select||!viewBtn)return;
+    const sync=()=>{
+      const asset=usable.find(a=>a.id===select.value);
+      viewBtn.disabled=!asset;
+      viewBtn.textContent=asset?(asset.media_type==='video'?'View attached video':'View attached image'):'No media selected';
+    };
+    select.addEventListener('change',sync);
+    viewBtn.onclick=()=>{
+      const asset=usable.find(a=>a.id===select.value);
+      if(asset)showAssetPreview(ctx,asset);
+    };
+    sync();
+  },0);
 }
 
 async function uploadFiles(ctx,files){
@@ -468,6 +518,7 @@ function bind(ctx,model){
     const post=model.posts.find(p=>p.id===id);
     const asset=model.assets.find(a=>a.id===id);
     try{
+      if(action==='preview-media'&&asset){await showAssetPreview(ctx,asset);return;}
       if(action==='review-media'&&asset){assetEditor(ctx,model,asset);return;}
       if(action==='edit-post'&&post){postEditor(ctx,model,post);return;}
       if(action==='approve-post'&&post){
