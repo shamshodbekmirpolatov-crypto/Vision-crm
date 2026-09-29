@@ -147,22 +147,35 @@ function postCard(post,media,esc){
 
 async function loadModel(ctx){
   const {sb,query,invokeEdge}=ctx;
-  const [settings,posts,assets,links,connection]=await Promise.all([
+  const [settings,posts,assets,links,connection,agentStatus]=await Promise.all([
     query(sb.from('telegram_settings').select('*').eq('id',1).single()),
     query(sb.from('telegram_posts').select('*').order('created_at',{ascending:false}).limit(60)),
     query(sb.from('media_assets').select('*').order('created_at',{ascending:false}).limit(100)),
     query(sb.from('telegram_post_media').select('post_id,asset_id,position,role')),
-    invokeEdge('telegram-publish',{action:'status'},15000).catch(error=>({ok:false,error:error.message}))
+    invokeEdge('telegram-publish',{action:'status'},15000).catch(error=>({ok:false,error:error.message})),
+    invokeEdge('jarvis-agent',{action:'status'},15000).catch(error=>({ok:false,error:error.message}))
   ]);
   const previews=await Promise.all((assets||[]).slice(0,60).map(async asset=>({...asset,_preview:await signedPreview(sb,asset)})));
   const previewById=new Map(previews.map(a=>[a.id,a]));
   const merged=(assets||[]).map(a=>previewById.get(a.id)||a);
-  return {settings,posts:posts||[],assets:merged,links:links||[],connection};
+  return {settings,posts:posts||[],assets:merged,links:links||[],connection,agentStatus};
+}
+
+function agentStatusMarkup(status,esc){
+  if(!status||status.ok===false){
+    return '<div class="tgm-connection tgm-connection-warn"><strong>Jarvis status unavailable</strong><span>'+esc(status?.error||'Try refreshing Telegram Manager.')+'</span></div>';
+  }
+  if(!status.openai_configured){
+    return '<div class="tgm-connection tgm-connection-warn"><strong>AI key still needed</strong><span>Add <b>OPENAI_API_KEY</b> in Supabase Edge Function secrets. The key never goes into the CRM browser.</span><a class="tgm-inline-link" href="https://supabase.com/dashboard/project/ctdzmoaftajdkvreyqox/functions/secrets" target="_blank" rel="noopener">Open Supabase secrets ↗</a></div>';
+  }
+  const mode=status.agent_enabled?'Daily automation is enabled':'AI is connected · automation is paused';
+  return '<div class="tgm-connection tgm-connection-good"><strong>Jarvis content engine is ready</strong><span>'+esc(mode)+'. Next planned slot: '+esc(fmtWhen(status.next_slot))+'.</span></div>';
 }
 
 function settingsPanel(model,esc){
   const s=model.settings;
-  const publicReady=model.assets.filter(a=>a.review_status==='approved'&&a.privacy_status==='public_safe').length;
+  const a=model.agentStatus||{};
+  const publicReady=model.assets.filter(x=>x.review_status==='approved'&&x.privacy_status==='public_safe').length;
   const drafts=model.posts.filter(p=>['draft','approved','error'].includes(p.status)).length;
   const published=model.posts.filter(p=>p.status==='published').length;
   return '<div class="tgm-stats">'+
@@ -177,16 +190,41 @@ function settingsPanel(model,esc){
       '<form id="tgm-settings-form" class="tgm-settings-form">'+
         '<div class="field"><label>Channel username or ID</label><input class="input" name="channel_username" placeholder="@VisionLearningCentre" value="'+esc(s.channel_username||'')+'"></div>'+
         '<div class="field"><label>Default post time</label><input class="input" name="daily_post_time" type="time" value="'+esc(String(s.daily_post_time||'19:00').slice(0,5))+'"></div>'+
-        '<label class="tgm-switch"><input type="checkbox" name="approval_required" '+(s.approval_required?'checked':'')+'><span><strong>Approval required</strong><small>Recommended while the agent learns Vision’s style.</small></span></label>'+
-        '<button class="btn btn-primary" type="submit">Save settings</button>'+
+        '<label class="tgm-switch"><input type="checkbox" name="approval_required" '+(s.approval_required?'checked':'')+'><span><strong>Approval required</strong><small>Jarvis prepares the post; you approve it before it can go live.</small></span></label>'+
+        '<button class="btn btn-primary" type="submit">Save Telegram settings</button>'+
       '</form>'+
     '</div></section>'+
-    '<section class="panel"><div class="panel-head"><div><h2>Weekly content rhythm</h2><p>The agent will use this as its default mix.</p></div></div><div class="panel-body"><div class="tgm-week">'+
+    '<section class="panel"><div class="panel-head"><div><h2>Weekly content rhythm</h2><p>Jarvis uses this as the default mix, then checks recent posts to avoid repetition.</p></div></div><div class="panel-body"><div class="tgm-week">'+
       Object.entries(s.weekly_plan||{}).map(([day,type])=>'<div><strong>'+esc(day[0].toUpperCase()+day.slice(1))+'</strong><span>'+esc(type)+'</span></div>').join('')+
-    '</div><div class="section-note tgm-note">Daily AI generation is not switched on until an AI provider and Telegram bot secret are connected. The Media Library and approval queue work now.</div></div></section>'+
+    '</div></div></section>'+
+  '</div>'+
+  '<div class="tgm-grid tgm-grid-agent">'+
+    '<section class="panel"><div class="panel-head"><div><h2>Jarvis content agent</h2><p>Daily draft generation and approved-post scheduling.</p></div><button type="button" class="btn btn-primary" id="tgm-generate-draft" '+(!a.openai_configured?'disabled':'')+'>Generate next draft</button></div><div class="panel-body">'+
+      agentStatusMarkup(a,esc)+
+      '<form id="tgm-agent-form" class="tgm-settings-form">'+
+        '<div class="tgm-agent-times"><div class="field"><label>Prepare draft at</label><input class="input" name="draft_generation_time" type="time" value="'+esc(String(s.draft_generation_time||'16:00').slice(0,5))+'"></div><div class="field"><label>Planned publish time</label><input class="input" name="daily_post_time_agent" type="time" value="'+esc(String(s.daily_post_time||'19:00').slice(0,5))+'"></div></div>'+
+        '<label class="tgm-switch"><input type="checkbox" name="agent_enabled" '+(s.agent_enabled?'checked':'')+'><span><strong>Enable daily Jarvis automation</strong><small>At the preparation time Jarvis creates the next useful post and places it in Upcoming posts.</small></span></label>'+
+        '<label class="tgm-switch"><input type="checkbox" name="auto_generate_drafts" '+(s.auto_generate_drafts?'checked':'')+'><span><strong>Generate daily drafts automatically</strong><small>Jarvis checks recent posts and your approved media before creating anything new.</small></span></label>'+
+        '<label class="tgm-switch"><input type="checkbox" name="ai_images_enabled" '+(s.ai_images_enabled?'checked':'')+'><span><strong>Allow branded AI images when useful</strong><small>Jarvis may create a professional Vision-style image instead of forcing media onto every post.</small></span></label>'+
+        '<label class="tgm-switch"><input type="checkbox" name="auto_publish_approved" '+(s.auto_publish_approved?'checked':'')+'><span><strong>Publish approved scheduled posts automatically</strong><small>Only posts you already approved can be sent automatically at their scheduled time.</small></span></label>'+
+        '<div class="tgm-model-line"><span>Text model</span><strong>'+esc(a.text_model||s.text_model||'—')+'</strong></div>'+
+        '<div class="tgm-model-line"><span>Image model</span><strong>'+esc(a.image_model||s.image_model||'—')+'</strong></div>'+
+        '<button class="btn btn-primary" type="submit">Save Jarvis settings</button>'+
+      '</form>'+
+    '</div></section>'+
+    '<section class="panel"><div class="panel-head"><div><h2>Public voice rules</h2><p>These rules are enforced inside the generator, not just written as reminders.</p></div></div><div class="panel-body">'+
+      '<div class="tgm-rule-list">'+
+        '<div><strong>Always Vision</strong><span>Public posts speak only as Vision Learning Centre.</span></div>'+
+        '<div><strong>Never expose the system</strong><span>No Jarvis, AI, bot, automation, prompt or scheduling language appears publicly.</span></div>'+
+        '<div><strong>Useful over frequent</strong><span>Every post must teach, help, inform meaningfully, or communicate a real centre update.</span></div>'+
+        '<div><strong>Natural Uzbek</strong><span>Translations must sound natural and idiomatic, never machine-like.</span></div>'+
+        '<div><strong>No invented centre claims</strong><span>Jarvis cannot fabricate student results, events, teachers, prices, offers or achievements.</span></div>'+
+        '<div><strong>Media with a reason</strong><span>Text-only is allowed. Classroom media is reused only when approved and relevant; new visuals are created only when they improve the post.</span></div>'+
+      '</div>'+
+      '<div class="section-note tgm-note">Automatic videos are intentionally not part of this first agent version. We are making daily text + image quality reliable first.</div>'+
+    '</div></section>'+
   '</div>';
 }
-
 function pageMarkup(model,esc){
   const queue=model.posts.filter(p=>p.status!=='published'&&p.status!=='skipped');
   const history=model.posts.filter(p=>p.status==='published'||p.status==='skipped').slice(0,12);
@@ -356,7 +394,55 @@ function bind(ctx,model){
       toast('Telegram settings saved.');
       await renderRoute(true);
     }catch(error){fail(error);}
-    finally{if(btn)btn.disabled=false;}
+    finally{if(btn?.isConnected)btn.disabled=false;}
+  };
+
+  const agentForm=root.querySelector('#tgm-agent-form');
+  if(agentForm)agentForm.onsubmit=async e=>{
+    e.preventDefault();
+    const form=e.currentTarget;
+    const btn=form.querySelector('[type="submit"]');
+    if(btn)btn.disabled=true;
+    try{
+      if(form.agent_enabled.checked&&!model.agentStatus?.openai_configured){
+        throw new Error('Add OPENAI_API_KEY in Supabase before enabling daily Jarvis automation.');
+      }
+      if(form.agent_enabled.checked&&!model.agentStatus?.telegram_configured){
+        throw new Error('Telegram must be connected before enabling daily Jarvis automation.');
+      }
+      await query(sb.from('telegram_settings').update({
+        agent_enabled:form.agent_enabled.checked,
+        auto_generate_drafts:form.auto_generate_drafts.checked,
+        auto_publish_approved:form.auto_publish_approved.checked,
+        ai_images_enabled:form.ai_images_enabled.checked,
+        draft_generation_time:form.draft_generation_time.value||'16:00',
+        daily_post_time:form.daily_post_time_agent.value||'19:00',
+        updated_by:state.session.user.id,
+        updated_at:new Date().toISOString()
+      }).eq('id',1));
+      toast(form.agent_enabled.checked?'Jarvis daily automation enabled.':'Jarvis settings saved.');
+      await renderRoute(true);
+    }catch(error){fail(error);}
+    finally{if(btn?.isConnected)btn.disabled=false;}
+  };
+
+  const generateBtn=root.querySelector('#tgm-generate-draft');
+  if(generateBtn)generateBtn.onclick=async()=>{
+    generateBtn.disabled=true;
+    const original=generateBtn.textContent;
+    generateBtn.textContent='Creating draft…';
+    try{
+      const result=await invokeEdge('jarvis-agent',{action:'generate'},150000);
+      if(result?.skipped)toast(result.reason||'A draft already exists for that slot.','error');
+      else toast(result?.media?'Jarvis prepared a draft with media for approval.':'Jarvis prepared a draft for approval.');
+      await renderRoute(true);
+    }catch(error){fail(error);}
+    finally{
+      if(generateBtn?.isConnected){
+        generateBtn.disabled=!model.agentStatus?.openai_configured;
+        generateBtn.textContent=original;
+      }
+    }
   };
 
   const connectionBtn=root.querySelector('#tgm-check-connection');
