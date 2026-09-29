@@ -194,6 +194,9 @@ function settingsPanel(model,esc){
       '<form id="tgm-settings-form" class="tgm-settings-form">'+
         '<div class="field"><label>Channel username or ID</label><input class="input" name="channel_username" placeholder="@VisionLearningCentre" value="'+esc(s.channel_username||'')+'"></div>'+
         '<div class="field"><label>Default post time</label><input class="input" name="daily_post_time" type="time" value="'+esc(String(s.daily_post_time||'19:00').slice(0,5))+'"></div>'+
+        '<div class="field"><label>Vision contact phone</label><input class="input" name="contact_phone" value="'+esc(s.contact_phone||'+998 94 073 44 88')+'" placeholder="+998 94 073 44 88"></div>'+
+        '<div class="field"><label>Administrator Telegram link</label><input class="input" name="admin_chat_url" value="'+esc(s.admin_chat_url||'')+'" placeholder="https://t.me/your_admin"><small class="muted">When set, “Kurslarimizga qo‘shilish uchun” becomes a clickable link to this chat.</small></div>'+
+        '<div class="field span-2"><label>Enrolment CTA label</label><input class="input" name="contact_cta_label" value="'+esc(s.contact_cta_label||'Kurslarimizga qo‘shilish uchun')+'"></div>'+
         '<label class="tgm-switch"><input type="checkbox" name="approval_required" '+(s.approval_required?'checked':'')+'><span><strong>Approval required</strong><small>Jarvis prepares the post; you approve it before it can go live.</small></span></label>'+
         '<button class="btn btn-primary" type="submit">Save Telegram settings</button>'+
       '</form>'+
@@ -225,6 +228,9 @@ function settingsPanel(model,esc){
         '<div><strong>No invented centre claims</strong><span>Jarvis cannot fabricate student results, events, teachers, prices, offers or achievements.</span></div>'+
         '<div><strong>Media with a reason</strong><span>Text-only is allowed. Classroom media is reused only when approved and relevant; new visuals are created only when they improve the post.</span></div>'+
         '<div><strong>Exact integrated logo</strong><span>Jarvis uses the official horizontal Vision lockup as a small top-left signature directly on the artwork—never boxed, isolated, recoloured, rebuilt or proportionally altered.</span></div>'+
+        '<div><strong>5-post visual memory</strong><span>Jarvis compares the last 3–5 Vision visuals and hard-rotates repeated composition, visual family, palette, focal subject, scene mode and headline treatment. Successful styles can return after a cooldown.</span></div>'+
+        '<div><strong>Value-first channel strategy</strong><span>Jarvis borrows concise hooks and clear contact paths from strong channels, while avoiding their repetitive promotion, CTA fatigue and result-only feeds.</span></div>'+
+        '<div><strong>Smart enrolment footer</strong><span>Promotional posts can automatically add the Vision phone number and a clickable “Kurslarimizga qo‘shilish uchun” admin link. Pure educational posts are kept cleaner so the channel does not feel like constant advertising.</span></div>'+
       '</div>'+
       '<div class="section-note tgm-note">Automatic videos are intentionally not part of this first agent version. We are making daily text + image quality reliable first.</div>'+
     '</div></section>'+
@@ -442,6 +448,9 @@ function bind(ctx,model){
       await query(sb.from('telegram_settings').update({
         channel_username:normalizeChannelInput(form.channel_username.value)||null,
         daily_post_time:form.daily_post_time.value||'19:00',
+        contact_phone:form.contact_phone.value.trim()||'+998 94 073 44 88',
+        admin_chat_url:form.admin_chat_url.value.trim()||null,
+        contact_cta_label:form.contact_cta_label.value.trim()||'Kurslarimizga qo‘shilish uchun',
         approval_required:form.approval_required.checked,
         updated_by:state.session.user.id,
         updated_at:new Date().toISOString()
