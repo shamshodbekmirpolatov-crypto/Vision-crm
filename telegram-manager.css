@@ -4,58 +4,113 @@
 .tgm-hero>div{position:relative;z-index:1}.tgm-hero span{font-size:9px;letter-spacing:.18em;font-weight:800;color:#9fc9dc}.tgm-hero h2{margin:7px 0 5px;font-size:27px;letter-spacing:-.03em}.tgm-hero p{margin:0;color:#d5e7ef;font-size:13px;max-width:650px;line-height:1.55}.tgm-hero-actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end}
 .tgm-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.tgm-stat{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:17px 18px;box-shadow:var(--shadow-soft)}.tgm-stat span,.tgm-stat small{display:block;color:var(--muted);font-size:11px}.tgm-stat strong{display:block;font-size:25px;margin:8px 0 4px;letter-spacing:-.03em}
 .tgm-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:16px}.tgm-settings-form{display:grid;gap:13px;margin-top:16px}.tgm-switch{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel-2)}.tgm-switch input{margin-top:3px}.tgm-switch strong,.tgm-switch small{display:block}.tgm-switch small{color:var(--muted);margin-top:3px;font-size:11px}
-.tgm-connection{border:1px solid var(--line);border-radius:12px;padding:13px 14px;display:grid;gap:4px}.tgm-connection strong{font-size:13px}.tgm-connection span{font-size:11px;line-height:1.45}.tgm-connection-good{background:#edf8f4;border-color:#cde9df;color:#126b57}.tgm-connection-warn{background:var(--panel)8e9;border-color:#f1dfb7;color:#7d5710}
+.tgm-connection{border:1px solid var(--line);border-radius:12px;padding:13px 14px;display:grid;gap:4px}.tgm-connection strong{font-size:13px}.tgm-connection span{font-size:11px;line-height:1.45}.tgm-connection-good{background:#edf8f4;border-color:#cde9df;color:#126b57}.tgm-connection-warn{background:#fff8e9;border-color:#f1dfb7;color:#7d5710}
 .tgm-week{display:grid;gap:7px}.tgm-week>div{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:9px 10px;border-bottom:1px solid var(--line);font-size:12px}.tgm-week>div:last-child{border-bottom:0}.tgm-week span{color:var(--muted)}.tgm-note{margin:15px 0 0}
-.tgm-section{overflow:hidden}.tgm-post-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.tgm-post-card{border:1px solid var(--line);border-radius:14px;padding:15px;background:var(--panel);display:grid;gap:11px}.tgm-post-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.tgm-post-top h3{margin:4px 0 0;font-size:15px}.tgm-post-date{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}.tgm-post-meta,.tgm-badges{display:flex;gap:6px;flex-wrap:wrap}.tgm-badge{display:inline-flex;padding:4px 7px;border-radius:999px;background:#edf3f7;color:var(--muted);font-size:10px;font-weight:760}.tgm-badge.good{background:#e7f6f1;color:#14735c}.tgm-badge.warn{background:var(--panel)3dd;color:#8b5b00}.tgm-badge.bad{background:#fcecec;color:#a83434}.tgm-post-card p{margin:0;color:var(--text);font-size:12px;line-height:1.55;white-space:pre-wrap}.tgm-post-actions{display:flex;gap:7px;flex-wrap:wrap}.tgm-post-error{background:var(--panel)1f1;color:#9a3030;border:1px solid #f0cece;padding:8px 9px;border-radius:9px;font-size:11px}
+.tgm-section{overflow:hidden}.tgm-post-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.tgm-post-card{border:1px solid var(--line);border-radius:14px;padding:15px;background:var(--panel);display:grid;gap:11px}.tgm-post-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.tgm-post-top h3{margin:4px 0 0;font-size:15px}.tgm-post-date{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}.tgm-post-meta,.tgm-badges{display:flex;gap:6px;flex-wrap:wrap}.tgm-badge{display:inline-flex;padding:4px 7px;border-radius:999px;background:#edf3f7;color:var(--muted);font-size:10px;font-weight:760}.tgm-badge.good{background:#e7f6f1;color:#14735c}.tgm-badge.warn{background:#fff3dd;color:#8b5b00}.tgm-badge.bad{background:#fcecec;color:#a83434}.tgm-post-card p{margin:0;color:var(--text);font-size:12px;line-height:1.55;white-space:pre-wrap}.tgm-post-actions{display:flex;gap:7px;flex-wrap:wrap}.tgm-post-error{background:#fff1f1;color:#9a3030;border:1px solid #f0cece;padding:8px 9px;border-radius:9px;font-size:11px}
 .tgm-media-tools{display:flex;gap:8px;align-items:center}.tgm-media-tools .input{min-width:230px}.tgm-media-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.tgm-media-card{border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden;min-width:0}.tgm-media-thumb{height:154px;background:var(--panel-2);position:relative;display:grid;place-items:center;overflow:hidden}.tgm-media-thumb img,.tgm-media-thumb video{width:100%;height:100%;object-fit:cover}.tgm-media-placeholder{font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.1em}.tgm-play{position:absolute;width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:rgba(8,35,52,.74);color:#fff;left:50%;top:50%;transform:translate(-50%,-50%);font-size:12px}.tgm-media-copy{padding:12px;display:grid;gap:9px}.tgm-media-title{min-width:0}.tgm-media-title strong{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tgm-media-title span{display:block;color:var(--muted);font-size:10px;margin-top:3px}.tgm-tags{display:flex;gap:5px;flex-wrap:wrap}.tgm-tags span{font-size:9px;background:#f1f5f8;color:var(--muted);padding:3px 5px;border-radius:6px}.tgm-media-meta{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--muted);font-size:10px}
 .tgm-history{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.tgm-level-checks{display:flex;gap:8px;flex-wrap:wrap;padding:10px;border:1px solid var(--line);border-radius:11px;background:var(--panel-2)}.tgm-level-checks label{display:flex;gap:5px;align-items:center;font-size:11px;color:var(--text)}.tgm-post-text{min-height:180px}
 @media(max-width:1200px){.tgm-media-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.tgm-history{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:900px){.tgm-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.tgm-grid{grid-template-columns:1fr}.tgm-media-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tgm-post-grid{grid-template-columns:1fr}.tgm-hero{align-items:flex-start;flex-direction:column}.tgm-hero-actions{justify-content:flex-start}.tgm-media-tools{width:100%;flex-wrap:wrap}.tgm-media-tools .input,.tgm-media-tools .select{flex:1;min-width:180px}}
 @media(max-width:560px){.tgm-stats{grid-template-columns:1fr 1fr}.tgm-media-grid,.tgm-history{grid-template-columns:1fr}.tgm-hero{padding:20px}.tgm-hero-actions{width:100%}.tgm-hero-actions .btn{flex:1}.tgm-media-tools .input,.tgm-media-tools .select{width:100%;min-width:100%}}
 
-/* Telegram Manager dark mode */
-body.crm-dark .tgm-page{color:var(--text)}
-body.crm-dark .tgm-stat,
-body.crm-dark .tgm-post-card,
-body.crm-dark .tgm-media-card{
-  background:var(--panel);
-  border-color:var(--line);
-  color:var(--text);
-  box-shadow:none;
+/* Telegram Manager dark mode — explicit route-scoped palette */
+body.crm-dark [data-route-page="telegram"] .tgm-page{
+  color:#e6edf4 !important;
 }
-body.crm-dark .tgm-stat span,
-body.crm-dark .tgm-stat small,
-body.crm-dark .tgm-media-title span,
-body.crm-dark .tgm-media-meta,
-body.crm-dark .tgm-post-date,
-body.crm-dark .tgm-week span,
-body.crm-dark .tgm-switch small{
-  color:var(--muted);
+body.crm-dark [data-route-page="telegram"] .tgm-stat,
+body.crm-dark [data-route-page="telegram"] .tgm-post-card,
+body.crm-dark [data-route-page="telegram"] .tgm-media-card,
+body.crm-dark [data-route-page="telegram"] .panel{
+  background:#151e2c !important;
+  border-color:#283548 !important;
+  color:#e6edf4 !important;
+  box-shadow:none !important;
 }
-body.crm-dark .tgm-stat strong,
-body.crm-dark .tgm-media-title strong,
-body.crm-dark .tgm-post-top h3,
-body.crm-dark .tgm-week strong{
-  color:var(--text);
+body.crm-dark [data-route-page="telegram"] .panel-head{
+  background:#151e2c !important;
+  border-color:#283548 !important;
+  color:#e6edf4 !important;
 }
-body.crm-dark .tgm-post-card p{color:#c7d3de}
-body.crm-dark .tgm-media-thumb,
-body.crm-dark .tgm-level-checks,
-body.crm-dark .tgm-switch{
-  background:var(--panel-2);
-  border-color:var(--line);
-  color:var(--text);
+body.crm-dark [data-route-page="telegram"] .panel-head h2,
+body.crm-dark [data-route-page="telegram"] .tgm-stat strong,
+body.crm-dark [data-route-page="telegram"] .tgm-media-title strong,
+body.crm-dark [data-route-page="telegram"] .tgm-post-top h3,
+body.crm-dark [data-route-page="telegram"] .tgm-week strong,
+body.crm-dark [data-route-page="telegram"] .tgm-switch strong{
+  color:#e6edf4 !important;
 }
-body.crm-dark .tgm-tags span,
-body.crm-dark .tgm-badge{
-  background:#1c2a3c;
-  color:#aec0cf;
+body.crm-dark [data-route-page="telegram"] .panel-head p,
+body.crm-dark [data-route-page="telegram"] .tgm-stat span,
+body.crm-dark [data-route-page="telegram"] .tgm-stat small,
+body.crm-dark [data-route-page="telegram"] .tgm-media-title span,
+body.crm-dark [data-route-page="telegram"] .tgm-media-meta,
+body.crm-dark [data-route-page="telegram"] .tgm-post-date,
+body.crm-dark [data-route-page="telegram"] .tgm-week span,
+body.crm-dark [data-route-page="telegram"] .tgm-switch small,
+body.crm-dark [data-route-page="telegram"] .muted{
+  color:#92a2b1 !important;
 }
-body.crm-dark .tgm-badge.good{background:#17382f;color:#8cd8bd}
-body.crm-dark .tgm-badge.warn{background:#3b2d18;color:#efc77c}
-body.crm-dark .tgm-badge.bad{background:#442128;color:#f08b97}
-body.crm-dark .tgm-connection-good{background:#17382f;border-color:#2c6b58;color:#9ae0c6}
-body.crm-dark .tgm-connection-warn{background:#3b2d18;border-color:#755725;color:#efc77c}
-body.crm-dark .tgm-post-error{background:#442128;border-color:#7d3743;color:#f3a0aa}
-body.crm-dark .tgm-week>div{border-color:var(--line)}
-body.crm-dark .tgm-media-placeholder{color:#7f91a3}
+body.crm-dark [data-route-page="telegram"] .tgm-post-card p{
+  color:#c7d3de !important;
+}
+body.crm-dark [data-route-page="telegram"] .tgm-media-thumb,
+body.crm-dark [data-route-page="telegram"] .tgm-level-checks,
+body.crm-dark [data-route-page="telegram"] .tgm-switch{
+  background:#111a27 !important;
+  border-color:#283548 !important;
+  color:#e6edf4 !important;
+}
+body.crm-dark [data-route-page="telegram"] .input,
+body.crm-dark [data-route-page="telegram"] .select,
+body.crm-dark [data-route-page="telegram"] .textarea{
+  background:#111a27 !important;
+  border-color:#2c3b4e !important;
+  color:#e6edf4 !important;
+}
+body.crm-dark [data-route-page="telegram"] .input::placeholder,
+body.crm-dark [data-route-page="telegram"] .textarea::placeholder{
+  color:#6f8191 !important;
+}
+body.crm-dark [data-route-page="telegram"] .tgm-tags span,
+body.crm-dark [data-route-page="telegram"] .tgm-badge{
+  background:#1c2a3c !important;
+  color:#aec0cf !important;
+}
+body.crm-dark [data-route-page="telegram"] .tgm-badge.good{
+  background:#17382f !important;
+  color:#8cd8bd !important;
+}
+body.crm-dark [data-route-page="telegram"] .tgm-badge.warn{
+  background:#3b2d18 !important;
+  color:#efc77c !important;
+}
+body.crm-dark [data-route-page="telegram"] .tgm-badge.bad{
+  background:#442128 !important;
+  color:#f08b97 !important;
+}
+body.crm-dark [data-route-page="telegram"] .tgm-connection-good{
+  background:#17382f !important;
+  border-color:#2c6b58 !important;
+  color:#9ae0c6 !important;
+}
+body.crm-dark [data-route-page="telegram"] .tgm-connection-warn{
+  background:#3b2d18 !important;
+  border-color:#755725 !important;
+  color:#efc77c !important;
+}
+body.crm-dark [data-route-page="telegram"] .tgm-post-error{
+  background:#442128 !important;
+  border-color:#7d3743 !important;
+  color:#f3a0aa !important;
+}
+body.crm-dark [data-route-page="telegram"] .tgm-week>div{
+  border-color:#283548 !important;
+}
+body.crm-dark [data-route-page="telegram"] .tgm-media-placeholder{
+  color:#7f91a3 !important;
+}
+body.crm-dark [data-route-page="telegram"] .btn-secondary{
+  background:#172130 !important;
+  border-color:#2a394c !important;
+  color:#dce7f0 !important;
+}
