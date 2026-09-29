@@ -201,6 +201,9 @@ function settingsPanel(model,esc){
         '<div class="field"><label>Vision contact phone</label><input class="input" name="contact_phone" value="'+esc(s.contact_phone||'+998 94 073 44 88')+'" placeholder="+998 94 073 44 88"></div>'+
         '<div class="field"><label>Administrator Telegram link</label><input class="input" name="admin_chat_url" value="'+esc(s.admin_chat_url||'')+'" placeholder="https://t.me/your_admin"><small class="muted">When set, “Kurslarimizga qo‘shilish uchun” becomes a clickable link to this chat.</small></div>'+
         '<div class="field span-2"><label>Enrolment CTA label</label><input class="input" name="contact_cta_label" value="'+esc(s.contact_cta_label||'Kurslarimizga qo‘shilish uchun')+'"></div>'+
+        '<div class="field"><label>Mirror group username or ID</label><input class="input" name="mirror_group_chat" value="'+esc(s.mirror_group_chat||'')+'" placeholder="@your_group or -100..."><small class="muted">Every published channel post can also be copied to this Telegram group.</small></div>'+
+        '<div class="field"><label>Mirror reference header</label><input class="input" name="mirror_group_header" value="'+esc(s.mirror_group_header||'Vision Learning Centre')+'" placeholder="Vision Learning Centre"><small class="muted">This appears at the top of the group copy as the source/reference.</small></div>'+
+        '<label class="tgm-switch"><input type="checkbox" name="mirror_group_enabled" '+(s.mirror_group_enabled?'checked':'')+'><span><strong>Send every published post to the mirror group</strong><small>The channel remains the primary destination. The group receives the same post with the Vision Learning Centre reference at the top.</small></span></label>'+
         '<label class="tgm-switch"><input type="checkbox" name="approval_required" '+(s.approval_required?'checked':'')+'><span><strong>Approval required</strong><small>Jarvis prepares the post; you approve it before it can go live.</small></span></label>'+
         '<button class="btn btn-primary" type="submit">Save Telegram settings</button>'+
       '</form>'+
@@ -459,6 +462,9 @@ function bind(ctx,model){
         contact_phone:form.contact_phone.value.trim()||'+998 94 073 44 88',
         admin_chat_url:form.admin_chat_url.value.trim()||null,
         contact_cta_label:form.contact_cta_label.value.trim()||'Kurslarimizga qo‘shilish uchun',
+        mirror_group_chat:normalizeChannelInput(form.mirror_group_chat.value)||null,
+        mirror_group_header:form.mirror_group_header.value.trim()||'Vision Learning Centre',
+        mirror_group_enabled:form.mirror_group_enabled.checked&&!!normalizeChannelInput(form.mirror_group_chat.value),
         approval_required:form.approval_required.checked,
         updated_by:state.session.user.id,
         updated_at:new Date().toISOString()
