@@ -131,9 +131,12 @@ function postCard(post,media,esc){
   const linked=media?.find(m=>m.asset_id===post.id)||null;
   const isPublished=post.status==='published';
   const statusKind=post.status==='published'?'good':post.status==='approved'?'good':post.status==='error'?'bad':post.status==='skipped'?'warn':'';
+  const generatedVisual=post.agent_generated&&post.generation_meta?.media_outcome==='generate_image';
+  const visualQaOk=generatedVisual&&post.generation_meta?.visual_validation?.approved===true&&post.generation_meta?.logo_overlay_exact===true;
+  const visualQaBadge=generatedVisual?(visualQaOk?badge('Visual QA passed','good'):badge('Visual QA needed','warn')):'';
   return '<article class="tgm-post-card" data-post-id="'+esc(post.id)+'">'+
     '<div class="tgm-post-top"><div><span class="tgm-post-date">'+esc(fmtWhen(post.scheduled_for))+'</span><h3>'+esc(post.title||prettyStatus(post.category))+'</h3></div>'+badge(prettyStatus(post.status),statusKind)+'</div>'+
-    '<div class="tgm-post-meta">'+badge(prettyStatus(post.category))+badge(post.target_level||'all')+(linked?badge('Media attached','good'):'')+'</div>'+
+    '<div class="tgm-post-meta">'+badge(prettyStatus(post.category))+badge(post.target_level||'all')+(linked?badge('Media attached','good'):'')+visualQaBadge+'</div>'+
     '<p>'+esc((post.content_text||'No text yet.').slice(0,260))+(String(post.content_text||'').length>260?'…':'')+'</p>'+
     (post.error_message?'<div class="tgm-post-error">'+esc(post.error_message)+'</div>':'')+
     '<div class="tgm-post-actions">'+
