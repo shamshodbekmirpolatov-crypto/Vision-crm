@@ -1377,3 +1377,36 @@ body.crm-dark .attendance-controls .btn-secondary{background:#172130;border-colo
   55%{transform:translateX(35%) scaleX(.5);opacity:.7}
   100%{transform:translateX(110%) scaleX(.2);opacity:.2}
 }
+
+
+/* Telegram Manager: hard dark-theme surfaces.
+   Kept in the core CRM theme so these cards follow the same dark state as every other panel. */
+body.crm-dark .tgm-stat{
+  background:#151e2c!important;
+  border-color:#283548!important;
+  color:#e6edf4!important;
+  box-shadow:none!important;
+}
+body.crm-dark .tgm-stat span,
+body.crm-dark .tgm-stat small{
+  color:#92a2b1!important;
+}
+body.crm-dark .tgm-stat strong{
+  color:#e6edf4!important;
+}
+body.crm-dark .tgm-post-card,
+body.crm-dark .tgm-media-card{
+  background:#151e2c!important;
+  border-color:#283548!important;
+  color:#e6edf4!important;
+}
+body.crm-dark .tgm-post-card p{
+  color:#c7d3de!important;
+}
+body.crm-dark .tgm-media-thumb,
+body.crm-dark .tgm-level-checks,
+body.crm-dark .tgm-switch{
+  background:#111a27!important;
+  border-color:#283548!important;
+  color:#e6edf4!important;
+}
