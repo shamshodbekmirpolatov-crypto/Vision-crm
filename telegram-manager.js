@@ -224,7 +224,7 @@ function settingsPanel(model,esc){
         '<div><strong>Natural Uzbek</strong><span>Translations must sound natural and idiomatic, never machine-like.</span></div>'+
         '<div><strong>No invented centre claims</strong><span>Jarvis cannot fabricate student results, events, teachers, prices, offers or achievements.</span></div>'+
         '<div><strong>Media with a reason</strong><span>Text-only is allowed. Classroom media is reused only when approved and relevant; new visuals are created only when they improve the post.</span></div>'+
-        '<div><strong>Exact logo only</strong><span>Jarvis always uses the complete original Vision logo as one immutable asset. It stays small and subtle; the shield, wordmark, proportions and colours are never rebuilt or altered.</span></div>'+
+        '<div><strong>Exact integrated logo</strong><span>Jarvis uses the official horizontal Vision lockup as a small top-left signature directly on the artwork—never boxed, isolated, recoloured, rebuilt or proportionally altered.</span></div>'+
       '</div>'+
       '<div class="section-note tgm-note">Automatic videos are intentionally not part of this first agent version. We are making daily text + image quality reliable first.</div>'+
     '</div></section>'+
