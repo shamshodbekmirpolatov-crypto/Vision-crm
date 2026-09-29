@@ -64,6 +64,7 @@ const NAV = [
   { id:'staff', label:'Staff & Payroll', icon:'♙', roles:['owner','admin'], group:'Management' },
   { id:'reports', label:'Reports', icon:'▥', roles:['owner','admin'], group:'Management' },
   { id:'telegram', label:'Telegram Manager', icon:'✦', roles:['owner','admin'], group:'Management' },
+  { id:'trend_scout', label:'Trend Scout', icon:'◎', roles:['owner','admin'], group:'Management' },
   { id:'users', label:'User Accounts', icon:'⚙', roles:['owner','admin'], group:'Management' },
   { id:'settings', label:'Settings', icon:'◌', roles:['owner','admin'], group:'Management' },
 ];
@@ -81,6 +82,7 @@ const PAGE_META = {
   staff:['Staff & Payroll','Team records and salary payments'],
   reports:['Reports','Revenue, costs and operational indicators'],
   telegram:['Telegram Manager','Reusable classroom media, post approvals and Telegram publishing'],
+  trend_scout:['Trend Scout','Rare, Vision-fit English trends prepared for your approval'],
   users:['User Accounts','Manage Owner, Senior Manager, Administrator, Teacher and Cashier logins'],
   settings:['Settings','Centre name, currency and reference fees'],
 };
@@ -2580,6 +2582,102 @@ async function telegramPage(){
   return await window.VisionTelegramManager.page({sb,state,query,invokeEdge,toast,fail,esc,localYMD,openModal,renderRoute});
 }
 
+async function trendScoutPage(){
+  const [settings,posts]=await Promise.all([
+    query(sb.from('telegram_settings').select('content_rules,daily_post_time,timezone').eq('id',1).single()),
+    query(sb.from('telegram_posts').select('*').order('created_at',{ascending:false}).limit(120))
+  ]);
+  const rule=settings?.content_rules?.trend_scout||{};
+  const candidates=(posts||[]).filter(p=>p.generation_meta?.trend_scout===true);
+  const pending=candidates.filter(p=>p.status==='draft');
+  const approved=candidates.filter(p=>p.status==='approved');
+  const published=candidates.filter(p=>p.status==='published');
+  const rejected=candidates.filter(p=>p.status==='skipped');
+
+  setTimeout(()=>{
+    document.querySelectorAll('[data-trend-action]').forEach(button=>{
+      button.onclick=async()=>{
+        const id=button.dataset.id;
+        const action=button.dataset.trendAction;
+        const post=candidates.find(p=>p.id===id);
+        if(!post)return;
+        button.disabled=true;
+        try{
+          if(action==='approve'){
+            await query(sb.from('telegram_posts').update({
+              status:'approved',
+              approved_by:state.session.user.id,
+              approved_at:new Date().toISOString(),
+              error_message:null,
+              updated_at:new Date().toISOString()
+            }).eq('id',id));
+            toast('Trend post approved. It can now publish through the normal Telegram schedule.');
+          }else if(action==='reject'){
+            await query(sb.from('telegram_posts').update({
+              status:'skipped',
+              updated_at:new Date().toISOString()
+            }).eq('id',id));
+            toast('Trend candidate rejected.');
+          }else if(action==='open-source' && post.generation_meta?.trend_source_url){
+            window.open(post.generation_meta.trend_source_url,'_blank','noopener,noreferrer');
+          }
+          await renderRoute(true);
+        }catch(error){fail(error);}
+        finally{if(button?.isConnected)button.disabled=false;}
+      };
+    });
+  },0);
+
+  const statusBadge=p=>{
+    const kind=p.status==='published'?'good':p.status==='approved'?'good':p.status==='skipped'?'warn':'';
+    return '<span class="tgm-badge '+kind+'">'+esc(humanize(p.status))+'</span>';
+  };
+  const card=p=>{
+    const m=p.generation_meta||{};
+    const fit=m.vision_fit_score!=null?Math.round(Number(m.vision_fit_score))+'/100':'Not scored yet';
+    const source=m.trend_source_platform||'Public web';
+    const sourceBtn=m.trend_source_url?'<button class="btn btn-sm btn-secondary" type="button" data-trend-action="open-source" data-id="'+esc(p.id)+'">View source</button>':'';
+    const actions=p.status==='draft'
+      ? '<button class="btn btn-sm btn-primary" type="button" data-trend-action="approve" data-id="'+esc(p.id)+'">Approve for Telegram</button><button class="btn btn-sm btn-ghost" type="button" data-trend-action="reject" data-id="'+esc(p.id)+'">Reject</button>'
+      : '';
+    return '<article class="panel" style="margin:0">'+
+      '<div class="panel-head"><div><span class="eyebrow">'+esc(source)+'</span><h2>'+esc(p.title||'Trend candidate')+'</h2></div>'+statusBadge(p)+'</div>'+
+      '<div class="panel-body">'+
+        '<div class="tgm-post-meta"><span class="tgm-badge">Vision fit '+esc(fit)+'</span>'+(m.trend_category?'<span class="tgm-badge">'+esc(humanize(m.trend_category))+'</span>':'')+(p.target_level?'<span class="tgm-badge">'+esc(p.target_level)+'</span>':'')+'</div>'+
+        (m.trend_summary?'<p><strong>What is trending:</strong> '+esc(m.trend_summary)+'</p>':'')+
+        (m.vision_reason?'<p><strong>Why it fits Vision:</strong> '+esc(m.vision_reason)+'</p>':'')+
+        (m.vision_adaptation?'<p><strong>Vision angle:</strong> '+esc(m.vision_adaptation)+'</p>':'')+
+        '<div class="section-note" style="margin:14px 0 0"><strong>Prepared post</strong><br>'+esc(p.content_text||'No post copy prepared yet.').replace(/\n/g,'<br>')+'</div>'+
+        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px">'+sourceBtn+actions+'</div>'+
+      '</div>'+
+    '</article>';
+  };
+
+  const allCards=candidates.length
+    ? '<div style="display:grid;gap:16px">'+candidates.map(card).join('')+'</div>'
+    : '<div class="empty"><strong>No trend candidates yet</strong>Trend Scout is reserved for rare, high-fit English trends. The search engine will add candidates here only when something genuinely matches Vision.</div>';
+
+  return '<div class="tgm-page">'+
+    '<section class="tgm-hero"><div><span>VISION TREND SCOUT</span><h2>Trend Scout</h2><p>Rare English-learning trends, filtered for Vision values and prepared for your approval before anything can publish.</p></div></section>'+
+    '<div class="tgm-stats">'+
+      '<div class="tgm-stat"><span>Cadence</span><strong>'+esc(String(rule.cadence_days_min||35))+'–'+esc(String(rule.cadence_days_max||40))+' days</strong><small>Maximum one trend-inspired post per window</small></div>'+
+      '<div class="tgm-stat"><span>Awaiting approval</span><strong>'+pending.length+'</strong><small>Nothing publishes without approval</small></div>'+
+      '<div class="tgm-stat"><span>Approved</span><strong>'+approved.length+'</strong><small>Queued through normal Telegram publishing</small></div>'+
+      '<div class="tgm-stat"><span>Published</span><strong>'+published.length+'</strong><small>'+rejected.length+' rejected</small></div>'+
+    '</div>'+
+    '<section class="panel tgm-section"><div class="panel-head"><div><h2>What Jarvis is allowed to bring here</h2><p>Trend momentum alone is never enough.</p></div></div><div class="panel-body">'+
+      '<div class="tgm-rule-list">'+
+        '<div><strong>Vision fit first</strong><span>Every candidate must match Vision values, learners, teaching goals and brand tone.</span></div>'+
+        '<div><strong>No competitor people/content</strong><span>No videos featuring staff, teachers, students, classrooms or branding from other learning centres.</span></div>'+
+        '<div><strong>Original Vision execution</strong><span>Jarvis may learn from a trend mechanism, but should create an original Vision version rather than reposting unclear copyrighted media.</span></div>'+
+        '<div><strong>Rare by design</strong><span>Normally one candidate every 35–40 days, and Jarvis should skip the cycle entirely when nothing is strong enough.</span></div>'+
+        '<div><strong>Approval gate</strong><span>A trend candidate remains a draft until you approve it here. Only then can normal Telegram publishing take over.</span></div>'+
+      '</div>'+
+    '</div></section>'+
+    '<section class="tgm-section"><div class="panel-head"><div><h2>Trend candidates</h2><p>Source context, Vision fit and the proposed Vision adaptation are shown together.</p></div></div>'+allCards+'</section>'+
+  '</div>';
+}
+
 async function routeContent(routeName){
   switch(routeName){
     case 'dashboard': return await dashboardPage();
@@ -2594,6 +2692,7 @@ async function routeContent(routeName){
     case 'staff': return await staffPage();
     case 'reports': return await reportsPage();
     case 'telegram': return await telegramPage();
+    case 'trend_scout': return await trendScoutPage();
     case 'users': return await usersPage();
     case 'settings': return await settingsPage();
     default: return await dashboardPage();
