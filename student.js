@@ -26,12 +26,12 @@ const STUDENT_LOGIN_COPY=Object.freeze({
     heroBody:'Your scores, percentages, attendance and academic growth — all in one clear place.',
     miniTitle:'Student Progress',
     welcome:'Welcome back',
-    intro:'Enter your full name and password.',
-    login:'Full name',
+    intro:'Enter your first name and password.',
+    login:'First name',
     password:'Password',
     open:'Open my progress',
     checking:'Checking…',
-    note:'Use your full name exactly as shown on your Vision login card. Your first 4-digit password is temporary, and you must replace it when you first sign in. After 5 incorrect attempts, login is temporarily locked.',
+    note:'Use only your first name, for example Zafarbek or Saidaziz. Your first 4-digit password is temporary, and you must replace it when you first sign in. After 5 incorrect attempts, login is temporarily locked.',
     changeTitle:'Create your new password',
     changeIntro:'Your 4-digit password is only for the first login. Create a private password before entering your account.',
     newPassword:'New password',
@@ -49,12 +49,12 @@ const STUDENT_LOGIN_COPY=Object.freeze({
     heroBody:'Ballaringiz, foizlaringiz, davomat va o‘quvdagi o‘sishingiz — barchasi bitta aniq joyda.',
     miniTitle:'O‘quvchi natijalari',
     welcome:'Xush kelibsiz',
-    intro:'To‘liq ism-sharifingiz va parolingizni kiriting.',
-    login:'To‘liq ism-sharif',
+    intro:'Ismingiz va parolingizni kiriting.',
+    login:'Ism',
     password:'Parol',
     open:'Natijalarimni ochish',
     checking:'Tekshirilmoqda…',
-    note:'Vision login kartangizda yozilgan to‘liq ism-sharifdan foydalaning. Birinchi 4 xonali parol vaqtinchalik — ilk kirishda uni albatta yangisiga almashtirasiz. 5 marta noto‘g‘ri urinishdan so‘ng kirish vaqtincha bloklanadi.',
+    note:'Faqat ismingizdan foydalaning, masalan Zafarbek yoki Saidaziz. Birinchi 4 xonali parol vaqtinchalik — ilk kirishda uni albatta yangisiga almashtirasiz. 5 marta noto‘g‘ri urinishdan so‘ng kirish vaqtincha bloklanadi.',
     changeTitle:'Yangi parol yarating',
     changeIntro:'4 xonali parolingiz faqat birinchi kirish uchun. Hisobingizga kirishdan oldin shaxsiy yangi parol yarating.',
     newPassword:'Yangi parol',
@@ -72,12 +72,12 @@ const STUDENT_LOGIN_COPY=Object.freeze({
     heroBody:'Ваши баллы, проценты, посещаемость и учебный рост — всё в одном понятном месте.',
     miniTitle:'Прогресс ученика',
     welcome:'С возвращением',
-    intro:'Введите полное имя и пароль.',
-    login:'Полное имя',
+    intro:'Введите имя и пароль.',
+    login:'Имя',
     password:'Пароль',
     open:'Открыть мой прогресс',
     checking:'Проверка…',
-    note:'Используйте полное имя точно так, как оно указано на вашей карточке Vision. Первый 4-значный пароль временный — при первом входе его нужно обязательно заменить. После 5 неверных попыток вход временно блокируется.',
+    note:'Используйте только своё имя, например Zafarbek или Saidaziz. Первый 4-значный пароль временный — при первом входе его нужно обязательно заменить. После 5 неверных попыток вход временно блокируется.',
     changeTitle:'Создайте новый пароль',
     changeIntro:'4-значный пароль предназначен только для первого входа. Перед входом в аккаунт создайте личный новый пароль.',
     newPassword:'Новый пароль',
@@ -167,14 +167,14 @@ function renderLogin(error='',loginValue=''){
         '<button class="student-theme-toggle" id="student-theme-toggle" type="button" aria-pressed="false"><span class="student-theme-moon">'+moonIcon+'</span><span class="student-theme-sun">'+sunIcon+'</span></button>'+
       '</div>'+
       '<div class="mini-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong data-student-login-copy="miniTitle">Student Progress</strong><span>Vision Learning Centre</span></div></div>'+
-      '<h2 data-student-login-copy="welcome">Welcome back</h2><p data-student-login-copy="intro">Enter your full name and password.</p>'+
+      '<h2 data-student-login-copy="welcome">Welcome back</h2><p data-student-login-copy="intro">Enter your first name and password.</p>'+
       (error?'<div class="login-error">'+esc(error)+'</div>':'')+
       '<form id="student-login-form" class="login-form">'+
-        '<div class="field"><label for="student-login-name" data-student-login-copy="login">Full name</label><div class="input-shell"><input id="student-login-name" name="login" autocomplete="username" placeholder="Your full name" value="'+esc(loginValue)+'" required></div></div>'+
+        '<div class="field"><label for="student-login-name" data-student-login-copy="login">First name</label><div class="input-shell"><input id="student-login-name" name="login" autocomplete="username" placeholder="e.g. Zafarbek" value="'+esc(loginValue)+'" required></div></div>'+
         '<div class="field"><label for="student-login-password" data-student-login-copy="password">Password</label><div class="input-shell"><input id="student-login-password" name="password" autocomplete="current-password" type="password" placeholder="••••••" required></div></div>'+
         '<button class="login-button" type="submit"><span data-student-login-copy="open">Open my progress</span><span>→</span></button>'+
       '</form>'+
-      '<div class="login-note" data-student-login-copy="note">Use your full name exactly as shown on your Vision login card. Your first 4-digit password is temporary, and you must replace it when you first sign in.</div>'+
+      '<div class="login-note" data-student-login-copy="note">Use only your first name, for example Zafarbek or Saidaziz. Your first 4-digit password is temporary, and you must replace it when you first sign in.</div>'+
     '</div></section>'+
   '</div>';
   bindStudentLoginPreferences();
