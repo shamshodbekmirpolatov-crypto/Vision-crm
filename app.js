@@ -1436,12 +1436,13 @@ async function openStudentProfile(studentId,tab='overview',groups=[]){
         ...r,
         percentage:Math.round((Number(r.score)/Number(r.max_score))*1000)/10
       }));
-      const percentages=valid.map(r=>r.percentage);
-      const latest=valid.length?valid[valid.length-1]:null;
+      const chronological=[...valid].sort((a,b)=>String(a.record_date||'').localeCompare(String(b.record_date||'')));
+      const percentages=chronological.map(r=>r.percentage);
+      const latest=chronological.length?chronological[chronological.length-1]:null;
       const avg=percentages.length?Math.round((percentages.reduce((a,b)=>a+b,0)/percentages.length)*10)/10:null;
       const best=percentages.length?Math.max(...percentages):null;
       const growth=percentages.length>1?Math.round((percentages[percentages.length-1]-percentages[0])*10)/10:null;
-      const latestNote=[...valid].reverse().find(r=>r.teacher_note)?.teacher_note||null;
+      const latestNote=valid.find(r=>r.teacher_note)?.teacher_note||null;
       const metric=(label,value,sub='')=>'<div class="profile-card"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong><small>'+esc(sub)+'</small></div>';
       const resultRows=valid.slice().reverse().map(r=>
         '<tr><td>'+fmtDate(r.record_date)+'</td><td>'+esc(r.topic||r.record_type)+'</td><td>'+esc(r.score)+' / '+esc(r.max_score)+'</td><td><strong>'+esc(r.percentage)+'%</strong></td></tr>'
