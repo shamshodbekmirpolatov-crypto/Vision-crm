@@ -1368,7 +1368,7 @@ async function openStudentProfile(studentId,tab='overview',groups=[]){
     const canViewTeaching=can('owner','admin','teacher');
     const canEditStudent=can('owner','admin');
     const canViewNotes=can('owner','admin');
-    const allowedTabs=['overview',...(canViewFinance?['payments']:[]),...(canViewTeaching?['attendance','academic']:[]),...(canViewNotes?['notes']:[])];
+    const allowedTabs=['overview',...(role()==='owner'?['dashboard']:[]),...(canViewFinance?['payments']:[]),...(canViewTeaching?['attendance','academic']:[]),...(canViewNotes?['notes']:[])];
     if(!allowedTabs.includes(tab))tab='overview';
 
     setModalContent('<div class="drawer-backdrop"><aside class="student-drawer" role="dialog" aria-modal="true" aria-label="Student profile"><div class="drawer-loading">Loading student profile…</div></aside></div>');
@@ -1399,7 +1399,7 @@ async function openStudentProfile(studentId,tab='overview',groups=[]){
     const present=attendance.filter(a=>a.status==='present'||a.status==='late').length;
     const attendanceRate=attendance.length?Math.round(present/attendance.length*100):0;
 
-    const tabLabels={overview:'Overview',payments:'Payments',attendance:'Attendance',academic:'Academic',notes:'Notes'};
+    const tabLabels={overview:'Overview',dashboard:'Student dashboard',payments:'Payments',attendance:'Attendance',academic:'Academic',notes:'Notes'};
     const tabNav=allowedTabs.map(t=>'<button class="drawer-tab '+(tab===t?'active':'')+'" data-profile-tab="'+t+'">'+tabLabels[t]+'</button>').join('');
 
     let body='';
@@ -1431,6 +1431,39 @@ async function openStudentProfile(studentId,tab='overview',groups=[]){
           detailRow('Room',student.groups?.room||'—')+
           detailRow('Level',student.groups?.level||'—')+
         '</div></div>';
+    }else if(tab==='dashboard'&&role()==='owner'){
+      const valid=(academic||[]).filter(r=>Number(r.max_score)>0&&Number.isFinite(Number(r.score))).map(r=>({
+        ...r,
+        percentage:Math.round((Number(r.score)/Number(r.max_score))*1000)/10
+      }));
+      const percentages=valid.map(r=>r.percentage);
+      const latest=valid.length?valid[valid.length-1]:null;
+      const avg=percentages.length?Math.round((percentages.reduce((a,b)=>a+b,0)/percentages.length)*10)/10:null;
+      const best=percentages.length?Math.max(...percentages):null;
+      const growth=percentages.length>1?Math.round((percentages[percentages.length-1]-percentages[0])*10)/10:null;
+      const latestNote=[...valid].reverse().find(r=>r.teacher_note)?.teacher_note||null;
+      const metric=(label,value,sub='')=>'<div class="profile-card"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong><small>'+esc(sub)+'</small></div>';
+      const resultRows=valid.slice().reverse().map(r=>
+        '<tr><td>'+fmtDate(r.record_date)+'</td><td>'+esc(r.topic||r.record_type)+'</td><td>'+esc(r.score)+' / '+esc(r.max_score)+'</td><td><strong>'+esc(r.percentage)+'%</strong></td></tr>'
+      ).join('');
+      body='<div class="owner-readonly-note"><strong>Owner view · read only</strong><span>This view uses Staff CRM permissions only. It does not use or change the student password.</span></div>'+
+        '<div class="profile-grid">'+
+          metric('Latest result',latest?latest.percentage+'%':'—',latest?String(latest.topic||latest.record_type):'No result yet')+
+          metric('Overall average',avg!==null?avg+'%':'—','All recorded results')+
+          metric('Best result',best!==null?best+'%':'—','Highest recorded percentage')+
+          metric('Growth',growth!==null?(growth>0?'+':'')+growth+' pts':'—','First to latest result')+
+          metric('Attendance · 90 days',attendance.length?attendanceRate+'%':'—',attendance.length+' recorded lessons')+
+        '</div>'+
+        '<div class="profile-section"><h4>Learning overview</h4><div class="detail-list">'+
+          detailRow('Group',student.groups?.name||'—')+
+          detailRow('Teacher',student.groups?.staff?.full_name||'—')+
+          detailRow('Schedule',student.groups?formattedGroupSchedule(student.groups):'—')+
+          detailRow('Room',student.groups?.room||'—')+
+          detailRow('Level',student.groups?.level||'—')+
+          detailRow('Status',humanize(student.status))+
+        '</div></div>'+
+        '<div class="profile-section"><h4>Latest teacher feedback</h4><div class="teacher-note">'+esc(latestNote||'No teacher feedback yet.')+'</div></div>'+
+        '<div class="profile-section"><h4>Test results</h4>'+(resultRows?'<div class="table-wrap drawer-table"><table><thead><tr><th>Date</th><th>Topic</th><th>Score</th><th>Percent</th></tr></thead><tbody>'+resultRows+'</tbody></table></div>':empty('No academic records yet.'))+'</div>';
     }else if(tab==='payments'&&canViewFinance){
       const rows=payments.map(p=>'<tr><td>'+new Date(p.fee_month+'T00:00:00').toLocaleDateString('en-GB',{month:'short',year:'numeric'})+'</td><td>'+fmtDate(p.paid_at)+'</td><td class="num">'+fmtMoney(p.amount)+'</td><td>'+paymentMethodLabel(p.method)+'</td></tr>').join('');
       body=rows
