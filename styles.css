@@ -1410,3 +1410,34 @@ body.crm-dark .tgm-switch{
   border-color:#283548!important;
   color:#e6edf4!important;
 }
+
+
+/* Owner read-only student dashboard */
+.owner-readonly-note{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  padding:12px 14px;
+  margin-bottom:14px;
+  border:1px solid rgba(13,82,120,.14);
+  border-radius:13px;
+  background:linear-gradient(135deg,#eef7fb,#f7fbfd);
+  color:#365f78;
+}
+.owner-readonly-note strong{
+  flex:0 0 auto;
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:#0d5278;
+}
+.owner-readonly-note span{
+  font-size:10px;
+  line-height:1.55;
+}
+.crm-dark .owner-readonly-note{
+  background:linear-gradient(135deg,rgba(24,55,77,.78),rgba(19,42,61,.72));
+  border-color:rgba(120,171,201,.18);
+  color:#b4cad8;
+}
+.crm-dark .owner-readonly-note strong{color:#8ec4e4}
