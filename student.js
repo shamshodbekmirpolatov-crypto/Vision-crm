@@ -26,12 +26,19 @@ const STUDENT_LOGIN_COPY=Object.freeze({
     heroBody:'Your scores, percentages, attendance and academic growth — all in one clear place.',
     miniTitle:'Student Progress',
     welcome:'Welcome back',
-    intro:'Enter the student, mother, or father phone number registered with Vision and the matching 4-digit PIN.',
-    phone:'Phone number',
-    pin:'4-digit PIN',
+    intro:'Enter your full name and password.',
+    login:'Full name',
+    password:'Password',
     open:'Open my progress',
     checking:'Checking…',
-    note:'You can use the student, mother, or father phone number registered in Vision. The PIN is the last four digits of the phone number you use. After 5 incorrect attempts, login is temporarily locked.',
+    note:'Use your full name exactly as shown on your Vision login card. Your first 4-digit password is temporary, and you must replace it when you first sign in. After 5 incorrect attempts, login is temporarily locked.',
+    changeTitle:'Create your new password',
+    changeIntro:'Your 4-digit password is only for the first login. Create a private password before entering your account.',
+    newPassword:'New password',
+    confirmPassword:'Confirm new password',
+    savePassword:'Save new password',
+    saving:'Saving…',
+    changeNote:'Use at least 6 characters. Do not reuse your temporary 4-digit password.',
     dark:'Switch to dark mode',
     light:'Switch to light mode'
   },
@@ -42,12 +49,19 @@ const STUDENT_LOGIN_COPY=Object.freeze({
     heroBody:'Ballaringiz, foizlaringiz, davomat va o‘quvdagi o‘sishingiz — barchasi bitta aniq joyda.',
     miniTitle:'O‘quvchi natijalari',
     welcome:'Xush kelibsiz',
-    intro:'Vision’da ro‘yxatdan o‘tgan o‘quvchi, ona yoki ota telefon raqamini va shu raqamga mos 4 xonali PIN kodni kiriting.',
-    phone:'Telefon raqami',
-    pin:'4 xonali PIN',
+    intro:'To‘liq ism-sharifingiz va parolingizni kiriting.',
+    login:'To‘liq ism-sharif',
+    password:'Parol',
     open:'Natijalarimni ochish',
     checking:'Tekshirilmoqda…',
-    note:'Vision’da ro‘yxatdan o‘tgan o‘quvchi, ona yoki ota telefon raqamidan foydalanishingiz mumkin. PIN — kirishda ishlatgan telefon raqamingizning oxirgi to‘rtta raqami. 5 marta noto‘g‘ri urinishdan so‘ng kirish vaqtincha bloklanadi.',
+    note:'Vision login kartangizda yozilgan to‘liq ism-sharifdan foydalaning. Birinchi 4 xonali parol vaqtinchalik — ilk kirishda uni albatta yangisiga almashtirasiz. 5 marta noto‘g‘ri urinishdan so‘ng kirish vaqtincha bloklanadi.',
+    changeTitle:'Yangi parol yarating',
+    changeIntro:'4 xonali parolingiz faqat birinchi kirish uchun. Hisobingizga kirishdan oldin shaxsiy yangi parol yarating.',
+    newPassword:'Yangi parol',
+    confirmPassword:'Yangi parolni tasdiqlang',
+    savePassword:'Yangi parolni saqlash',
+    saving:'Saqlanmoqda…',
+    changeNote:'Kamida 6 ta belgi ishlating. Vaqtinchalik 4 xonali parolni qayta ishlatmang.',
     dark:'Tungi rejimga o‘tish',
     light:'Yorug‘ rejimga o‘tish'
   },
@@ -58,12 +72,19 @@ const STUDENT_LOGIN_COPY=Object.freeze({
     heroBody:'Ваши баллы, проценты, посещаемость и учебный рост — всё в одном понятном месте.',
     miniTitle:'Прогресс ученика',
     welcome:'С возвращением',
-    intro:'Введите зарегистрированный в Vision номер ученика, матери или отца и соответствующий 4-значный PIN-код.',
-    phone:'Номер телефона',
-    pin:'4-значный PIN',
+    intro:'Введите полное имя и пароль.',
+    login:'Полное имя',
+    password:'Пароль',
     open:'Открыть мой прогресс',
     checking:'Проверка…',
-    note:'Можно использовать номер ученика, матери или отца, зарегистрированный в Vision. PIN — последние четыре цифры номера, который используется для входа. После 5 неверных попыток вход временно блокируется.',
+    note:'Используйте полное имя точно так, как оно указано на вашей карточке Vision. Первый 4-значный пароль временный — при первом входе его нужно обязательно заменить. После 5 неверных попыток вход временно блокируется.',
+    changeTitle:'Создайте новый пароль',
+    changeIntro:'4-значный пароль предназначен только для первого входа. Перед входом в аккаунт создайте личный новый пароль.',
+    newPassword:'Новый пароль',
+    confirmPassword:'Подтвердите новый пароль',
+    savePassword:'Сохранить новый пароль',
+    saving:'Сохранение…',
+    changeNote:'Используйте не менее 6 символов. Не повторяйте временный 4-значный пароль.',
     dark:'Включить тёмную тему',
     light:'Включить светлую тему'
   }
@@ -126,7 +147,7 @@ function bindStudentLoginPreferences(){
     applyStudentLoginTheme(next);
   });
 }
-function renderLogin(error='',phoneValue=''){
+function renderLogin(error='',loginValue=''){
   const selectedLang=studentLoginLanguage();
   const selectedTheme=studentLoginTheme();
   const moonIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.7 6.7 0 0 0 21 12.8Z"/></svg>';
@@ -146,23 +167,48 @@ function renderLogin(error='',phoneValue=''){
         '<button class="student-theme-toggle" id="student-theme-toggle" type="button" aria-pressed="false"><span class="student-theme-moon">'+moonIcon+'</span><span class="student-theme-sun">'+sunIcon+'</span></button>'+
       '</div>'+
       '<div class="mini-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong data-student-login-copy="miniTitle">Student Progress</strong><span>Vision Learning Centre</span></div></div>'+
-      '<h2 data-student-login-copy="welcome">Welcome back</h2><p data-student-login-copy="intro">Enter the phone number registered with Vision and your 4-digit PIN.</p>'+
+      '<h2 data-student-login-copy="welcome">Welcome back</h2><p data-student-login-copy="intro">Enter your full name and password.</p>'+
       (error?'<div class="login-error">'+esc(error)+'</div>':'')+
       '<form id="student-login-form" class="login-form">'+
-        '<div class="field"><label for="student-login-phone" data-student-login-copy="phone">Phone number</label><div class="input-shell"><input id="student-login-phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="+998 99 123 45 67" value="'+esc(phoneValue)+'" required></div></div>'+
-        '<div class="field"><label for="student-login-pin" data-student-login-copy="pin">4-digit PIN</label><div class="input-shell"><input id="student-login-pin" class="pin-input" name="pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" type="password" placeholder="••••" required></div></div>'+
+        '<div class="field"><label for="student-login-name" data-student-login-copy="login">Full name</label><div class="input-shell"><input id="student-login-name" name="login" autocomplete="username" placeholder="Your full name" value="'+esc(loginValue)+'" required></div></div>'+
+        '<div class="field"><label for="student-login-password" data-student-login-copy="password">Password</label><div class="input-shell"><input id="student-login-password" name="password" autocomplete="current-password" type="password" placeholder="••••••" required></div></div>'+
         '<button class="login-button" type="submit"><span data-student-login-copy="open">Open my progress</span><span>→</span></button>'+
       '</form>'+
-      '<div class="login-note" data-student-login-copy="note">Your PIN is the last four digits of the phone number registered in your Vision student profile. After 5 incorrect attempts, login is temporarily locked.</div>'+
+      '<div class="login-note" data-student-login-copy="note">Use your full name exactly as shown on your Vision login card. Your first 4-digit password is temporary, and you must replace it when you first sign in.</div>'+
     '</div></section>'+
   '</div>';
   bindStudentLoginPreferences();
   applyStudentLoginLanguage(selectedLang);
   document.getElementById('student-login-form').onsubmit=login;
   requestAnimationFrame(()=>{
-    const target=document.getElementById(error&&phoneValue?'student-login-pin':'student-login-phone');
+    const target=document.getElementById(error&&loginValue?'student-login-password':'student-login-name');
     target?.focus({preventScroll:true});
   });
+}
+
+function renderPasswordChange(loginName,error=''){
+  const selectedLang=studentLoginLanguage();
+  const selectedTheme=studentLoginTheme();
+  app.innerHTML='<div class="student-login '+(selectedTheme==='dark'?'student-login-dark':'')+'">'+
+    '<section class="student-login-hero">'+
+      '<div class="student-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>VISION</strong><span>LEARNING CENTRE</span></div></div>'+
+      '<div class="student-hero-copy"><small data-student-login-copy="heroKicker">STUDENT PROGRESS</small><h1><span data-student-login-copy="heroLine1">See your progress.</span><br><em data-student-login-copy="heroLine2">Keep moving forward.</em></h1><p data-student-login-copy="heroBody">Your scores, percentages, attendance and academic growth — all in one clear place.</p></div>'+
+    '</section>'+
+    '<section class="student-login-panel"><div class="student-login-card">'+
+      '<div class="mini-brand"><img src="./vision-logo.jpg" alt="Vision Learning Centre"><div><strong>'+esc(loginName)+'</strong><span>Vision Learning Centre</span></div></div>'+
+      '<h2 data-student-login-copy="changeTitle">Create your new password</h2><p data-student-login-copy="changeIntro">Your 4-digit password is only for the first login. Create a private password before entering your account.</p>'+
+      (error?'<div class="login-error">'+esc(error)+'</div>':'')+
+      '<form id="student-password-change-form" class="login-form">'+
+        '<div class="field"><label for="student-new-password" data-student-login-copy="newPassword">New password</label><div class="input-shell"><input id="student-new-password" name="newPassword" minlength="6" maxlength="64" autocomplete="new-password" type="password" placeholder="At least 6 characters" required></div></div>'+
+        '<div class="field"><label for="student-confirm-password" data-student-login-copy="confirmPassword">Confirm new password</label><div class="input-shell"><input id="student-confirm-password" name="confirmPassword" minlength="6" maxlength="64" autocomplete="new-password" type="password" placeholder="Repeat new password" required></div></div>'+
+        '<button class="login-button" type="submit"><span data-student-login-copy="savePassword">Save new password</span><span>→</span></button>'+
+      '</form>'+
+      '<div class="login-note" data-student-login-copy="changeNote">Use at least 6 characters. Do not reuse your temporary 4-digit password.</div>'+
+    '</div></section>'+
+  '</div>';
+  applyStudentLoginLanguage(selectedLang);
+  document.getElementById('student-password-change-form').onsubmit=changePassword;
+  requestAnimationFrame(()=>document.getElementById('student-new-password')?.focus({preventScroll:true}));
 }
 
 async function login(e){
@@ -172,29 +218,68 @@ async function login(e){
   if(btn?.disabled)return;
   const loginCopy=STUDENT_LOGIN_COPY[studentLoginLanguage()]||STUDENT_LOGIN_COPY.en;
   if(btn){btn.disabled=true;btn.innerHTML='<span>'+esc(loginCopy.checking)+'</span><span>•••</span>';}
-  const credentials={phone:form.phone.value.trim(),pin:form.pin.value.trim()};
+  const credentials={login:form.login.value.trim(),password:form.password.value};
   try{
     const {data,error}=await sb.functions.invoke('student-portal',{body:credentials});
     if(error){
       let msg=error.message;
       try{const body=await error.context?.json?.();if(body?.error)msg=body.error;}catch{}
-      renderLogin(msg,credentials.phone);
+      renderLogin(msg,credentials.login);
       return;
     }
     if(data?.error){
-      renderLogin(data.error,credentials.phone);
+      renderLogin(data.error,credentials.login);
       return;
     }
     portalAuth=credentials;
-    if(data?.selection_required&&Array.isArray(data.students)){
-      renderStudentPicker(data.students);
+    if(data?.password_change_required){
+      renderPasswordChange(data.login_name||credentials.login);
       return;
     }
     portalData=data;
     renderPortal();
   }catch(error){
     console.error(error);
-    renderLogin('Could not connect right now. Please try again.',credentials.phone);
+    renderLogin('Could not connect right now. Please try again.',credentials.login);
+  }
+}
+
+async function changePassword(e){
+  e.preventDefault();
+  if(!portalAuth)return renderLogin();
+  const form=e.currentTarget;
+  const next=form.newPassword.value;
+  const confirm=form.confirmPassword.value;
+  const loginCopy=STUDENT_LOGIN_COPY[studentLoginLanguage()]||STUDENT_LOGIN_COPY.en;
+  if(next.length<6)return renderPasswordChange(portalAuth.login,'Your new password must be at least 6 characters.');
+  if(next!==confirm)return renderPasswordChange(portalAuth.login,'The two new passwords do not match.');
+  if(next===portalAuth.password)return renderPasswordChange(portalAuth.login,'Choose a different password from your temporary password.');
+  const btn=form.querySelector('button[type=submit]');
+  if(btn){btn.disabled=true;btn.innerHTML='<span>'+esc(loginCopy.saving)+'</span><span>•••</span>';}
+  try{
+    const {data,error}=await sb.functions.invoke('student-portal',{body:{
+      action:'change_password',
+      login:portalAuth.login,
+      current_password:portalAuth.password,
+      new_password:next
+    }});
+    if(error){
+      let msg=error.message;
+      try{const body=await error.context?.json?.();if(body?.error)msg=body.error;}catch{}
+      renderPasswordChange(portalAuth.login,msg);
+      return;
+    }
+    if(data?.error){
+      renderPasswordChange(portalAuth.login,data.error);
+      return;
+    }
+    portalAuth={login:portalAuth.login,password:next};
+    portalData=data;
+    renderPortal();
+    toast('Password changed successfully.');
+  }catch(error){
+    console.error(error);
+    renderPasswordChange(portalAuth.login,'Could not save your new password. Please try again.');
   }
 }
 
@@ -258,7 +343,7 @@ async function refreshPortal(view='dashboard'){
           if(body?.error)message=body.error;
         }catch{}
       }
-      if(/phone number or pin is incorrect/i.test(message)){
+      if(/name or password is incorrect/i.test(message)){
         portalData=null;
         portalAuth=null;
         renderLogin(message);
