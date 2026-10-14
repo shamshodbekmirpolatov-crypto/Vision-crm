@@ -1502,10 +1502,11 @@ async function openStudentProfile(studentId,tab='overview',groups=[]){
 function detailRow(label,value){return '<div class="detail-row"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong></div>';}
 
 async function groupsPage(){
-  const [groups,staff,students]=await Promise.all([
+  const [groups,staff,students,payments]=await Promise.all([
     query(sb.from('groups').select('*, staff(full_name)').order('name')),
     can('owner','admin')?query(sb.from('staff').select('id,full_name,role_title,active').eq('active',true).eq('role_title','Teacher').order('full_name')):Promise.resolve([]),
-    query(sb.from('students').select('id,full_name,group_id,status,phone,mother_phone,father_phone,grade_or_age,join_date').order('full_name'))
+    query(sb.from('students').select('id,full_name,group_id,status,phone,mother_phone,father_phone,grade_or_age,join_date,monthly_fee,discount_amount,is_free_place').order('full_name')),
+    can('owner','admin','cashier')?query(sb.from('payments').select('student_id,amount').eq('fee_month',monthStart()).is('voided_at',null)):Promise.resolve([])
   ]);
   const rows=groups.map(g=>{
     const n=students.filter(s=>s.group_id===g.id&&s.status==='active').length;
@@ -1519,21 +1520,29 @@ async function groupsPage(){
       '<td>'+(can('owner','admin')?actionButton('Edit','group-edit',g.id):'')+'</td>'+
     '</tr>';
   }).join('');
-  setTimeout(()=>bindGroupActions(groups,staff,students),0);
+  setTimeout(()=>bindGroupActions(groups,staff,students,payments),0);
   return tablePage('Class groups',can('owner','admin')?'<button class="btn btn-primary" data-action="group-new">'+uiIcon('plus')+'Add group</button>':'',[['Group',''],['Schedule',''],['Teacher',''],['Students',''],['Default fee','num'],['Status',''],['','']],rows,'No groups found.');
 }
-function openGroupRoster(group,students,groups=[]){
+function openGroupRoster(group,students,groups=[],payments=[]){
+  const showPayments=can('owner','admin','cashier');
+  const paidMap=new Map();
+  payments.forEach(p=>paidMap.set(p.student_id,(paidMap.get(p.student_id)||0)+Number(p.amount||0)));
+  const paymentFor=s=>{const due=s.is_free_place?0:Math.max(0,Number(s.monthly_fee||0)-Number(s.discount_amount||0));const paid=paidMap.get(s.id)||0;const balance=Math.max(0,due-paid);return {due,paid,balance,status:s.is_free_place||due===0?'free':paid<=0?'unpaid':balance>0?'partial':'paid'};};
+  const paymentLabel={paid:'Paid',unpaid:'Unpaid',partial:'Partial',free:'Free place'};
+  const paymentBadge=s=>{const p=paymentFor(s);return '<span class="badge payment-'+p.status+'">'+paymentLabel[p.status]+'</span>';};
   const roster=students
     .filter(s=>s.group_id===group.id)
     .sort((a,b)=>String(a.full_name||'').localeCompare(String(b.full_name||'')));
   const activeCount=roster.filter(s=>s.status==='active').length;
   const pausedCount=roster.filter(s=>s.status==='paused').length;
-  const rosterRows=roster.map(s=>{
+  const unpaidRoster=showPayments?roster.filter(s=>s.status==='active'&&paymentFor(s).balance>0):[];
+  const rosterRows=roster.map((s,index)=>{
     const phone=s.phone||s.mother_phone||s.father_phone||'—';
     return '<tr class="group-roster-student" data-group-student-open="'+s.id+'" tabindex="0" role="button" aria-label="Open '+esc(s.full_name)+' student profile">'+
-      '<td><div class="student-identity"><div class="student-avatar">'+esc(initials(s.full_name))+'</div><div><strong>'+esc(s.full_name)+'</strong><span>'+esc(phone)+'</span></div></div></td>'+
+      '<td><div class="student-identity"><span style="min-width:24px;text-align:right;font-weight:700;color:#93a9c4;font-variant-numeric:tabular-nums">'+(index+1)+'.</span><div class="student-avatar">'+esc(initials(s.full_name))+'</div><div><strong>'+esc(s.full_name)+'</strong><span>'+esc(phone)+'</span></div></div></td>'+
       '<td>'+esc(s.grade_or_age||'—')+'</td>'+
       '<td>'+fmtDate(s.join_date)+'</td>'+
+      (showPayments?'<td>'+paymentBadge(s)+'</td>':'')+
       '<td><span class="badge '+(s.status==='active'?'success':s.status==='paused'?'warn':'')+'">'+esc(humanize(s.status))+'</span></td>'+
     '</tr>';
   }).join('');
@@ -1555,9 +1564,11 @@ function openGroupRoster(group,students,groups=[]){
     '</div></div>'+
     '<div class="profile-section group-roster-section"><div class="group-roster-title"><div><h4>Students</h4><p>'+activeCount+' active · '+roster.length+' assigned</p></div></div>'+
       (rosterRows
-        ? '<div class="table-wrap drawer-table group-roster-table"><table><thead><tr><th>Student</th><th>Grade / age</th><th>Joined</th><th>Status</th></tr></thead><tbody>'+rosterRows+'</tbody></table></div>'
+        ? '<div class="table-wrap drawer-table group-roster-table"><table><thead><tr><th>Student</th><th>Grade / age</th><th>Joined</th>'+(showPayments?'<th>Payment</th>':'')+'<th>Status</th></tr></thead><tbody>'+rosterRows+'</tbody></table></div>'
         : empty('No students are assigned to this group yet.'))+
-    '</div>';
+    '</div>'+
+    (showPayments?'<div class="profile-section group-roster-section"><div class="group-roster-title"><div><h4>Students with outstanding payments</h4><p>'+esc(localYM())+' · '+unpaidRoster.length+' student'+(unpaidRoster.length===1?'':'s')+' · Includes partial payments</p></div></div>'+
+      (unpaidRoster.length?'<div class="table-wrap drawer-table group-roster-table"><table><thead><tr><th>#</th><th>Student</th><th>Payment</th><th>Balance due</th></tr></thead><tbody>'+unpaidRoster.map((s,index)=>'<tr class="group-roster-student" data-group-student-open="'+s.id+'" tabindex="0" role="button" aria-label="Open '+esc(s.full_name)+' student profile"><td>'+(index+1)+'</td><td><strong>'+esc(s.full_name)+'</strong></td><td>'+paymentBadge(s)+'</td><td><strong>'+fmtMoney(paymentFor(s).balance)+'</strong></td></tr>').join('')+'</tbody></table></div>':'<div class="section-note">All active students in this group are fully paid for this month, or have a free place.</div>')+'</div>':'');
 
   setModalContent('<div class="drawer-backdrop"><aside class="student-drawer group-roster-drawer" role="dialog" aria-modal="true" aria-label="'+esc(group.name)+' students">'+
     '<div class="drawer-head"><button class="icon-btn drawer-close" aria-label="Close">×</button><div class="profile-hero"><div class="student-avatar large group-avatar">'+uiIcon('groups')+'</div><div><h3>'+esc(group.name)+'</h3><p>'+esc(group.level||'Level not set')+' · '+esc(group.staff?.full_name||'No teacher assigned')+'</p><div class="profile-badges"><span class="badge '+(group.active?'success':'')+'">'+(group.active?'Active':'Inactive')+'</span><span class="badge info">'+activeCount+' active student'+(activeCount===1?'':'s')+'</span></div></div></div></div>'+
@@ -1608,7 +1619,7 @@ function formattedGroupSchedule(g){
   const time=start&&end?start+'–'+end:(start||end);
   return [days,time].filter(Boolean).join(' · ') || g.schedule || '—';
 }
-function bindGroupActions(groups,staff,students=[]){
+function bindGroupActions(groups,staff,students=[],payments=[]){
   document.querySelector('[data-action="group-new"]')?.addEventListener('click',()=>openModal('Add group',groupForm({},staff),async f=>{
     const meeting_days=selectedGroupDays(f);
     if(!meeting_days.length) throw new Error('Choose at least one teaching day.');
@@ -1632,7 +1643,7 @@ function bindGroupActions(groups,staff,students=[]){
   document.querySelectorAll('[data-group-open]').forEach(row=>{
     const open=()=>{
       const g=groups.find(x=>String(x.id)===String(row.dataset.groupOpen));
-      if(g)openGroupRoster(g,students,groups);
+      if(g)openGroupRoster(g,students,groups,payments);
     };
     row.onclick=e=>{
       if(e.target.closest('[data-action]'))return;
