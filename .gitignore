@@ -1,0 +1,29 @@
+# Local secrets and environment configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.sqlite
+*.sqlite3
+*.db
+*.log
+
+# Local installs and generated output
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+
+# Private data and backups
+/backups/
+/data/
+*.bak
+*.backup
+*.dump
+*.sql.gz
